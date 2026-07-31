@@ -1,6 +1,5 @@
 <template>
   <div class="window-controls">
-    <span class="title">洋芋田图像工具箱</span>
     <div class="caption">
       <button class="cap-btn" title="最小化" @click="minimize">
         <font-awesome-icon :icon="['fas', 'window-minimize']" />
@@ -30,29 +29,28 @@ function close() {
 
 <style scoped>
 .window-controls {
+  /* 悬浮在内容区右上角，不占布局高度，使左侧边栏可顶到窗口顶部 */
+  position: absolute;
+  top: 0;
+  left: 232px; /* 从侧边栏右缘起，不遮挡侧边栏 */
+  right: 0;
+  height: 32px;
   display: flex;
   align-items: center;
-  height: 32px;
-  padding: 0 6px 0 14px;
-  -webkit-app-region: drag;
+  justify-content: flex-end;
+  padding: 0;
   background: transparent;
-  border-bottom: 1px solid var(--border-color);
-}
-.title {
-  flex: 1;
-  font-size: 12px;
-  color: var(--text-secondary);
-  user-select: none;
+  /* 该栏整体可拖拽窗口；按钮区在拖拽区之外，确保可点击 */
+  -webkit-app-region: drag;
+  z-index: 20;
 }
 .caption {
   display: flex;
-  margin-left: auto;
   -webkit-app-region: no-drag;
 }
 .cap-btn {
   width: 46px;
   height: 32px;
-  -webkit-app-region: no-drag;
   border: none;
   background: transparent;
   color: var(--text-color);
@@ -61,12 +59,20 @@ function close() {
   align-items: center;
   justify-content: center;
   font-size: 13px;
+  transition: background 0.1s ease;
 }
 .cap-btn:hover {
   background: var(--hover-bg);
 }
+.cap-btn:active {
+  background: rgba(0, 0, 0, 0.12);
+}
 .cap-close:hover {
   background: #c42b1c;
+  color: #fff;
+}
+.cap-close:active {
+  background: #a91e10;
   color: #fff;
 }
 </style>

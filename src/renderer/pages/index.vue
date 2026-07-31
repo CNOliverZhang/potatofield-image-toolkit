@@ -1,7 +1,5 @@
 <template>
   <div class="home">
-    <h1 class="title">洋芋田图像工具箱</h1>
-    <p class="subtitle">一站式图片处理工具集（Electron + Vue 3 重写版）</p>
     <div class="grid">
       <div v-for="tool in tools" :key="tool.path" class="card" @click="go(tool.path)">
         <font-awesome-icon :icon="tool.icon" class="card-icon" />
@@ -39,14 +37,6 @@ function go(path: string) {
 .home {
   max-width: 900px;
   margin: 0 auto;
-}
-.title {
-  font-size: 28px;
-  color: var(--main-color);
-}
-.subtitle {
-  color: var(--text-secondary);
-  margin-bottom: 28px;
 }
 .grid {
   display: grid;

@@ -1,7 +1,30 @@
-import { BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
+import { app, BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
 import { join } from 'path';
+import { existsSync } from 'fs';
 
 const windows = new Map<string, BrowserWindow>();
+
+// 开发模式 electron-vite 将 preload 编译为 index.mjs，生产构建为 index.js，两者都要兼容
+function resolvePreload(): string {
+  const base = join(__dirname, '../preload/index');
+  if (existsSync(base + '.mjs')) return base + '.mjs';
+  return base + '.js';
+}
+
+// 应用图标：Windows 用 .ico（任务栏/窗口），其它平台用 .png
+// 多候选路径回退，兼容 dev（项目根）/ 打包（resources）等不同运行位置
+export function resolveAppIcon(): string {
+  const name = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+  const candidates = [
+    join(app.getAppPath(), 'build/icons', name),
+    join(process.cwd(), 'build/icons', name),
+    join(__dirname, '../icons', name)
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return candidates[0];
+}
 
 export interface OpenWindowOptions extends BrowserWindowConstructorOptions {
   route?: string;
@@ -29,9 +52,10 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
+    icon: resolveAppIcon(),
     show: false,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: resolvePreload(),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false
@@ -46,6 +70,12 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
   }
 
   win.once('ready-to-show', () => win.show());
+
+  // dev 模式自动打开 DevTools（独立窗口，方便定位样式/逻辑问题）
+  if (!app.isPackaged) {
+    win.webContents.openDevTools({ mode: 'detach' });
+  }
+
   win.on('closed', () => {
     if (dedupKey) windows.delete(dedupKey);
   });

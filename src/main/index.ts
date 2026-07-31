@@ -1,6 +1,5 @@
 import { app, Tray, Menu, nativeImage } from 'electron';
-import { join } from 'path';
-import { openWindow, getWindows } from './windows';
+import { openWindow, getWindows, resolveAppIcon } from './windows';
 import { registerIpc } from './ipc';
 import { initUpdater, checkForUpdates } from './updater';
 
@@ -16,7 +15,7 @@ if (!gotLock) app.quit();
 let tray: Tray | null = null;
 
 function createTray(): void {
-  const iconPath = join(process.resourcesPath ?? process.cwd(), 'build/icons/icon.png');
+  const iconPath = resolveAppIcon().replace(/icon\.ico$/, 'icon.png');
   let image: Electron.NativeImage;
   try {
     image = nativeImage.createFromPath(iconPath);

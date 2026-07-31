@@ -60,6 +60,7 @@ const nav = [
 
 <style scoped>
 .app-shell {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -67,7 +68,7 @@ const nav = [
   overflow: hidden;
   /* Mica 风格背景（纯 CSS 渐变）—— 仅在卡片内部绘制，
      窗口边缘的透明余量由 body padding 提供 */
-  background: var(--mica);
+  background: var(--neutral-layer-1);
   /* 对称柔和阴影：单侧最大延伸 = 6+20 = 26px < --window-pad(28px)，
      四向阴影均完整可见，不再被窗口边界裁切 */
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.2);
@@ -151,6 +152,7 @@ const nav = [
   flex: 1;
   min-width: 0;
   overflow: auto;
-  padding: 28px 32px;
+  /* 顶部留 40px 让出悬浮的窗口控制栏（32px 按钮 + 余量） */
+  padding: 40px 32px 28px;
 }
 </style>

@@ -1,7 +1,12 @@
 import sharp from 'sharp';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import type { ImageProcessPayload, ImageProcessResult, ImageProcessOptions } from '../shared/types';
+import type {
+  ImageProcessPayload,
+  ImageProcessResult,
+  ImageProcessOptions,
+  WatermarkGravity
+} from '../shared/types';
 
 export async function processImage(payload: ImageProcessPayload): Promise<ImageProcessResult> {
   const { op, inputPath, outputPath, options = {}, extra = {} } = payload;
@@ -72,47 +77,166 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
       return { outputPath };
     }
     case 'watermark': {
-      if (!outputPath) throw new Error('watermark 需要 outputPath');
-      const base = sharp(inputPath);
-      const composite: sharp.OverlayOptions[] = [];
-      const type = extra.type as 'text' | 'image';
-      if (type === 'text') composite.push(await buildTextWatermark(extra));
-      else if (type === 'image') composite.push(await buildImageWatermark(extra));
-      await base.composite(composite).toFile(outputPath);
-      return { outputPath };
+      const composites = await buildWatermarkComposites(inputPath, extra);
+      const base = sharp(inputPath).composite(composites);
+      if (outputPath) {
+        const format = options.format;
+        const quality = options.quality;
+        let out = base;
+        if (format) out = out.toFormat(format as keyof sharp.FormatEnum, quality ? { quality } : {});
+        await out.toFile(outputPath);
+        return { outputPath };
+      }
+      // 无 outputPath：返回处理后图像的 buffer，供前端预览
+      const buf = await base.png().toBuffer();
+      return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) };
     }
     default:
       throw new Error(`未支持的图像操作: ${op}`);
   }
 }
 
-async function buildTextWatermark(extra: Record<string, unknown>): Promise<sharp.OverlayOptions> {
-  const text = (extra.text as string) ?? '';
-  const fontSize = (extra.fontSize as number) ?? 32;
-  const color = (extra.color as string) ?? '#000000';
-  const opacity = (extra.opacity as number) ?? 0.5;
-  const svg = Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${fontSize * 12}" height="${fontSize * 1.6}">` +
-      `<text x="0" y="${fontSize}" font-size="${fontSize}" fill="${color}" fill-opacity="${opacity}" font-family="sans-serif">${escapeXml(text)}</text>` +
-      `</svg>`
-  );
-  return {
-    input: await sharp(svg).png().toBuffer(),
-    gravity: (extra.gravity as sharp.Gravity) ?? 'southeast',
-    tile: extra.tile as boolean
-  };
+function clamp(v: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, v));
 }
 
-async function buildImageWatermark(extra: Record<string, unknown>): Promise<sharp.OverlayOptions> {
-  const watermarkPath = extra.watermarkPath as string;
-  const opacity = (extra.opacity as number) ?? 0.5;
-  const buf = await sharp(watermarkPath).ensureAlpha().toBuffer();
-  return {
-    input: buf,
-    gravity: (extra.gravity as sharp.Gravity) ?? 'southeast',
-    tile: extra.tile as boolean,
-    blend: 'over'
-  };
+interface PreparedWatermark {
+  buf: Buffer;
+  width: number;
+  height: number;
+}
+
+async function buildWatermarkComposites(
+  inputPath: string,
+  extra: Record<string, unknown>
+): Promise<sharp.OverlayOptions[]> {
+  const baseMeta = await sharp(inputPath).metadata();
+  const type = extra.type === 'image' ? 'image' : 'text';
+  const prepared: PreparedWatermark =
+    type === 'text'
+      ? await prepareTextWatermark(extra)
+      : await prepareImageWatermark(extra, baseMeta);
+
+  const rotation = Number(extra.rotation ?? 0);
+  const rad = (Math.abs(rotation) * Math.PI) / 180;
+  const fitRad = (w: number, h: number) => ({
+    w: Math.round(Math.abs(w * Math.cos(rad)) + Math.abs(h * Math.sin(rad))) || w,
+    h: Math.round(Math.abs(w * Math.sin(rad)) + Math.abs(h * Math.cos(rad))) || h
+  });
+
+  // 水印（旋转后的外接框）不得超过底图，否则 sharp 合成为报错；超出时等比缩小
+  const baseW0 = baseMeta.width ?? 0;
+  const baseH0 = baseMeta.height ?? 0;
+  let box = fitRad(prepared.width, prepared.height);
+  if (baseW0 && baseH0 && (box.w > baseW0 || box.h > baseH0)) {
+    const fit = Math.min(baseW0 / box.w, baseH0 / box.h);
+    const resized = await sharp(prepared.buf)
+      .resize(Math.max(1, Math.round(prepared.width * fit)), Math.max(1, Math.round(prepared.height * fit)))
+      .png()
+      .toBuffer({ resolveWithObject: true });
+    prepared.buf = resized.data;
+    prepared.width = resized.info.width;
+    prepared.height = resized.info.height;
+    box = fitRad(prepared.width, prepared.height);
+  }
+  const wmW = box.w;
+  const wmH = box.h;
+
+  const blend: sharp.OverlayOptions['blend'] = 'over';
+
+  if (extra.tile) {
+    const gap = Number(extra.tileGap ?? 40);
+    const stepX = wmW + gap;
+    const stepY = wmH + gap;
+    const baseW = baseMeta.width ?? 0;
+    const baseH = baseMeta.height ?? 0;
+    const list: sharp.OverlayOptions[] = [];
+    for (let y = -wmH; y < baseH + wmH; y += stepY) {
+      for (let x = -wmW; x < baseW + wmW; x += stepX) {
+        list.push({ input: prepared.buf, left: Math.round(x), top: Math.round(y), blend });
+      }
+    }
+    return list;
+  }
+
+  const gravity = String(extra.gravity ?? 'se') as WatermarkGravity;
+  const offset = Number(extra.offset ?? 16);
+  const { left, top } = resolvePosition(gravity, baseMeta.width ?? 0, baseMeta.height ?? 0, wmW, wmH, offset);
+  return [{ input: prepared.buf, left, top, blend }];
+}
+
+function resolvePosition(
+  gravity: WatermarkGravity,
+  baseW: number,
+  baseH: number,
+  wmW: number,
+  wmH: number,
+  offset: number
+): { left: number; top: number } {
+  let left: number;
+  let top: number;
+  if (gravity === 'center') {
+    left = Math.round((baseW - wmW) / 2);
+    top = Math.round((baseH - wmH) / 2);
+  } else {
+    if (gravity.includes('w')) left = offset;
+    else if (gravity.includes('e')) left = baseW - wmW - offset;
+    else left = Math.round((baseW - wmW) / 2);
+    if (gravity.includes('n')) top = offset;
+    else if (gravity.includes('s')) top = baseH - wmH - offset;
+    else top = Math.round((baseH - wmH) / 2);
+  }
+  return { left: Math.max(0, left), top: Math.max(0, top) };
+}
+
+async function prepareTextWatermark(extra: Record<string, unknown>): Promise<PreparedWatermark> {
+  const text = String(extra.text ?? '');
+  const fontSize = Number(extra.fontSize ?? 32);
+  const color = String(extra.color ?? '#000000');
+  const opacity = clamp(Number(extra.opacity ?? 0.5), 0, 1);
+  const bold = Boolean(extra.bold);
+  const fontFamily = String(extra.fontFamily ?? 'sans-serif');
+  const rotation = Number(extra.rotation ?? 0);
+
+  const chars = [...text];
+  const cjk = chars.filter((c) => /[一-鿿]/.test(c)).length;
+  const others = chars.length - cjk;
+  const estW = Math.max(1, Math.ceil(fontSize * (cjk * 1.0 + others * 0.56) * 1.12) + 8);
+  const estH = Math.ceil(fontSize * 1.45);
+  const svg = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${estW}" height="${estH}">` +
+      `<text x="4" y="${Math.round(fontSize * 1.12)}" font-size="${fontSize}" ` +
+      `font-family="${escapeXml(fontFamily)}" font-weight="${bold ? 700 : 400}" ` +
+      `fill="${color}" fill-opacity="${opacity}">${escapeXml(text)}</text>` +
+      `</svg>`
+  );
+
+  let img = sharp(svg);
+  if (rotation) img = img.rotate(rotation, { background: { r: 0, g: 0, b: 0, alpha: 0 } });
+  const { data, info } = await img.png().toBuffer({ resolveWithObject: true });
+  return { buf: data, width: info.width, height: info.height };
+}
+
+async function prepareImageWatermark(
+  extra: Record<string, unknown>,
+  baseMeta: sharp.Metadata
+): Promise<PreparedWatermark> {
+  const wmPath = String(extra.watermarkPath ?? '');
+  if (!wmPath || !existsSync(wmPath)) throw new Error('未选择水印图片');
+  const opacity = clamp(Number(extra.opacity ?? 0.5), 0, 1);
+  const rotation = Number(extra.rotation ?? 0);
+  const scale = clamp(Number(extra.scale ?? 0.2), 0.01, 1);
+
+  const baseMin = Math.min(baseMeta.width ?? 0, baseMeta.height ?? 0) || 1000;
+  const targetW = Math.max(8, Math.round(baseMin * scale));
+
+  const resized = sharp(wmPath).ensureAlpha().resize(targetW, null, { withoutEnlargement: false });
+  const { data, info } = await resized.raw().toBuffer({ resolveWithObject: true });
+  for (let i = 3; i < data.length; i += 4) data[i] = Math.round(data[i] * opacity);
+  let wm = sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } });
+  if (rotation) wm = wm.rotate(rotation, { background: { r: 0, g: 0, b: 0, alpha: 0 } });
+  const out = await wm.png().toBuffer({ resolveWithObject: true });
+  return { buf: out.data, width: out.info.width, height: out.info.height };
 }
 
 function escapeXml(s: string): string {
