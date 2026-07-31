@@ -1,25 +1,25 @@
 <template>
   <div class="fonts">
     <h2>字体管理</h2>
-    <el-button type="primary" :loading="store.loading" @click="store.loadOnlineFonts()">
+    <fluent-button appearance="accent" :disabled="store.loading" @click="store.loadOnlineFonts()">
       刷新在线字体库
-    </el-button>
+    </fluent-button>
     <div v-if="store.onlineFonts.length" class="list">
       <div v-for="font in store.onlineFonts" :key="font.id" class="item">
         <img v-if="font.previewImage" :src="font.previewImage" class="preview" />
         <div class="meta">
           <div class="name">{{ font.name }}</div>
         </div>
-        <el-button
-          size="small"
-          :type="store.installed[font.id] ? 'success' : 'primary'"
+        <fluent-button
+          appearance="accent"
+          :disabled="!!store.installed[font.id]"
           @click="install(font)"
         >
           {{ store.installed[font.id] ? '已安装' : '安装' }}
-        </el-button>
+        </fluent-button>
       </div>
     </div>
-    <el-empty v-else description="暂无在线字体，点击上方按钮加载" />
+    <div v-else class="empty">暂无在线字体，点击上方按钮加载</div>
   </div>
 </template>
 
@@ -73,5 +73,10 @@ async function install(font: FontItem) {
 }
 .name {
   font-weight: 600;
+}
+.empty {
+  color: var(--text-secondary);
+  padding: 24px 0;
+  font-size: 13px;
 }
 </style>

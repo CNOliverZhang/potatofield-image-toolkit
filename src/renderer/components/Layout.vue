@@ -1,16 +1,36 @@
 <template>
-  <div class="layout">
+  <div class="app-shell">
     <WindowControls />
     <div class="body">
       <aside class="sidebar">
-        <div class="logo">图像工具箱</div>
-        <el-menu :default-active="activePath" router class="menu">
-          <el-menu-item v-for="item in tools" :key="item.path" :index="item.path">
-            <font-awesome-icon :icon="item.icon" class="menu-icon" />
-            <span>{{ item.label }}</span>
-          </el-menu-item>
-        </el-menu>
+        <div class="brand">
+          <span class="brand-mark">
+            <font-awesome-icon :icon="['fas', 'warehouse']" />
+          </span>
+          <span class="brand-name">洋芋田图像工具箱</span>
+        </div>
+
+        <nav class="nav">
+          <router-link
+            v-for="item in nav"
+            :key="item.to"
+            :to="item.to"
+            class="nav-item"
+            active-class="active"
+          >
+            <font-awesome-icon :icon="item.icon" class="nav-icon" />
+            <span class="nav-label">{{ item.label }}</span>
+          </router-link>
+        </nav>
+
+        <div class="sidebar-footer">
+          <router-link to="/settings" class="nav-item" active-class="active">
+            <font-awesome-icon :icon="['fas', 'gear']" class="nav-icon" />
+            <span class="nav-label">设置</span>
+          </router-link>
+        </div>
       </aside>
+
       <main class="content">
         <router-view />
       </main>
@@ -19,43 +39,34 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useRoute } from 'vue-router';
 import WindowControls from './WindowControls.vue';
 
-const route = useRoute();
-const activePath = computed(() => route.path);
-
-const tools = [
-  { path: '/', label: '首页', icon: ['fas', 'house'] },
-  { path: '/watermark', label: '加水印', icon: ['fas', 'stamp'] },
-  { path: '/global-watermark', label: '全屏水印', icon: ['fas', 'fill-drip'] },
-  { path: '/splicer', label: '长图拼接', icon: ['fas', 'bars-staggered'] },
-  { path: '/cropper', label: '裁剪', icon: ['fas', 'crop'] },
-  { path: '/slicer', label: '分割', icon: ['fas', 'grip'] },
-  { path: '/text-to-image', label: '富文本制图', icon: ['fas', 'paragraph'] },
-  { path: '/resizer', label: '尺寸调整', icon: ['fas', 'arrows-alt'] },
-  { path: '/compress', label: '压缩', icon: ['fas', 'compress'] },
-  { path: '/convert', label: '格式转换', icon: ['fas', 'repeat'] },
-  { path: '/exif', label: 'EXIF 读取', icon: ['fas', 'circle-info'] },
-  { path: '/palette', label: '色彩提取', icon: ['fas', 'palette'] },
-  { path: '/fonts', label: '字体管理', icon: ['fas', 'font'] },
-  { path: '/settings', label: '设置', icon: ['fas', 'gear'] }
+const nav = [
+  { to: '/', label: '首页', icon: ['fas', 'house'] as [string, string] },
+  { to: '/watermark', label: '水印', icon: ['fas', 'stamp'] as [string, string] },
+  { to: '/global-watermark', label: '全局水印', icon: ['fas', 'images'] as [string, string] },
+  { to: '/splicer', label: '拼图', icon: ['fas', 'table-cells-large'] as [string, string] },
+  { to: '/cropper', label: '裁剪', icon: ['fas', 'crop-simple'] as [string, string] },
+  { to: '/slicer', label: '切片', icon: ['fas', 'border-all'] as [string, string] },
+  { to: '/text-to-image', label: '文字转图片', icon: ['fas', 'heading'] as [string, string] },
+  { to: '/resizer', label: '改尺寸', icon: ['fas', 'arrows-left-right-to-line'] as [string, string] },
+  { to: '/compress', label: '压缩', icon: ['fas', 'compress'] as [string, string] },
+  { to: '/convert', label: '格式转换', icon: ['fas', 'arrows-rotate'] as [string, string] },
+  { to: '/exif', label: 'EXIF 编辑', icon: ['fas', 'file-lines'] as [string, string] },
+  { to: '/palette', label: '色彩提取', icon: ['fas', 'palette'] as [string, string] },
+  { to: '/fonts', label: '字体管理', icon: ['fas', 'font'] as [string, string] }
 ];
 </script>
 
 <style scoped>
-.layout {
+.app-shell {
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-radius: 14px;
+  border-radius: 10px;
   overflow: hidden;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 16px 48px rgba(0, 0, 0, 0.22);
 }
 .body {
   flex: 1;
@@ -63,32 +74,65 @@ const tools = [
   min-height: 0;
 }
 .sidebar {
-  width: 180px;
+  width: 232px;
   flex-shrink: 0;
-  background: var(--glass-bg);
-  border-right: 1px solid var(--glass-border);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  padding: 8px;
 }
-.logo {
-  padding: 16px;
-  font-size: 16px;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--main-color);
 }
-.menu {
-  border-right: none;
-  background: transparent;
+.brand-mark {
+  color: var(--accent);
+  font-size: 18px;
+}
+.nav {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
 }
-.menu-icon {
-  margin-right: 8px;
-  width: 16px;
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  color: var(--text-color);
+  cursor: pointer;
+  user-select: none;
+}
+.nav-item:hover {
+  background: var(--hover-bg);
+}
+.nav-item.active {
+  background: var(--active-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+.nav-icon {
+  width: 18px;
+  text-align: center;
+  font-size: 15px;
+}
+.sidebar-footer {
+  border-top: 1px solid var(--border-color);
+  padding-top: 6px;
+  margin-top: 6px;
 }
 .content {
   flex: 1;
   min-width: 0;
   overflow: auto;
-  padding: 20px;
+  padding: 28px 32px;
 }
 </style>

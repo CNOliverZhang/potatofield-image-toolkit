@@ -1,16 +1,10 @@
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { pushToast, openDialog } from './ui';
 
 export function useDialog() {
   return {
     message: (msg: string, type: 'success' | 'warning' | 'info' | 'error' = 'info') =>
-      ElMessage({ message: msg, type }),
-    alert: (message: string, title = '提示') =>
-      ElMessageBox.alert(message, title, { confirmButtonText: '确定' }),
-    confirm: (message: string, title = '确认') =>
-      ElMessageBox.confirm(message, title, {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      })
+      pushToast(msg, type),
+    alert: (message: string, title = '提示') => openDialog('alert', message, title),
+    confirm: (message: string, title = '确认') => openDialog('confirm', message, title)
   };
 }

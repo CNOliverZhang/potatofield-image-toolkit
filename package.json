@@ -16,11 +16,11 @@
     "package:mac": "electron-vite build && electron-builder --mac"
   },
   "dependencies": {
+    "@fluentui/web-components": "^2.6.1",
     "@fortawesome/fontawesome-svg-core": "^6.5.1",
     "@fortawesome/free-regular-svg-icons": "^6.5.1",
     "@fortawesome/free-solid-svg-icons": "^6.5.1",
     "@fortawesome/vue-fontawesome": "^3.0.6",
-    "@hicccc77/electron-liquid-glass": "^0.4.0",
     "axios": "^1.7.2",
     "colorthief": "^2.4.0",
     "cropperjs": "^1.6.1",

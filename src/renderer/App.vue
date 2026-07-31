@@ -1,5 +1,7 @@
 <template>
   <router-view />
+  <ToastHost />
+  <AppDialog />
 </template>
 
 <script setup lang="ts">
@@ -8,6 +10,8 @@ import { useTheme } from './composables/useTheme';
 import { useSettingsStore } from './stores/settings';
 import { useMessagesStore } from './stores/messages';
 import { registerClient, getPlatform } from './composables/useOnlineApi';
+import ToastHost from './components/ToastHost.vue';
+import AppDialog from './components/AppDialog.vue';
 
 useTheme();
 

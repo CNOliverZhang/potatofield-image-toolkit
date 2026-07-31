@@ -1,117 +1,121 @@
-/* ── 语义变量（保留老系统） ─────────────────────────────── */
-:root {
-  --main-color: #3a8ee6;
-  --text-color: #1f2329;
-  --text-secondary: #6b7280;
-  --border-color: rgba(0, 0, 0, 0.08);
-}
+/* ============================================================
+   全局样式 · Windows 11 Fluent UI 风格（类似“设置”页面）
+   组件统一使用微软官方 Fluent UI Web Components（fluent-*）
+   ============================================================ */
 
-/* ── 液态玻璃核心变量 ───────────────────────────────────── */
 :root {
-  --glass-bg: rgba(255, 255, 255, 0.55);
-  --glass-bg-strong: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-highlight: rgba(255, 255, 255, 0.85);
-  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.12);
-  --glass-blur: 28px;
-  --glass-saturate: 180%;
+  --font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system,
+    "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+
+  /* 语义色板（供自定义布局/卡片使用） */
+  --accent: #0f6cbd;
+  --text-color: #1b1b1b;
+  --text-secondary: #5e5e5e;
+  --border-color: #e2e2e2;
+  --card-bg: #ffffff;
+  --sidebar-bg: #f7f7f7;
+  --hover-bg: rgba(0, 0, 0, 0.04);
+  --active-bg: rgba(15, 108, 189, 0.1);
+  --mica: linear-gradient(180deg, #fbfbfb 0%, #f0f0f0 100%);
+
+  /* 兼容旧代码引用 */
+  --main-color: #0f6cbd;
+  --panel-bg: var(--sidebar-bg);
 }
 
 html[data-theme='dark'] {
-  --text-color: #e5e7eb;
-  --text-secondary: #9ca3af;
-  --border-color: rgba(255, 255, 255, 0.1);
-
-  --glass-bg: rgba(30, 30, 32, 0.5);
-  --glass-bg-strong: rgba(30, 30, 32, 0.68);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-highlight: rgba(255, 255, 255, 0.16);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --accent: #4cc2ff;
+  --text-color: #f3f3f3;
+  --text-secondary: #b9b9b9;
+  --border-color: #3a3a3a;
+  --card-bg: #2b2b2b;
+  --sidebar-bg: #232323;
+  --hover-bg: rgba(255, 255, 255, 0.06);
+  --active-bg: rgba(76, 194, 255, 0.14);
+  --mica: linear-gradient(180deg, #2a2a2a 0%, #1c1c1c 100%);
+  --main-color: #4cc2ff;
+  --panel-bg: var(--sidebar-bg);
 }
 
-/* ── 原生玻璃激活时（Windows：@hicccc77/electron-liquid-glass） ──
-   真实折射由原生面板提供，此处仅保留轻量“表面”着色，
-   避免过重的奶白遮罩盖住玻璃。无原生面板时不会设置此属性，
-   回退到上方较厚的 glassmorphism 着色（macOS / 不支持环境）。 */
-html[data-native-glass='true'] {
-  --glass-bg: rgba(255, 255, 255, 0.16);
-  --glass-bg-strong: rgba(255, 255, 255, 0.26);
-  --glass-border: rgba(255, 255, 255, 0.55);
-  --glass-highlight: rgba(255, 255, 255, 0.9);
-  --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.22);
-  --el-fill-color-blank: rgba(255, 255, 255, 0.18);
-}
-html[data-theme='dark'][data-native-glass='true'] {
-  --glass-bg: rgba(20, 20, 24, 0.22);
-  --glass-bg-strong: rgba(20, 20, 24, 0.34);
-  --glass-border: rgba(255, 255, 255, 0.16);
-  --glass-highlight: rgba(255, 255, 255, 0.2);
-  --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  --el-fill-color-blank: rgba(255, 255, 255, 0.08);
+* {
+  box-sizing: border-box;
 }
 
-/* ── 根背景透明化（让桌面透出模糊） ─────────────────────── */
 html,
 body,
 #app {
+  height: 100%;
   margin: 0;
   padding: 0;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
-    Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  background: transparent;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: 14px;
   color: var(--text-color);
+  /* Mica 风格背景（纯 CSS 渐变，无原生捕获，无延迟） */
+  background: var(--mica);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
   user-select: none;
 }
 
-a {
-  color: var(--main-color);
-  text-decoration: none;
+#app {
+  background: transparent;
 }
 
-/* ── 玻璃工具类 ─────────────────────────────────────────── */
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-}
-.glass-strong {
-  background: var(--glass-bg-strong);
+/* 内容可选中（输入框等） */
+input,
+textarea,
+[contenteditable='true'] {
+  user-select: text;
 }
 
-/* ── 与 Element Plus 融合 ──────────────────────────────── */
-:root {
-  --el-color-primary: var(--main-color);
-  --el-bg-color: transparent;
-  --el-bg-color-overlay: var(--glass-bg);
-  --el-fill-color-blank: rgba(255, 255, 255, 0.35);
-  --el-border-color: var(--glass-border);
-  --el-border-color-light: var(--glass-border);
-  --el-border-color-lighter: var(--glass-border);
-  --el-text-color-primary: var(--text-color);
-  --el-text-color-regular: var(--text-color);
-  --el-text-color-secondary: var(--text-secondary);
-  --el-mask-color: rgba(0, 0, 0, 0.4);
-}
-html[data-theme='dark'] {
-  --el-fill-color-blank: rgba(255, 255, 255, 0.08);
-  --el-fill-color: rgba(255, 255, 255, 0.08);
-  --el-fill-color-light: rgba(255, 255, 255, 0.1);
-}
-
-/* ── 滚动条玻璃化 ──────────────────────────────────────── */
+/* ── 滚动条（Win11 细窄风格） ── */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--glass-border);
-  border-radius: 4px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.4);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.65);
+  background-clip: padding-box;
+}
+
+/* ── 通用排版（标题/段落） ── */
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+h2 {
+  font-size: 20px;
+  margin: 0 0 16px;
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* ── 通用卡片（Fluent 风格“设置”卡片） ── */
+.fluent-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+/* ── Fluent 组件微调（浅色下更接近 Win11 默认观感） ── */
+fluent-card {
+  border-radius: 8px;
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="palette">
     <h2>色彩提取</h2>
-    <el-button type="primary" @click="selectImage">选择图片</el-button>
+    <fluent-button appearance="accent" @click="selectImage">选择图片</fluent-button>
     <div v-if="imagePath" class="preview">
       <img ref="imgRef" :src="imgSrc" crossorigin="anonymous" @load="extract" />
     </div>

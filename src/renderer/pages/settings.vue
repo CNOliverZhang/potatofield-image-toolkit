@@ -2,25 +2,37 @@
   <div class="settings">
     <h2>设置</h2>
 
-    <el-divider>外观</el-divider>
+    <div class="group-title">外观</div>
     <div class="row">
       <span class="label">主题色</span>
-      <el-color-picker :model-value="settings.themeColor" @change="onColor" />
+      <input
+        class="color-input"
+        type="color"
+        :value="settings.themeColor"
+        @input="onColor"
+      />
       <span class="value">{{ settings.themeColor }}</span>
     </div>
     <div class="row">
       <span class="label">深色模式</span>
-      <el-switch :model-value="settings.darkMode" @change="onDark" />
+      <fluent-switch
+        :checked="settings.darkMode"
+        @change="onDark"
+      ></fluent-switch>
     </div>
 
-    <el-divider>文件</el-divider>
+    <div class="group-title">文件</div>
     <div class="row">
       <span class="label">文件默认保存地址</span>
-      <el-input :model-value="settings.defaultSaveDirectory" readonly style="flex: 1" />
-      <el-button @click="pickDir">选择</el-button>
+      <fluent-text-field
+        class="dir-field"
+        :value="settings.defaultSaveDirectory"
+        readonly
+      ></fluent-text-field>
+      <fluent-button appearance="neutral" @click="pickDir">选择</fluent-button>
     </div>
 
-    <el-divider>关于</el-divider>
+    <div class="group-title">关于</div>
     <div class="row">
       <span class="label">设备标识</span>
       <span class="value">{{ identifier }}</span>
@@ -46,11 +58,11 @@ onMounted(async () => {
   version.value = await window.api.app.version();
 });
 
-function onColor(color: string | null) {
-  if (color) settings.setThemeColor(color);
+function onColor(e: Event) {
+  settings.setThemeColor((e.target as HTMLInputElement).value);
 }
-function onDark(val: string | number | boolean) {
-  settings.toggleDark(Boolean(val));
+function onDark(e: Event) {
+  settings.toggleDark(Boolean((e.target as HTMLInputElement).checked));
 }
 async function pickDir() {
   const dir = await selectDirectory(settings.defaultSaveDirectory || undefined);
@@ -61,6 +73,17 @@ async function pickDir() {
 <style scoped>
 .settings {
   max-width: 640px;
+}
+.group-title {
+  margin: 22px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.group-title:first-of-type {
+  margin-top: 4px;
 }
 .row {
   display: flex;
@@ -76,5 +99,17 @@ async function pickDir() {
   color: var(--text-secondary);
   font-size: 13px;
   word-break: break-all;
+}
+.color-input {
+  width: 40px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+.dir-field {
+  flex: 1;
 }
 </style>

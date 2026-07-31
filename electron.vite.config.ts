@@ -8,7 +8,7 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: { index: resolve('src/main/index.ts') },
-        external: ['electron-updater', 'sharp', 'fs-extra', '@hicccc77/electron-liquid-glass']
+        external: ['electron-updater', 'sharp', 'fs-extra']
       }
     }
   },
@@ -34,6 +34,15 @@ export default defineConfig({
         input: { index: resolve('src/renderer/index.html') }
       }
     },
-    plugins: [vue()]
+    plugins: [
+      vue({
+        template: {
+          compilerOptions: {
+            // Fluent UI Web Components 是自定义元素，避免被 Vue 当作组件解析
+            isCustomElement: (tag) => tag.startsWith('fluent-')
+          }
+        }
+      })
+    ]
   }
 });
