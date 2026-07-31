@@ -13,7 +13,14 @@
 - [x] renderer 核心：main.ts / App.vue / router / stores(settings,fonts,messages) / composables(useTheme,useOnlineApi,useDialog) / utils(filePicker,directoryScanner,fileIO,templateCode) / components(WindowControls,Layout,ToolStub) / index / settings / fonts / palette
 - [x] 示范工具 palette.vue（色彩提取）实现完整链路
 - [x] 11 个工具占位页
-- [x] 注册为 `Potatofield` 大仓 submodule（注意：注册时曾误删源目录，已重建）
+- [x] 注册为 `Potatofield` 大仓 submodule（已正确提交，gitlink 入 index；分支 main，SHA 3757c65）
+
+## 子模块注册说明（重要）
+- 源仓库备份在 `C:/potatofield-image-toolkit-src`（二进制/备份用，可删）。
+- `.gitmodules` 中 url 已设为 `git@github.com:CNOliverZhang/potatofield-image-toolkit.git`（占位，推到远端后生效）。
+- 子模块自身 remote 当前指向本地备份路径，推送前需在子模块内执行：
+  `git -C potatofield-image-toolkit remote set-url origin git@github.com:CNOliverZhang/potatofield-image-toolkit.git`
+- 注册过程中遇到 git 限制：`file://` 传输被禁，需用 `git -c protocol.file.allow=always` 或本地绝对路径注册。
 
 ## 待做（按会话）
 - [ ] 会话 2：基础模块补全 + resizer/compress/convert/exif
