@@ -23,23 +23,23 @@ import { ui, closeDialog } from '@renderer/composables/ui';
 
 <style scoped>
 .app-dialog::part(control) {
-  border-radius: 8px;
+  border-radius: calc(var(--layer-corner-radius) * 1px);
   border: 1px solid var(--neutral-stroke-rest);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
 }
 .dlg {
   min-width: 320px;
   max-width: 460px;
-  padding: 24px;
+  padding: calc(var(--design-unit) * 6 * 1px);
   background: var(--neutral-layer-1);
   color: var(--neutral-foreground-rest);
 }
 .dlg-title {
-  margin: 0 0 8px;
+  margin: 0 0 calc(var(--design-unit) * 2 * 1px);
   font-size: 18px;
 }
 .dlg-msg {
-  margin: 0 0 20px;
+  margin: 0 0 calc(var(--design-unit) * 5 * 1px);
   color: var(--neutral-foreground-secondary-rest);
   line-height: 1.5;
   white-space: pre-wrap;
@@ -47,6 +47,6 @@ import { ui, closeDialog } from '@renderer/composables/ui';
 .dlg-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: calc(var(--design-unit) * 2.5 * 1px);
 }
 </style>

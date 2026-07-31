@@ -63,34 +63,34 @@ function copy(color: string) {
 .palette {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: calc(var(--design-unit) * 4 * 1px);
 }
 .preview img {
   max-width: 100%;
-  border-radius: 8px;
+  border-radius: calc(var(--layer-corner-radius) * 1px);
   border: 1px solid var(--neutral-stroke-rest);
 }
 .swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: calc(var(--design-unit) * 2.5 * 1px);
 }
 .swatch {
   width: 90px;
   height: 90px;
-  border-radius: 8px;
+  border-radius: calc(var(--layer-corner-radius) * 1px);
   cursor: pointer;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 6px;
+  padding-bottom: calc(var(--design-unit) * 1.5 * 1px);
   border: 1px solid var(--neutral-stroke-rest);
 }
 .hex {
   font-size: 11px;
   background: rgba(255, 255, 255, 0.7);
-  padding: 1px 4px;
-  border-radius: 4px;
+  padding: 1px calc(var(--design-unit) * 1 * 1px);
+  border-radius: calc(var(--control-corner-radius) * 1px);
   color: #333;
 }
 </style>

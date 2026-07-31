@@ -75,7 +75,7 @@ async function pickDir() {
   max-width: 640px;
 }
 .group-title {
-  margin: 22px 0 8px;
+  margin: calc(var(--design-unit) * 5.5 * 1px) 0 calc(var(--design-unit) * 2 * 1px);
   font-size: 13px;
   font-weight: 600;
   color: var(--neutral-foreground-secondary-rest);
@@ -83,13 +83,13 @@ async function pickDir() {
   letter-spacing: 0.4px;
 }
 .group-title:first-of-type {
-  margin-top: 4px;
+  margin-top: calc(var(--design-unit) * 1 * 1px);
 }
 .row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 12px 0;
+  gap: calc(var(--design-unit) * 3 * 1px);
+  margin: calc(var(--design-unit) * 3 * 1px) 0;
 }
 .label {
   width: 140px;
@@ -105,7 +105,7 @@ async function pickDir() {
   height: 28px;
   padding: 0;
   border: 1px solid var(--neutral-stroke-rest);
-  border-radius: 4px;
+  border-radius: calc(var(--control-corner-radius) * 1px);
   background: none;
   cursor: pointer;
 }

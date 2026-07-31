@@ -48,20 +48,20 @@ async function install(font: FontItem) {
 .fonts {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: calc(var(--design-unit) * 3.5 * 1px);
 }
 .list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: calc(var(--design-unit) * 2.5 * 1px);
 }
 .item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px;
+  gap: calc(var(--design-unit) * 3.5 * 1px);
+  padding: calc(var(--design-unit) * 2.5 * 1px);
   border: 1px solid var(--neutral-stroke-rest);
-  border-radius: 8px;
+  border-radius: calc(var(--layer-corner-radius) * 1px);
 }
 .preview {
   height: 36px;
@@ -76,7 +76,7 @@ async function install(font: FontItem) {
 }
 .empty {
   color: var(--neutral-foreground-secondary-rest);
-  padding: 24px 0;
+  padding: calc(var(--design-unit) * 6 * 1px) 0;
   font-size: 13px;
 }
 </style>

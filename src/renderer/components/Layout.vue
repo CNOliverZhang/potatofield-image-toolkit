@@ -62,7 +62,7 @@ const nav = [
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-radius: 12px;
+  border-radius: calc(var(--layer-corner-radius) * 1px + var(--design-unit) * 1px);
   overflow: hidden;
   /* Mica 风格背景（纯 CSS 渐变）—— 仅在卡片内部绘制，
      窗口边缘的透明余量由 body padding 提供 */
@@ -83,13 +83,13 @@ const nav = [
   border-right: 1px solid var(--neutral-stroke-rest);
   display: flex;
   flex-direction: column;
-  padding: 8px;
+  padding: calc(var(--design-unit) * 2 * 1px);
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 10px 16px;
+  gap: calc(var(--design-unit) * 2.5 * 1px);
+  padding: calc(var(--design-unit) * 3 * 1px) calc(var(--design-unit) * 2.5 * 1px) calc(var(--design-unit) * 4 * 1px);
   font-size: 15px;
   font-weight: 600;
 }
@@ -103,16 +103,16 @@ const nav = [
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: calc(var(--design-unit) * 0.5 * 1px);
   overflow-y: auto;
 }
 .nav-item {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 9px 12px;
-  border-radius: 6px;
+  gap: calc(var(--design-unit) * 3 * 1px);
+  padding: calc(var(--design-unit) * 2.25 * 1px) calc(var(--design-unit) * 3 * 1px);
+  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
   color: var(--neutral-foreground-rest);
   cursor: pointer;
   user-select: none;
@@ -132,10 +132,10 @@ const nav = [
   content: '';
   position: absolute;
   left: 0;
-  top: 7px;
-  bottom: 7px;
+  top: calc(var(--design-unit) * 1.75 * 1px);
+  bottom: calc(var(--design-unit) * 1.75 * 1px);
   width: 3px;
-  border-radius: 3px;
+  border-radius: calc(var(--design-unit) * 0.75 * 1px);
   background: var(--accent-base-color);
 }
 .nav-icon {
@@ -145,8 +145,8 @@ const nav = [
 }
 .sidebar-footer {
   border-top: 1px solid var(--neutral-stroke-rest);
-  padding-top: 6px;
-  margin-top: 6px;
+  padding-top: calc(var(--design-unit) * 1.5 * 1px);
+  margin-top: calc(var(--design-unit) * 1.5 * 1px);
 }
 .content {
   flex: 1;

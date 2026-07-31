@@ -41,13 +41,13 @@ function go(path: string) {
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 16px;
+  gap: calc(var(--design-unit) * 4 * 1px);
 }
 .card {
   background: var(--neutral-layer-2);
   border: 1px solid var(--neutral-stroke-rest);
-  border-radius: 10px;
-  padding: 22px 12px;
+  border-radius: calc(var(--layer-corner-radius) * 1px + var(--design-unit) * 1px / 2);
+  padding: calc(var(--design-unit) * 5.5 * 1px) calc(var(--design-unit) * 3 * 1px);
   text-align: center;
   cursor: pointer;
   transition: transform 0.15s, border-color 0.15s;
@@ -59,7 +59,7 @@ function go(path: string) {
 .card-icon {
   font-size: 26px;
   color: var(--accent-base-color);
-  margin-bottom: 10px;
+  margin-bottom: calc(var(--design-unit) * 2.5 * 1px);
 }
 .card-label {
   font-size: 14px;

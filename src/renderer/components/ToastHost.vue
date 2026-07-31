@@ -31,22 +31,22 @@ function iconOf(type: ToastType) {
 .toast-host {
   position: fixed;
   left: 50%;
-  bottom: 32px;
+  bottom: calc(var(--design-unit) * 8 * 1px);
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: calc(var(--design-unit) * 2.5 * 1px);
   z-index: 9999;
   pointer-events: none;
 }
 .toast {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(var(--design-unit) * 2.5 * 1px);
   min-width: 200px;
   max-width: 420px;
-  padding: 12px 16px;
-  border-radius: 8px;
+  padding: calc(var(--design-unit) * 3 * 1px) calc(var(--design-unit) * 4 * 1px);
+  border-radius: calc(var(--layer-corner-radius) * 1px);
   background: var(--neutral-layer-1);
   border: 1px solid var(--neutral-stroke-rest);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);

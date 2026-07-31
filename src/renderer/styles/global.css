@@ -68,7 +68,7 @@ textarea,
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(128, 128, 128, 0.4);
-  border-radius: 6px;
+  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -86,7 +86,7 @@ h3 {
 }
 h2 {
   font-size: 20px;
-  margin: 0 0 16px;
+  margin: 0 0 calc(var(--design-unit) * 4 * 1px);
 }
 a {
   color: var(--accent-base-color);
@@ -97,11 +97,11 @@ a {
 .fluent-card {
   background: var(--neutral-layer-1);
   border: 1px solid var(--neutral-stroke-rest);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: calc(var(--layer-corner-radius) * 1px);
+  padding: calc(var(--design-unit) * 4 * 1px);
 }
 
 /* ── Fluent 组件微调（浅色下更接近 Win11 默认观感） ── */
 fluent-card {
-  border-radius: 8px;
+  border-radius: calc(var(--layer-corner-radius) * 1px);
 }
