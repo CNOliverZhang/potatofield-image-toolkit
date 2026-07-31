@@ -26,8 +26,9 @@ function close() {
   padding: 0 14px;
   height: 32px;
   -webkit-app-region: drag;
-  background: var(--panel-bg);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--glass-bg-strong);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
 }
 .ctrl-btn {
   -webkit-app-region: no-drag;

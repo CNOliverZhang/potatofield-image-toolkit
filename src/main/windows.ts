@@ -27,8 +27,9 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
     minHeight: 600,
     titleBarStyle: 'hidden',
     frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
     show: false,
-    backgroundColor: '#ffffff',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

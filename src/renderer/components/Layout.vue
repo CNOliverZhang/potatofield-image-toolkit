@@ -49,6 +49,13 @@ const tools = [
   display: flex;
   flex-direction: column;
   height: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
 }
 .body {
   flex: 1;
@@ -58,8 +65,8 @@ const tools = [
 .sidebar {
   width: 180px;
   flex-shrink: 0;
-  background: var(--panel-bg);
-  border-right: 1px solid var(--border-color);
+  background: var(--glass-bg);
+  border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
 }
