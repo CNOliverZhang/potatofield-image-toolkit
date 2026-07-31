@@ -1,0 +1,12 @@
+node_modules
+dist
+build/*.exe
+build/*.dmg
+build/*.zip
+build/*.yml
+build/*.yaml
+out
+.DS_Store
+*.log
+.vscode/*
+!.vscode/extensions.json
