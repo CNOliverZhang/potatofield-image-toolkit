@@ -1,4 +1,5 @@
-import { autoUpdater } from 'electron-updater';
+import pkg from 'electron-updater';
+const { autoUpdater } = pkg;
 import { getWindows } from './windows';
 import type { UpdaterStatus } from '../shared/types';
 
