@@ -16,7 +16,7 @@
             :key="item.to"
             :to="item.to"
             class="nav-item"
-            active-class="active"
+            exact-active-class="active"
           >
             <font-awesome-icon :icon="item.icon" class="nav-icon" />
             <span class="nav-label">{{ item.label }}</span>
@@ -24,7 +24,7 @@
         </nav>
 
         <div class="sidebar-footer">
-          <router-link to="/settings" class="nav-item" active-class="active">
+          <router-link to="/settings" class="nav-item" exact-active-class="active">
             <font-awesome-icon :icon="['fas', 'gear']" class="nav-icon" />
             <span class="nav-label">设置</span>
           </router-link>
@@ -63,10 +63,14 @@ const nav = [
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  background: transparent;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 16px 48px rgba(0, 0, 0, 0.22);
+  /* Mica 风格背景（纯 CSS 渐变）—— 仅在卡片内部绘制，
+     窗口边缘的透明余量由 body padding 提供 */
+  background: var(--mica);
+  /* 对称柔和阴影：单侧最大延伸 = 6+20 = 26px < --window-pad(28px)，
+     四向阴影均完整可见，不再被窗口边界裁切 */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 .body {
   flex: 1;
@@ -102,6 +106,7 @@ const nav = [
   overflow-y: auto;
 }
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -110,14 +115,27 @@ const nav = [
   color: var(--text-color);
   cursor: pointer;
   user-select: none;
+  transition: background 0.12s ease;
 }
 .nav-item:hover {
   background: var(--hover-bg);
 }
+/* Fluent 风格选中态：轻量背景 + 强调色文字 + 左侧细条指示，
+   不再用整块强调色填充与加粗，避免“刻意、太重” */
 .nav-item.active {
-  background: var(--active-bg);
+  background: var(--nav-active-bg);
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 500;
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent);
 }
 .nav-icon {
   width: 18px;

@@ -16,31 +16,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { useWindowState } from '../composables/useWindowState';
 
-const maximized = ref(false);
-
-onMounted(async () => {
-  try {
-    maximized.value = await window.api.window.isMaximized();
-  } catch {
-    maximized.value = false;
-  }
-});
+const { maximized, toggleMax } = useWindowState();
 
 function minimize() {
   window.api.window.minimize();
-}
-async function toggleMax() {
-  window.api.window.maximize();
-  // 简单回显：下一次查询修正状态（覆盖双击标题栏等外部最大化）
-  setTimeout(async () => {
-    try {
-      maximized.value = await window.api.window.isMaximized();
-    } catch {
-      /* ignore */
-    }
-  }, 120);
 }
 function close() {
   window.api.window.close();
@@ -65,11 +46,13 @@ function close() {
 }
 .caption {
   display: flex;
+  margin-left: auto;
   -webkit-app-region: no-drag;
 }
 .cap-btn {
   width: 46px;
   height: 32px;
+  -webkit-app-region: no-drag;
   border: none;
   background: transparent;
   color: var(--text-color);

@@ -16,7 +16,12 @@
   --sidebar-bg: #f7f7f7;
   --hover-bg: rgba(0, 0, 0, 0.04);
   --active-bg: rgba(15, 108, 189, 0.1);
+  /* 左侧导航选中态的轻量背景（中性灰，非强调色填充） */
+  --nav-active-bg: rgba(0, 0, 0, 0.05);
   --mica: linear-gradient(180deg, #fbfbfb 0%, #f0f0f0 100%);
+  /* 悬浮卡片与窗口边缘之间的透明余量，用于显示边框与外阴影
+     （需 ≥ 阴影在单侧的最大延伸，否则阴影会被窗口矩形边界裁切） */
+  --window-pad: 28px;
 
   /* 兼容旧代码引用 */
   --main-color: #0f6cbd;
@@ -32,6 +37,7 @@ html[data-theme='dark'] {
   --sidebar-bg: #232323;
   --hover-bg: rgba(255, 255, 255, 0.06);
   --active-bg: rgba(76, 194, 255, 0.14);
+  --nav-active-bg: rgba(255, 255, 255, 0.08);
   --mica: linear-gradient(180deg, #2a2a2a 0%, #1c1c1c 100%);
   --main-color: #4cc2ff;
   --panel-bg: var(--sidebar-bg);
@@ -53,12 +59,23 @@ body {
   font-family: var(--font-family);
   font-size: 14px;
   color: var(--text-color);
-  /* Mica 风格背景（纯 CSS 渐变，无原生捕获，无延迟） */
-  background: var(--mica);
+  /* 透明内边距：在悬浮卡片与窗口边缘之间留出透明余量，
+     使卡片的边框与外阴影可见（桌面透过余量显示） */
+  padding: var(--window-pad);
+  background: transparent;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow: hidden;
   user-select: none;
+}
+
+/* 最大化时取消内边距，卡片铺满整个窗口，并隐藏阴影 / 圆角 */
+html[data-maximized='true'] body {
+  padding: 0;
+}
+html[data-maximized='true'] .app-shell {
+  border-radius: 0;
+  box-shadow: none;
 }
 
 #app {

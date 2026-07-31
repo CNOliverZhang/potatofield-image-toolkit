@@ -50,6 +50,10 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
     if (dedupKey) windows.delete(dedupKey);
   });
 
+  // 同步最大化状态给渲染进程（覆盖双击标题栏 / 系统贴靠等外部触发）
+  win.on('maximize', () => win.webContents.send('window:maximize-changed', true));
+  win.on('unmaximize', () => win.webContents.send('window:maximize-changed', false));
+
   if (dedupKey) windows.set(dedupKey, win);
   return win;
 }

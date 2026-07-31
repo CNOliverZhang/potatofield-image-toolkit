@@ -44,5 +44,6 @@ export interface ImageToolkitApi {
     maximize: () => void;
     close: () => void;
     isMaximized: () => Promise<boolean>;
+    onMaximizeChanged: (callback: (maximized: boolean) => void) => () => void;
   };
 }

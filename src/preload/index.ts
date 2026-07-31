@@ -41,7 +41,12 @@ const api: ImageToolkitApi = {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
     close: () => ipcRenderer.send('window:close'),
-    isMaximized: () => ipcRenderer.invoke('window:isMaximized')
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    onMaximizeChanged: (callback: (maximized: boolean) => void) => {
+      const listener = (_e: unknown, v: boolean) => callback(v);
+      ipcRenderer.on('window:maximize-changed', listener);
+      return () => ipcRenderer.removeListener('window:maximize-changed', listener);
+    }
   }
 };
 
