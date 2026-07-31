@@ -93,28 +93,68 @@
 
 ## 4. 在线接口（需求 5：与原来一致 + 参考博客后台）
 
-老项目实际调用的接口：
+> **重要**：后端正确路由文件是 `routes/image_toolkit.js` 和 `routes/font_library.js`。
+> `routes/old.js` 是为兼容更早版本保留的旧路由，**不要以此为准**。
 
-| 用途 | 方法 | URL | 返回 |
+### 图像工具箱接口（`/image_toolkit` 前缀）
+
+源文件：`potatofield-backend/app/routes/image_toolkit.js`
+
+| 用途 | 方法 | 路径 | 认证 | Handler |
+|---|---|---|---|---|
+| 工具列表 | GET | `/image_toolkit/tool/list` | 无 | `tool.list` |
+| 添加工具 | POST | `/image_toolkit/tool/add` | admin | `tool.add` |
+| 更新工具 | POST | `/image_toolkit/tool/update` | admin | `tool.update` |
+| 删除工具 | POST | `/image_toolkit/tool/remove` | admin | `tool.remove` |
+| 添加版本 | POST | `/image_toolkit/version/add` | admin | `version.add` |
+| 版本列表 | GET | `/image_toolkit/version/list` | 无 | `version.list` |
+| 最新版本 | GET | `/image_toolkit/version/latest` | 无 | `version.latest` |
+| 客户端注册 | POST | `/image_toolkit/client/register` | 无 | `client.register` |
+| 新客户端数 | GET | `/image_toolkit/client/count_new` | admin | `client.countNew` |
+| 活跃客户端数 | GET | `/image_toolkit/client/count_active` | admin | `client.countActive` |
+| 客户端总数 | GET | `/image_toolkit/client/count` | admin | `client.count` |
+| 消息列表 | GET | `/image_toolkit/message/list` | 无 | `message.list` |
+| 最新消息 | GET | `/image_toolkit/message/latest` | 无 | `message.latest` |
+| 添加消息 | POST | `/image_toolkit/message/add` | admin | `message.add` |
+| 更新消息 | POST | `/image_toolkit/message/update` | admin | `message.update` |
+| 删除消息 | POST | `/image_toolkit/message/remove` | admin | `message.remove` |
+
+**客户端注册 = 用量上报**：`client.register` handler 每次调用时会自动创建一条 `ImageToolkit_usage` 记录（见 `handlers/image_toolkit/client.js:44-47`），**无需单独的 usage 端点**。
+
+### 字体库接口（`/font_library` 前缀）
+
+源文件：`potatofield-backend/app/routes/font_library.js`
+
+| 用途 | 方法 | 路径 | 认证 | Handler |
+|---|---|---|---|---|
+| 字体列表 | GET | `/font_library/font/list` | 无 | `font.list` |
+| 添加字体 | POST | `/font_library/font/add` | 登录 | `font.add` |
+| 更新字体 | POST | `/font_library/font/update` | 登录 | `font.update` |
+| 删除字体 | POST | `/font_library/font/remove` | 登录 | `font.remove` |
+| 随机字体 | GET | `/font_library/font/random` | 无 | `font.random` |
+| 字体族列表 | GET | `/font_library/font_family/list` | 无 | `fontFamily.list` |
+| 添加字体族 | POST | `/font_library/font_family/add` | 登录 | `fontFamily.add` |
+| 更新字体族 | POST | `/font_library/font_family/update` | 登录 | `fontFamily.update` |
+| 删除字体族 | POST | `/font_library/font_family/remove` | 登录 | `fontFamily.remove` |
+| 字体样式列表 | GET | `/font_library/font_style/list` | 无 | `fontStyle.list` |
+
+### 新项目客户端调用的接口（已实现在 `useOnlineApi.ts`）
+
+| 函数 | 方法 | 路径 | 说明 |
 |---|---|---|---|
-| 字体列表 | GET | `https://api.potatofield.cn/font_library/font/list` | `{ data: { list: [...] } }` |
-| 消息列表 | GET | `https://api.potatofield.cn/image_toolkit/message/list` | `{ data: { count, list } }` |
-| 最新消息 | GET | `https://api.potatofield.cn/image_toolkit/message/latest` | `{ id, title, ... }` |
-| 版本列表 | GET | `https://api.potatofield.cn/image_toolkit/version/list` | `{ data: { list } }` |
-| 客户端注册/上报 | POST | `https://api.potatofield.cn/image_toolkit/client/register` | `{ identifier, version, platform }` |
-| 字体文件/预览下载 | GET | `font.previewImage` / `font.fontFile`（完整 URL） | binary |
+| `getFontList()` | GET | `/font_library/font/list` | 在线字体列表 |
+| `getRandomFont()` | GET | `/font_library/font/random` | 随机推荐字体 |
+| `downloadFont()` | GET | `font.fontFile`（完整 URL） | 下载字体二进制 |
+| `getMessageList()` | GET | `/image_toolkit/message/list` | 公告消息列表 |
+| `getLatestMessage()` | GET | `/image_toolkit/message/latest` | 最新公告 |
+| `getVersions()` | GET | `/image_toolkit/version/list` | 版本列表（用于更新检查） |
+| `getLatestVersion()` | GET | `/image_toolkit/version/latest` | 最新版本信息 |
+| `getToolList()` | GET | `/image_toolkit/tool/list` | 工具列表 |
+| `registerClient()` | POST | `/image_toolkit/client/register` | 注册+用量上报 |
 
-**博客后台对应实现（已确认存在，新项目直接复用这些接口即可，无需改后端）**：
-- `potatofield-backend/app/routes/font_library.js` → `/font_library/font/list`
-- `potatofield-backend/app/routes/old.js` → `/imagetoolkit/versions`、`/imagetoolkit/messages`、`/imagetoolkit/register`
-- `potatofield-backend/app/old/index.js` → `getFontList`、`getMessageList`
-- `potatofield-backend/app/handlers/.../ImageToolkitClient.register`
-- 模型：`ImageToolkit_client`、`ImageToolkit_message`、`ImageToolkit_tool`、`ImageToolkit_usage`、`ImageToolkit_version`、`FontLibrary_*`
+### 后端模型
 
-**用户数据上报设计（新项目）**：
-- 首次启动生成 `identifier`（crypto-js AES 加密，存 `settings.identifier`）
-- 启动后 `POST /image_toolkit/client/register` 上报 identifier + version + platform
-- 每个工具被使用时 `POST /image_toolkit/usage`（需确认后端是否有该接口；待会话中确认）
+`ImageToolkit_client`、`ImageToolkit_version`、`ImageToolkit_usage`、`ImageToolkit_message`、`ImageToolkit_tool`、`FontLibrary_font`、`FontLibrary_fontFamily`、`FontLibrary_fontStyle`
 
 ---
 
@@ -176,7 +216,7 @@ src/
 
 ## 8. 待确认 / 风险
 
-- [ ] 后端是否已有 `/image_toolkit/usage` 用量上报接口？若无需在 `potatofield-backend` 补。
+- [x] ~~后端是否已有 `/image_toolkit/usage` 用量上报接口？~~ **已确认**：无需单独端点，`client.register` 每次调用自动创建 `ImageToolkit_usage` 记录。
 - [ ] `asar: false` 是否必须？为兼容 `static/` 资源路径沿用；后续可评估改为 true。
 - [ ] cropperjs 版本：v1（老）vs v2 API 不同，按 v1 渐进迁移。
 - [ ] CKEditor5 体积大，textToImage 是否仍用 CKEditor5 或换更轻方案（TipTap/Quill）？暂沿用 CKEditor5。
