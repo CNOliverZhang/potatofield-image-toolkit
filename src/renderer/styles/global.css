@@ -29,6 +29,27 @@ html[data-theme='dark'] {
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
+/* ── 原生玻璃激活时（Windows：@hicccc77/electron-liquid-glass） ──
+   真实折射由原生面板提供，此处仅保留轻量“表面”着色，
+   避免过重的奶白遮罩盖住玻璃。无原生面板时不会设置此属性，
+   回退到上方较厚的 glassmorphism 着色（macOS / 不支持环境）。 */
+html[data-native-glass='true'] {
+  --glass-bg: rgba(255, 255, 255, 0.16);
+  --glass-bg-strong: rgba(255, 255, 255, 0.26);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.22);
+  --el-fill-color-blank: rgba(255, 255, 255, 0.18);
+}
+html[data-theme='dark'][data-native-glass='true'] {
+  --glass-bg: rgba(20, 20, 24, 0.22);
+  --glass-bg-strong: rgba(20, 20, 24, 0.34);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-highlight: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  --el-fill-color-blank: rgba(255, 255, 255, 0.08);
+}
+
 /* ── 根背景透明化（让桌面透出模糊） ─────────────────────── */
 html,
 body,

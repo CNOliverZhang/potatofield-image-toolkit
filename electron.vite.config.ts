@@ -8,7 +8,7 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: { index: resolve('src/main/index.ts') },
-        external: ['electron-updater', 'sharp', 'fs-extra']
+        external: ['electron-updater', 'sharp', 'fs-extra', '@hicccc77/electron-liquid-glass']
       }
     }
   },

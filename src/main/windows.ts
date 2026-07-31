@@ -1,5 +1,6 @@
 import { BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
 import { join } from 'path';
+import { attachGlass } from './glass';
 
 const windows = new Map<string, BrowserWindow>();
 
@@ -38,6 +39,9 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
     },
     ...rest
   });
+
+  // 挂载原生液态玻璃面板（仅 Windows 且后端可用时生效；透明窗口下可见真实折射）
+  attachGlass(win);
 
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(`${process.env.ELECTRON_RENDERER_URL}#${route}`);

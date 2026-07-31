@@ -31,7 +31,21 @@
 | `resizable` | 暂保持默认 | 透明窗口无系统边框拖拽；resize 在后续会话用边缘 handle 实现 |
 | 圆角 | 由 CSS `.app-shell { border-radius }` 负责 | transparent 窗口本身方形，玻璃层切圆角，四角透明 |
 
-**注意**：`transparent: true` 与 macOS 的 `vibrancy` 互斥。本项目统一用 `transparent + CSS backdrop-filter`，保证 win/mac 一致。
+**注意**：`transparent: true` 与 macOS 的 `vibrancy` 互斥。本项目**真实折射由原生面板提供**（见 §1.1），CSS `backdrop-filter` 仅作为 macOS / 不支持原生玻璃环境时的回退着色，不可依赖它去模糊 Windows 桌面（Electron 透明窗口的 `backdrop-filter` 在 Windows 上只能模糊同页面 DOM，无法模糊 OS 桌面）。
+
+### 1.1 原生液态玻璃面板（真实折射，Windows 专用）
+
+文件：`src/main/glass.ts` + 依赖 `@hicccc77/electron-liquid-glass`
+
+实现方式：用一个独立原生窗口（DXGI 桌面复制 + D3D11 着色 + DirectComposition）实时折射桌面，钉在主窗口正下方作为玻璃背景；Electron 透明窗口只绘制玻璃"表面"（高光/描边/着色/文字）。
+
+- `glass.ts` 在窗口创建后调用 `attachGlass(win)`：
+  - 以 `screen.getDisplayMatching(bounds).scaleFactor` 作为 dpr，将窗口逻辑坐标换算为**物理像素**传给原生面板；
+  - 监听 `move` / `resize` 同步面板位置与尺寸，`minimize`/`restore` 控制显隐，`closed` 时销毁；
+  - 圆角 `cornerRadius = 14 * dpr`，与 CSS `.layout` 的 14px 圆角对齐；`displacementScale: 70`（边缘透镜位移）、`aberrationIntensity: 1.8`、`saturation: 1.4`、`blurSigma: 6`；
+  - 支持时向渲染进程注入 `document.documentElement.dataset.nativeGlass = "true"`。
+- `isSupported()` 在非 Windows 或后端不可用时返回 `false`，此时不创建面板，走 CSS 回退（§2/§3 较厚着色）。
+- 该包必须在 `electron.vite.config.ts` 的 `rollupOptions.external` 中声明（原生 `.node`，不可被打包）。
 
 ---
 
@@ -155,6 +169,6 @@ html[data-theme='dark'] {
 
 ## 8. 跨平台注意
 
-- **Windows**：`backdrop-filter` 在 Win10/11 可用；透明窗口需自行绘制圆角与阴影（已由 `.app-shell` 的 border-radius + box-shadow 解决）。
-- **macOS**：`transparent: true` 同样生效；若后续启用 `vibrancy` 需去掉 `transparent`（本项目不采用，保持双平台一致）。
+- **Windows（主力，真实液态玻璃）**：`transparent: true` 仅让窗口透明，**并不能**让 `backdrop-filter` 模糊 OS 桌面。真实折射由 `@hicccc77/electron-liquid-glass` 原生面板提供（见 §1.1）。`isSupported()` 为 `true` 时渲染进程进入 `data-native-glass='true'` 轻量着色模式。
+- **macOS / 不支持原生玻璃的环境（回退）**：不创建原生面板，`data-native-glass` 不设置，沿用 §2/§3 较厚的 glassmorphism 着色（此时 `backdrop-filter` 在 macOS 上可模糊桌面，作为近似效果）。
 - 透明窗口下 `el-dialog` 默认居中弹窗的背景遮罩（mask）用 40% 黑，确保可读。
