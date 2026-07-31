@@ -7,75 +7,9 @@
   --font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system,
     "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
 
-  /* ── Fluent UI 设计令牌（基础间距/圆角/字号） ── */
-  --design-unit: 4;
-  --base-height-multiplier: 8;
-  --density: 0;
-  --control-corner-radius: 4px;
-  --layer-corner-radius: 8px;
-  --stroke-width: 1px;
-
-  /* ── Fluent UI 字号阶梯 ── */
-  --type-ramp-base-font-size: 14px;
-  --type-ramp-base-line-height: 20px;
-  --type-ramp-minus-1-font-size: 12px;
-  --type-ramp-minus-1-line-height: 16px;
-  --type-ramp-minus-2-font-size: 10px;
-  --type-ramp-minus-2-line-height: 14px;
-  --type-ramp-plus-1-font-size: 16px;
-  --type-ramp-plus-1-line-height: 22px;
-
-  /* ── Fluent UI 中性色层 ── */
-  --neutral-layer-1: #fbfbfb;
-  --neutral-layer-2: #f5f5f5;
-  --neutral-layer-3: #ebebeb;
-  --neutral-layer-4: #e0e0e0;
-  --fill-color: #ffffff;
-
-  /* ── 反色文字（用于深色背景上的文字） ── */
-  --neutral-foreground-on-color-rest: #ffffff;
-
-  /* 语义色板（供自定义布局/卡片使用） */
-  --accent: #0f6cbd;
-  --text-color: #1b1b1b;
-  --text-secondary: #5e5e5e;
-  --border-color: #e2e2e2;
-  --card-bg: #ffffff;
-  --sidebar-bg: #f7f7f7;
-  --hover-bg: rgba(0, 0, 0, 0.04);
-  --active-bg: rgba(15, 108, 189, 0.1);
-  /* 左侧导航选中态的轻量背景（中性灰，非强调色填充） */
-  --nav-active-bg: rgba(0, 0, 0, 0.05);
-  --mica: linear-gradient(180deg, #fbfbfb 0%, #f0f0f0 100%);
   /* 悬浮卡片与窗口边缘之间的透明余量，用于显示边框与外阴影
      （需 ≥ 阴影在单侧的最大延伸，否则阴影会被窗口矩形边界裁切） */
   --window-pad: 28px;
-
-  /* 兼容旧代码引用 */
-  --main-color: #0f6cbd;
-  --panel-bg: var(--sidebar-bg);
-}
-
-html[data-theme='dark'] {
-  --accent: #4cc2ff;
-  --text-color: #f3f3f3;
-  --text-secondary: #b9b9b9;
-  --border-color: #3a3a3a;
-  --card-bg: #2b2b2b;
-  --sidebar-bg: #232323;
-  --hover-bg: rgba(255, 255, 255, 0.06);
-  --active-bg: rgba(76, 194, 255, 0.14);
-  --nav-active-bg: rgba(255, 255, 255, 0.08);
-  --mica: linear-gradient(180deg, #2a2a2a 0%, #1c1c1c 100%);
-  --main-color: #4cc2ff;
-  --panel-bg: var(--sidebar-bg);
-
-  /* 暗色模式 Fluent UI 设计令牌 */
-  --neutral-layer-1: #202020;
-  --neutral-layer-2: #292929;
-  --neutral-layer-3: #333333;
-  --neutral-layer-4: #3d3d3d;
-  --fill-color: #2b2b2b;
 }
 
 * {
@@ -93,7 +27,7 @@ body,
 body {
   font-family: var(--font-family);
   font-size: 14px;
-  color: var(--text-color);
+  color: var(--neutral-foreground-rest);
   /* 透明内边距：在悬浮卡片与窗口边缘之间留出透明余量，
      使卡片的边框与外阴影可见（桌面透过余量显示） */
   padding: var(--window-pad);
@@ -155,14 +89,14 @@ h2 {
   margin: 0 0 16px;
 }
 a {
-  color: var(--accent);
+  color: var(--accent-base-color);
   text-decoration: none;
 }
 
 /* ── 通用卡片（Fluent 风格"设置"卡片） ── */
 .fluent-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
+  background: var(--neutral-layer-1);
+  border: 1px solid var(--neutral-stroke-rest);
   border-radius: 8px;
   padding: 16px;
 }

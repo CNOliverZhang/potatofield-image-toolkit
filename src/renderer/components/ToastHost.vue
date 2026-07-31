@@ -47,10 +47,10 @@ function iconOf(type: ToastType) {
   max-width: 420px;
   padding: 12px 16px;
   border-radius: 8px;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
+  background: var(--neutral-layer-1);
+  border: 1px solid var(--neutral-stroke-rest);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
-  color: var(--text-color);
+  color: var(--neutral-foreground-rest);
   font-size: 14px;
 }
 .toast-icon {
@@ -66,7 +66,7 @@ function iconOf(type: ToastType) {
   color: #c19c00;
 }
 .toast.info .toast-icon {
-  color: var(--accent);
+  color: var(--accent-base-color);
 }
 
 .toast-enter-active,

@@ -15,11 +15,11 @@ defineProps<{ name: string }>();
 .stub {
   text-align: center;
   padding: 60px 20px;
-  color: var(--text-secondary);
+  color: var(--neutral-foreground-secondary-rest);
 }
 .icon {
   font-size: 40px;
-  color: var(--main-color);
+  color: var(--accent-base-color);
   margin-bottom: 12px;
 }
 .hint {

@@ -24,15 +24,15 @@ import { ui, closeDialog } from '@renderer/composables/ui';
 <style scoped>
 .app-dialog::part(control) {
   border-radius: 8px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--neutral-stroke-rest);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
 }
 .dlg {
   min-width: 320px;
   max-width: 460px;
   padding: 24px;
-  background: var(--card-bg);
-  color: var(--text-color);
+  background: var(--neutral-layer-1);
+  color: var(--neutral-foreground-rest);
 }
 .dlg-title {
   margin: 0 0 8px;
@@ -40,7 +40,7 @@ import { ui, closeDialog } from '@renderer/composables/ui';
 }
 .dlg-msg {
   margin: 0 0 20px;
-  color: var(--text-secondary);
+  color: var(--neutral-foreground-secondary-rest);
   line-height: 1.5;
   white-space: pre-wrap;
 }

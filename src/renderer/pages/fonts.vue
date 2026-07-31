@@ -60,7 +60,7 @@ async function install(font: FontItem) {
   align-items: center;
   gap: 14px;
   padding: 10px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--neutral-stroke-rest);
   border-radius: 8px;
 }
 .preview {
@@ -75,7 +75,7 @@ async function install(font: FontItem) {
   font-weight: 600;
 }
 .empty {
-  color: var(--text-secondary);
+  color: var(--neutral-foreground-secondary-rest);
   padding: 24px 0;
   font-size: 13px;
 }

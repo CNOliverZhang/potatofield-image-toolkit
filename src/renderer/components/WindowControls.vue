@@ -53,7 +53,7 @@ function close() {
   height: 32px;
   border: none;
   background: transparent;
-  color: var(--text-color);
+  color: var(--neutral-foreground-rest);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -62,7 +62,7 @@ function close() {
   transition: background 0.1s ease;
 }
 .cap-btn:hover {
-  background: var(--hover-bg);
+  background: var(--neutral-fill-hover);
 }
 .cap-btn:active {
   background: rgba(0, 0, 0, 0.12);

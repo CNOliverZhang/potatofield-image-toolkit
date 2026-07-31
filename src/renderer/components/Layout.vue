@@ -4,9 +4,7 @@
     <div class="body">
       <aside class="sidebar">
         <div class="brand">
-          <span class="brand-mark">
-            <font-awesome-icon :icon="['fas', 'warehouse']" />
-          </span>
+          <img class="brand-mark" src="@renderer/assets/logo.png" alt="logo" />
           <span class="brand-name">洋芋田图像工具箱</span>
         </div>
 
@@ -68,7 +66,7 @@ const nav = [
   overflow: hidden;
   /* Mica 风格背景（纯 CSS 渐变）—— 仅在卡片内部绘制，
      窗口边缘的透明余量由 body padding 提供 */
-  background: var(--neutral-layer-1);
+  background: var(--neutral-layer-floating);
   /* 对称柔和阴影：单侧最大延伸 = 6+20 = 26px < --window-pad(28px)，
      四向阴影均完整可见，不再被窗口边界裁切 */
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.2);
@@ -81,8 +79,8 @@ const nav = [
 .sidebar {
   width: 232px;
   flex-shrink: 0;
-  background: var(--sidebar-bg);
-  border-right: 1px solid var(--border-color);
+  background: var(--neutral-layer-1);
+  border-right: 1px solid var(--neutral-stroke-rest);
   display: flex;
   flex-direction: column;
   padding: 8px;
@@ -96,8 +94,10 @@ const nav = [
   font-weight: 600;
 }
 .brand-mark {
-  color: var(--accent);
-  font-size: 18px;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .nav {
   flex: 1;
@@ -113,19 +113,19 @@ const nav = [
   gap: 12px;
   padding: 9px 12px;
   border-radius: 6px;
-  color: var(--text-color);
+  color: var(--neutral-foreground-rest);
   cursor: pointer;
   user-select: none;
   transition: background 0.12s ease;
 }
 .nav-item:hover {
-  background: var(--hover-bg);
+  background: var(--neutral-fill-hover);
 }
 /* Fluent 风格选中态：轻量背景 + 强调色文字 + 左侧细条指示，
    不再用整块强调色填充与加粗，避免“刻意、太重” */
 .nav-item.active {
-  background: var(--nav-active-bg);
-  color: var(--accent);
+  background: var(--neutral-fill-stealth-active);
+  color: var(--accent-base-color);
   font-weight: 500;
 }
 .nav-item.active::before {
@@ -136,7 +136,7 @@ const nav = [
   bottom: 7px;
   width: 3px;
   border-radius: 3px;
-  background: var(--accent);
+  background: var(--accent-base-color);
 }
 .nav-icon {
   width: 18px;
@@ -144,7 +144,7 @@ const nav = [
   font-size: 15px;
 }
 .sidebar-footer {
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--neutral-stroke-rest);
   padding-top: 6px;
   margin-top: 6px;
 }

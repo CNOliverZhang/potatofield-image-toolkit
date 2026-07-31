@@ -44,8 +44,8 @@ function go(path: string) {
   gap: 16px;
 }
 .card {
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
+  background: var(--neutral-layer-2);
+  border: 1px solid var(--neutral-stroke-rest);
   border-radius: 10px;
   padding: 22px 12px;
   text-align: center;
@@ -54,11 +54,11 @@ function go(path: string) {
 }
 .card:hover {
   transform: translateY(-3px);
-  border-color: var(--main-color);
+  border-color: var(--accent-base-color);
 }
 .card-icon {
   font-size: 26px;
-  color: var(--main-color);
+  color: var(--accent-base-color);
   margin-bottom: 10px;
 }
 .card-label {

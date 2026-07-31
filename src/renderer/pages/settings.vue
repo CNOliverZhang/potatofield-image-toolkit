@@ -78,7 +78,7 @@ async function pickDir() {
   margin: 22px 0 8px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--neutral-foreground-secondary-rest);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
@@ -96,7 +96,7 @@ async function pickDir() {
   flex-shrink: 0;
 }
 .value {
-  color: var(--text-secondary);
+  color: var(--neutral-foreground-secondary-rest);
   font-size: 13px;
   word-break: break-all;
 }
@@ -104,7 +104,7 @@ async function pickDir() {
   width: 40px;
   height: 28px;
   padding: 0;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--neutral-stroke-rest);
   border-radius: 4px;
   background: none;
   cursor: pointer;

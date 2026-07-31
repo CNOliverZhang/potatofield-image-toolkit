@@ -68,7 +68,7 @@ function copy(color: string) {
 .preview img {
   max-width: 100%;
   border-radius: 8px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--neutral-stroke-rest);
 }
 .swatches {
   display: flex;
@@ -84,7 +84,7 @@ function copy(color: string) {
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 6px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--neutral-stroke-rest);
 }
 .hex {
   font-size: 11px;
