@@ -110,14 +110,24 @@
             ></button>
           </div>
         </div>
-        <div v-if="!params.tile && params.gravity !== 'center'" class="field">
-          <span class="field-label">边距 <em>{{ params.offset }}px</em></span>
+        <div v-if="!params.tile && showHMargin" class="field">
+          <span class="field-label">横向边距 <em>{{ params.offsetX }}%</em></span>
           <fluent-slider
-            :value="params.offset"
+            :value="params.offsetX"
             :min="0"
-            :max="200"
+            :max="50"
             :step="1"
-            @change="params.offset = evNum($event)"
+            @change="params.offsetX = evNum($event)"
+          ></fluent-slider>
+        </div>
+        <div v-if="!params.tile && showVMargin" class="field">
+          <span class="field-label">纵向边距 <em>{{ params.offsetY }}%</em></span>
+          <fluent-slider
+            :value="params.offsetY"
+            :min="0"
+            :max="50"
+            :step="1"
+            @change="params.offsetY = evNum($event)"
           ></fluent-slider>
         </div>
         <div class="field">
@@ -179,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onBeforeUnmount } from 'vue';
+import { reactive, ref, watch, computed, onBeforeUnmount } from 'vue';
 import type { WatermarkParams, WatermarkGravity } from '@shared/types';
 import { selectImageFiles, selectDirectory } from '@renderer/utils/filePicker';
 import { useDialog } from '@renderer/composables/useDialog';
@@ -203,7 +213,8 @@ function defaultParams(): WatermarkParams {
     fontFamily: 'sans-serif',
     rotation: 0,
     gravity: 'se',
-    offset: 24,
+    offsetX: 5,
+    offsetY: 5,
     tile: false,
     tileGap: 60,
     watermarkPath: '',
@@ -234,6 +245,10 @@ const POSITIONS: { g: WatermarkGravity; label: string }[] = [
   { g: 's', label: '下' },
   { g: 'se', label: '右下' }
 ];
+
+// 定位含左/右时不依赖纵向中心，显示横向边距；含上/下时显示纵向边距
+const showHMargin = computed(() => /[we]/.test(params.gravity));
+const showVMargin = computed(() => /[ns]/.test(params.gravity));
 
 function evVal(e: Event): string {
   return (e.target as HTMLInputElement).value;
@@ -343,7 +358,7 @@ onBeforeUnmount(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--hover-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
@@ -368,11 +383,13 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: 4px;
-  background-color: #fff;
-  background-image: linear-gradient(45deg, #eee 25%, transparent 25%),
-    linear-gradient(-45deg, #eee 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #eee 75%),
-    linear-gradient(-45deg, transparent 75%, #eee 75%);
+  ;
+  background-color: var(--neutral-layer-1);
+  background-image:
+    linear-gradient(45deg, var(--neutral-layer-3) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--neutral-layer-3) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--neutral-layer-3) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--neutral-layer-3) 75%);
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0;
 }

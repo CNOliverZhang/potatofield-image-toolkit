@@ -1,11 +1,39 @@
 /* ============================================================
-   全局样式 · Windows 11 Fluent UI 风格（类似“设置”页面）
+   全局样式 · Windows 11 Fluent UI 风格（类似"设置"页面）
    组件统一使用微软官方 Fluent UI Web Components（fluent-*）
    ============================================================ */
 
 :root {
   --font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system,
     "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+
+  /* ── Fluent UI 设计令牌（基础间距/圆角/字号） ── */
+  --design-unit: 4;
+  --base-height-multiplier: 8;
+  --density: 0;
+  --control-corner-radius: 4px;
+  --layer-corner-radius: 8px;
+  --stroke-width: 1px;
+
+  /* ── Fluent UI 字号阶梯 ── */
+  --type-ramp-base-font-size: 14px;
+  --type-ramp-base-line-height: 20px;
+  --type-ramp-minus-1-font-size: 12px;
+  --type-ramp-minus-1-line-height: 16px;
+  --type-ramp-minus-2-font-size: 10px;
+  --type-ramp-minus-2-line-height: 14px;
+  --type-ramp-plus-1-font-size: 16px;
+  --type-ramp-plus-1-line-height: 22px;
+
+  /* ── Fluent UI 中性色层 ── */
+  --neutral-layer-1: #fbfbfb;
+  --neutral-layer-2: #f5f5f5;
+  --neutral-layer-3: #ebebeb;
+  --neutral-layer-4: #e0e0e0;
+  --fill-color: #ffffff;
+
+  /* ── 反色文字（用于深色背景上的文字） ── */
+  --neutral-foreground-on-color-rest: #ffffff;
 
   /* 语义色板（供自定义布局/卡片使用） */
   --accent: #0f6cbd;
@@ -41,6 +69,13 @@ html[data-theme='dark'] {
   --mica: linear-gradient(180deg, #2a2a2a 0%, #1c1c1c 100%);
   --main-color: #4cc2ff;
   --panel-bg: var(--sidebar-bg);
+
+  /* 暗色模式 Fluent UI 设计令牌 */
+  --neutral-layer-1: #202020;
+  --neutral-layer-2: #292929;
+  --neutral-layer-3: #333333;
+  --neutral-layer-4: #3d3d3d;
+  --fill-color: #2b2b2b;
 }
 
 * {
@@ -124,7 +159,7 @@ a {
   text-decoration: none;
 }
 
-/* ── 通用卡片（Fluent 风格“设置”卡片） ── */
+/* ── 通用卡片（Fluent 风格"设置"卡片） ── */
 .fluent-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);

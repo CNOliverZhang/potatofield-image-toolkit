@@ -59,8 +59,10 @@ export interface WatermarkParams {
   /** 旋转角度（度） */
   rotation: number;
   gravity: WatermarkGravity;
-  /** 距边缘的内边距（px），仅非平铺时生效 */
-  offset: number;
+  /** 水平内边距，占图片宽度百分比（0..100），仅非平铺且定位含左/右时生效 */
+  offsetX: number;
+  /** 垂直内边距，占图片高度百分比（0..100），仅非平铺且定位含上/下时生效 */
+  offsetY: number;
   /** 是否平铺铺满整图 */
   tile: boolean;
   /** 平铺间距（px） */

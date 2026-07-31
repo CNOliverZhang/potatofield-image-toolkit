@@ -160,8 +160,9 @@ async function buildWatermarkComposites(
   }
 
   const gravity = String(extra.gravity ?? 'se') as WatermarkGravity;
-  const offset = Number(extra.offset ?? 16);
-  const { left, top } = resolvePosition(gravity, baseMeta.width ?? 0, baseMeta.height ?? 0, wmW, wmH, offset);
+  const offsetX = Number(extra.offsetX ?? 3);
+  const offsetY = Number(extra.offsetY ?? 3);
+  const { left, top } = resolvePosition(gravity, baseMeta.width ?? 0, baseMeta.height ?? 0, wmW, wmH, offsetX, offsetY);
   return [{ input: prepared.buf, left, top, blend }];
 }
 
@@ -171,19 +172,23 @@ function resolvePosition(
   baseH: number,
   wmW: number,
   wmH: number,
-  offset: number
+  offsetX: number,
+  offsetY: number
 ): { left: number; top: number } {
+  // 边距以「占图片宽/高的百分比」换算成像素，避免不同尺寸图片水印相对大小不一
+  const hPx = (offsetX / 100) * baseW;
+  const vPx = (offsetY / 100) * baseH;
   let left: number;
   let top: number;
   if (gravity === 'center') {
     left = Math.round((baseW - wmW) / 2);
     top = Math.round((baseH - wmH) / 2);
   } else {
-    if (gravity.includes('w')) left = offset;
-    else if (gravity.includes('e')) left = baseW - wmW - offset;
+    if (gravity.includes('w')) left = Math.round(hPx);
+    else if (gravity.includes('e')) left = Math.round(baseW - wmW - hPx);
     else left = Math.round((baseW - wmW) / 2);
-    if (gravity.includes('n')) top = offset;
-    else if (gravity.includes('s')) top = baseH - wmH - offset;
+    if (gravity.includes('n')) top = Math.round(vPx);
+    else if (gravity.includes('s')) top = Math.round(baseH - wmH - vPx);
     else top = Math.round((baseH - wmH) / 2);
   }
   return { left: Math.max(0, left), top: Math.max(0, top) };
