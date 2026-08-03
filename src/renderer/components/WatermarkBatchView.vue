@@ -20,7 +20,7 @@
     <aside class="controls-pane">
       <div class="controls-body">
         <WatermarkControls v-model="params" :lock-tile="lockTile" />
-        <SaveLocationSetting v-model="saveDir" />
+        <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
         <div class="controls-footer">
           <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="run">
             {{ processing ? `处理中 ${progress.done}/${progress.total}` : `开始批量处理 (${files.length})` }}
@@ -34,7 +34,8 @@
 <script setup lang="ts">
 import { reactive, ref, watch, onBeforeUnmount, computed } from 'vue';
 import type { WatermarkParams } from '@shared/types';
-import { buildOutputPath } from '@renderer/utils/fileIO';
+import { buildOutputPath, resolveBatchOutputPath, ensureDir } from '@renderer/utils/fileIO';
+import type { BatchItem } from '@renderer/utils/directoryScanner';
 import { useDialog } from '@renderer/composables/useDialog';
 import { useSettingsStore } from '@renderer/stores/settings';
 import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
@@ -46,7 +47,8 @@ defineProps<{ lockTile?: boolean }>();
 const { message } = useDialog();
 const settings = useSettingsStore();
 
-const files = ref<string[]>([]);
+const files = ref<BatchItem[]>([]);
+const keepRelative = ref(false);
 const selected = ref('');
 const params = reactive<WatermarkParams>(defaultParams());
 const saveDir = ref(settings.defaultSaveDirectory || settings.recentSaveDirs[0] || '');
@@ -142,16 +144,23 @@ async function run() {
   progress.done = 0;
   progress.total = files.value.length;
   let ok = 0;
-  for (const f of files.value) {
-    const base = f.split(/[\\/]/).pop() || 'image';
+  for (const item of files.value) {
+    const base = item.path.split(/[\\/]/).pop() || 'image';
     const dot = base.lastIndexOf('.');
     const stem = dot > 0 ? base.slice(0, dot) : base;
-    const name = stem + '_watermarked' + extFor(params.format);
-    const out = buildOutputPath(saveDir.value, name);
+    const out = resolveBatchOutputPath(saveDir.value, item, {
+      suffix: '_watermarked',
+      ext: extFor(params.format),
+      keepStructure: keepRelative.value
+    });
+    // 保持相对目录且文件存在子目录时，需先创建目标子目录（sharp 不会自动建目录）
+    if (keepRelative.value && item.rel.includes('/')) {
+      await ensureDir(out.substring(0, out.lastIndexOf('/')));
+    }
     try {
       await window.api.image.process({
         op: 'watermark',
-        inputPath: f,
+        inputPath: item.path,
         outputPath: out,
         options: { format: params.format, quality: params.quality },
         extra: { ...params } as unknown as Record<string, unknown>
@@ -165,7 +174,7 @@ async function run() {
   processing.value = false;
   message(`批量处理完成：${ok}/${files.value.length} 张成功`, 'success');
   if (ok > 0) {
-    window.api.shell.showItemInFolder(buildOutputPath(saveDir.value, files.value[0].split(/[\\/]/).pop() || 'image'));
+    window.api.shell.showItemInFolder(buildOutputPath(saveDir.value, files.value[0].path.split(/[\\/]/).pop() || 'image'));
   }
 }
 

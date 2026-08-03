@@ -10,7 +10,8 @@ import {
   fluentSlider,
   fluentSelect,
   fluentOption,
-  fluentCheckbox
+  fluentCheckbox,
+  fluentSwitch
 } from '@fluentui/web-components';
 
 // 将所有用到的 Fluent 组件注册到设计系统（必须，否则 <fluent-*> 标签为空未定义元素）
@@ -20,7 +21,8 @@ provideFluentDesignSystem(document.body).register(
   fluentSlider(),
   fluentSelect(),
   fluentOption(),
-  fluentCheckbox()
+  fluentCheckbox(),
+  fluentSwitch()
 );
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {

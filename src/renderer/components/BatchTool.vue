@@ -69,7 +69,7 @@
           </template>
         </div>
 
-        <SaveLocationSetting v-model="saveDir" />
+        <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
 
         <div class="controls-footer">
           <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="run">
@@ -84,7 +84,8 @@
 <script setup lang="ts">
 import { reactive, ref, watch, onBeforeUnmount, computed } from 'vue';
 import type { ImageProcessOptions } from '@shared/types';
-import { buildOutputPath } from '@renderer/utils/fileIO';
+import { buildOutputPath, resolveBatchOutputPath, ensureDir } from '@renderer/utils/fileIO';
+import type { BatchItem } from '@renderer/utils/directoryScanner';
 import { useDialog } from '@renderer/composables/useDialog';
 import { useSettingsStore } from '@renderer/stores/settings';
 import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
@@ -104,7 +105,8 @@ const config: Record<ToolKey, { title: string; op: 'resize' | 'compress' | 'conv
 const { message } = useDialog();
 const settings = useSettingsStore();
 
-const files = ref<string[]>([]);
+const files = ref<BatchItem[]>([]);
+const keepRelative = ref(false);
 const selected = ref('');
 const saveDir = ref(settings.defaultSaveDirectory || settings.recentSaveDirs[0] || '');
 const previewUrl = ref('');
@@ -198,24 +200,29 @@ async function run() {
   progress.done = 0;
   progress.total = files.value.length;
   let ok = 0;
-  for (const f of files.value) {
-    const base = f.split(/[\\/]/).pop() || 'image';
-    const dot = base.lastIndexOf('.');
-    const stem = dot > 0 ? base.slice(0, dot) : base;
-    const inExt = dot > 0 ? base.slice(dot) : '';
-    let outExt = inExt;
-    if (props.tool === 'convert' && opts.format) outExt = '.' + opts.format;
-    else if (props.tool === 'compress' && opts.format) outExt = '.' + opts.format;
-    const out = buildOutputPath(saveDir.value, stem + config[props.tool].suffix + outExt);
+  for (const item of files.value) {
+    const forcedExt =
+      (props.tool === 'convert' || props.tool === 'compress') && opts.format
+        ? '.' + opts.format
+        : undefined;
+    const out = resolveBatchOutputPath(saveDir.value, item, {
+      suffix: config[props.tool].suffix,
+      ext: forcedExt,
+      keepStructure: keepRelative.value
+    });
+    if (keepRelative.value && item.rel.includes('/')) {
+      await ensureDir(out.substring(0, out.lastIndexOf('/')));
+    }
     try {
       await window.api.image.process({
         op: config[props.tool].op,
-        inputPath: f,
+        inputPath: item.path,
         outputPath: out,
         options: buildOptions()
       });
       ok++;
     } catch (e) {
+      const base = item.path.split(/[\\/]/).pop() || 'image';
       message('失败 ' + base + '：' + (e as Error).message, 'error');
     }
     progress.done++;
@@ -224,7 +231,7 @@ async function run() {
   message(`批量处理完成：${ok}/${files.value.length} 张成功`, 'success');
   if (ok > 0) {
     window.api.shell.showItemInFolder(
-      buildOutputPath(saveDir.value, files.value[0].split(/[\\/]/).pop() || 'image')
+      buildOutputPath(saveDir.value, files.value[0].path.split(/[\\/]/).pop() || 'image')
     );
   }
 }

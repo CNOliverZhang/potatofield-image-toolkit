@@ -30,6 +30,18 @@
         </fluent-button>
       </div>
     </div>
+
+    <div class="loc-keep">
+      <div class="loc-keep-text">
+        <span class="loc-keep-label">保持相对目录</span>
+        <span class="loc-keep-hint">按导入时的目录结构整体保存</span>
+      </div>
+      <fluent-switch
+        class="loc-keep-switch"
+        :checked="props.keepRelative ?? false"
+        @change="emit('update:keepRelative', evChk($event))"
+      ></fluent-switch>
+    </div>
   </div>
 </template>
 
@@ -39,8 +51,12 @@ import { useSettingsStore } from '@renderer/stores/settings';
 import { selectDirectory } from '@renderer/utils/filePicker';
 
 const settings = useSettingsStore();
-const props = defineProps<{ modelValue: string }>();
-const emit = defineEmits<{ 'update:modelValue': [string] }>();
+const props = defineProps<{ modelValue: string; keepRelative?: boolean }>();
+const emit = defineEmits<{ 'update:modelValue': [string]; 'update:keepRelative': [boolean] }>();
+
+function evChk(e: Event): boolean {
+  return (e.target as unknown as { checked: boolean }).checked;
+}
 
 // 下拉框中「待应用」的选项，与当前生效的保存位置解耦，需点击「应用」才写回
 const pending = ref('');
@@ -88,6 +104,9 @@ function apply() {
 </script>
 
 <style scoped>
+.save-loc {
+  margin-bottom: calc(var(--design-unit) * 1px * 5.5);
+}
 .group-title {
   display: block;
   font-size: var(--type-ramp-minus-1-font-size);
@@ -144,5 +163,27 @@ function apply() {
 }
 .loc-apply {
   flex-shrink: 0;
+}
+.loc-keep {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--design-unit) * 1px * 2);
+  margin-top: calc(var(--design-unit) * 1px * 3);
+  margin-bottom: calc(var(--design-unit) * 1px * 3);
+}
+.loc-keep-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.loc-keep-label {
+  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--neutral-foreground-rest);
+}
+.loc-keep-hint {
+  font-size: var(--type-ramp-minus-2-font-size);
+  color: var(--neutral-foreground-secondary-rest);
 }
 </style>

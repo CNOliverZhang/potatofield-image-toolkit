@@ -122,10 +122,6 @@
           @change="params.rotation = evNum($event)"
         ></fluent-slider>
       </div>
-    </div>
-
-    <!-- 不透明度 -->
-    <div class="group">
       <div class="field">
         <span class="field-label">不透明度 <em>{{ Math.round(params.opacity * 100) }}%</em></span>
         <fluent-slider

@@ -11,13 +11,13 @@
     <div class="import-list">
       <div v-if="!modelValue.length" class="import-empty">尚未导入图片</div>
       <div
-        v-for="p in modelValue"
-        :key="p"
-        :class="['import-item', { active: p === selected }]"
-        @click="select(p)"
+        v-for="item in modelValue"
+        :key="item.path"
+        :class="['import-item', { active: item.path === selected }]"
+        @click="select(item.path)"
       >
-        <span class="item-name" :title="p">{{ p.split(/[\\/]/).pop() }}</span>
-        <button class="item-remove" @click.stop="remove(p)" title="移除">×</button>
+        <span class="item-name" :title="item.path">{{ item.path.split(/[\\/]/).pop() }}</span>
+        <button class="item-remove" @click.stop="remove(item.path)" title="移除">×</button>
       </div>
     </div>
     <div class="import-foot" v-if="modelValue.length">
@@ -29,19 +29,23 @@
 
 <script setup lang="ts">
 import { selectImageFiles, selectDirectory } from '@renderer/utils/filePicker';
-import { scanImageDirectory } from '@renderer/utils/directoryScanner';
+import { scanImageDirectory, type BatchItem } from '@renderer/utils/directoryScanner';
+import { relativePath } from '@renderer/utils/fileIO';
 
-const props = defineProps<{ modelValue: string[]; selected: string }>();
-const emit = defineEmits<{ 'update:modelValue': [string[]]; 'update:selected': [string] }>();
+const props = defineProps<{ modelValue: BatchItem[]; selected: string }>();
+const emit = defineEmits<{ 'update:modelValue': [BatchItem[]]; 'update:selected': [string] }>();
 
-function dedupe(list: string[]): string[] {
-  return Array.from(new Set(list));
+function dedupe(list: BatchItem[]): BatchItem[] {
+  const seen = new Set<string>();
+  return list.filter((it) => (seen.has(it.path) ? false : (seen.add(it.path), true)));
 }
 
 async function chooseFiles() {
   const res = await selectImageFiles(true);
   if (!res) return;
-  emit('update:modelValue', dedupe([...props.modelValue, ...res]));
+  // 选择文件没有共同根目录，rel 仅取文件名
+  const items: BatchItem[] = res.map((p) => ({ path: p, rel: p.split(/[\\/]/).pop() ?? p }));
+  emit('update:modelValue', dedupe([...props.modelValue, ...items]));
 }
 
 async function scanFolder() {
@@ -50,11 +54,13 @@ async function scanFolder() {
   const r = await scanImageDirectory(dir);
   const paths = [...r.fileList, ...r.errorList.map((e) => e.path)];
   if (!paths.length) return;
-  emit('update:modelValue', dedupe([...props.modelValue, ...paths]));
+  // 扫描文件夹：记录每个文件相对源根目录的位置，供「保持相对目录」使用
+  const items: BatchItem[] = paths.map((p) => ({ path: p, rel: relativePath(dir, p) }));
+  emit('update:modelValue', dedupe([...props.modelValue, ...items]));
 }
 
 function remove(p: string) {
-  emit('update:modelValue', props.modelValue.filter((x) => x !== p));
+  emit('update:modelValue', props.modelValue.filter((x) => x.path !== p));
   if (props.selected === p) emit('update:selected', '');
 }
 
