@@ -71,6 +71,6 @@ export interface WatermarkParams {
   watermarkPath: string;
   /** 相对原图短边的缩放比例 0..1（type=image） */
   scale: number;
-  format: 'png' | 'jpeg' | 'webp';
+  format: 'original' | 'png' | 'jpeg' | 'webp';
   quality: number;
 }

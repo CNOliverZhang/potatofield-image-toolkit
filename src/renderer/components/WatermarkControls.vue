@@ -141,14 +141,15 @@
         <span class="field-label">格式</span>
         <fluent-select
           :value="params.format"
-          @change="params.format = evVal($event) as 'png' | 'jpeg' | 'webp'"
+          @change="params.format = evVal($event) as 'original' | 'png' | 'jpeg' | 'webp'"
         >
+          <fluent-option value="original">保持原格式</fluent-option>
           <fluent-option value="png">PNG（无损）</fluent-option>
           <fluent-option value="jpeg">JPG（有损）</fluent-option>
           <fluent-option value="webp">WebP（有损）</fluent-option>
         </fluent-select>
       </label>
-      <div v-if="params.format !== 'png'" class="field">
+      <div v-if="params.format === 'jpeg' || params.format === 'webp'" class="field">
         <span class="field-label">质量 <em>{{ params.quality }}%</em></span>
         <fluent-slider
           :value="params.quality"

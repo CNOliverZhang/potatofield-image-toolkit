@@ -35,11 +35,20 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
     }
     case 'compress': {
       if (!outputPath) throw new Error('compress 需要 outputPath');
-      const format = options.format ?? 'webp';
+      const format = options.format;
       const quality = options.quality ?? 80;
-      await sharp(inputPath)
-        .toFormat(format as keyof sharp.FormatEnum, { quality })
-        .toFile(outputPath);
+      let img = sharp(inputPath);
+      if (format) {
+        // 指定目标格式：转换并应用质量
+        img = img.toFormat(format as keyof sharp.FormatEnum, { quality });
+      } else if (quality !== undefined) {
+        // 保持原格式：仅对有损格式重新编码以应用质量（png/gif 无损，保持原样）
+        const srcFormat = (await sharp(inputPath).metadata()).format;
+        if (srcFormat && srcFormat !== 'png' && srcFormat !== 'gif') {
+          img = img.toFormat(srcFormat as keyof sharp.FormatEnum, { quality });
+        }
+      }
+      await img.toFile(outputPath);
       return { outputPath };
     }
     case 'extract': {

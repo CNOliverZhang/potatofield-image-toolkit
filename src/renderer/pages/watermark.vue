@@ -69,7 +69,7 @@ function defaultParams(): WatermarkParams {
     tileGap: 60,
     watermarkPath: '',
     scale: 0.25,
-    format: 'png',
+    format: 'original',
     quality: 90
   };
 }
@@ -110,6 +110,10 @@ async function updatePreview() {
 }
 
 function extFor(fmt: WatermarkParams['format']): string {
+  if (fmt === 'original') {
+    const dot = inputPath.value.lastIndexOf('.');
+    return dot > 0 ? inputPath.value.slice(dot) : '.png';
+  }
   return fmt === 'jpeg' ? '.jpg' : fmt === 'webp' ? '.webp' : '.png';
 }
 
@@ -132,7 +136,7 @@ async function save() {
       op: 'watermark',
       inputPath: inputPath.value,
       outputPath,
-      options: { format: params.format, quality: params.quality },
+      options: { format: params.format === 'original' ? undefined : params.format, quality: params.quality },
       extra: { ...params } as unknown as Record<string, unknown>
     });
     message('已保存到：' + name, 'success');

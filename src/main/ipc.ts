@@ -67,6 +67,18 @@ export function registerIpc(): void {
     openWindow(options);
   });
 
+  // 跨窗口主题同步：将主题变更广播给除发送者外的所有窗口
+  ipcMain.on(
+    'theme:set',
+    (e, payload: { darkMode: boolean; themeColor: string }) => {
+      const sender = BrowserWindow.fromWebContents(e.sender);
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win === sender || win.isDestroyed()) continue;
+        win.webContents.send('theme:changed', payload);
+      }
+    }
+  );
+
   ipcMain.handle('image:process', async (_e, payload: ImageProcessPayload): Promise<ImageProcessResult> => {
     return processImage(payload);
   });

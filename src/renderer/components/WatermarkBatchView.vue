@@ -77,7 +77,7 @@ function defaultParams(): WatermarkParams {
     tileGap: 60,
     watermarkPath: '',
     scale: 0.25,
-    format: 'png',
+    format: 'original',
     quality: 90
   };
 }
@@ -148,9 +148,11 @@ async function run() {
     const base = item.path.split(/[\\/]/).pop() || 'image';
     const dot = base.lastIndexOf('.');
     const stem = dot > 0 ? base.slice(0, dot) : base;
+    // 保持原格式时，每张输出扩展名与对应输入图一致
+    const srcExt = base.includes('.') ? '.' + base.split('.').pop()! : '.png';
     const out = resolveBatchOutputPath(saveDir.value, item, {
       suffix: '_watermarked',
-      ext: extFor(params.format),
+      ext: params.format === 'original' ? srcExt : extFor(params.format),
       keepStructure: keepRelative.value
     });
     // 保持相对目录且文件存在子目录时，需先创建目标子目录（sharp 不会自动建目录）
@@ -162,7 +164,8 @@ async function run() {
         op: 'watermark',
         inputPath: item.path,
         outputPath: out,
-        options: { format: params.format, quality: params.quality },
+        // original 转为 undefined，主进程水印 op 在 format 未指定时保持原图格式
+        options: { format: params.format === 'original' ? undefined : params.format, quality: params.quality },
         extra: { ...params } as unknown as Record<string, unknown>
       });
       ok++;
