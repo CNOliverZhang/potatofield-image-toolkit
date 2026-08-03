@@ -89,7 +89,7 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
       }
       // 无 outputPath：返回处理后图像的 buffer，供前端预览
       const buf = await base.png().toBuffer();
-      return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) };
+      return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer };
     }
     default:
       throw new Error(`未支持的图像操作: ${op}`);

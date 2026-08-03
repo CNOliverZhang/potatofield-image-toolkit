@@ -1,5 +1,9 @@
 <template>
-  <div class="window-controls">
+  <div class="window-controls" :style="{ left: `${inset}px` }">
+    <div v-if="title" class="win-title">
+      <img class="win-mark" src="@renderer/assets/logo.png" alt="logo" />
+      <span>{{ title }}</span>
+    </div>
     <div class="caption">
       <button class="cap-btn" title="最小化" @click="minimize">
         <font-awesome-icon :icon="['fas', 'window-minimize']" />
@@ -17,6 +21,10 @@
 <script setup lang="ts">
 import { useWindowState } from '../composables/useWindowState';
 
+// inset：控制栏左缘偏移（主窗口需避开 232px 宽的侧边栏，独立窗口为 0）
+// title：仅独立窗口显示，替代缺失的系统标题栏
+withDefaults(defineProps<{ inset?: number; title?: string }>(), { inset: 232, title: '' });
+
 const { maximized, toggleMax } = useWindowState();
 
 function minimize() {
@@ -32,7 +40,7 @@ function close() {
   /* 悬浮在内容区右上角，不占布局高度，使左侧边栏可顶到窗口顶部 */
   position: absolute;
   top: 0;
-  left: 232px; /* 从侧边栏右缘起，不遮挡侧边栏 */
+  /* left 由 inset 决定：主窗口从侧边栏右缘起，独立窗口为 0 */
   right: 0;
   height: 32px;
   display: flex;
@@ -44,8 +52,28 @@ function close() {
   -webkit-app-region: drag;
   z-index: 20;
 }
+.win-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neutral-foreground-rest);
+  user-select: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.win-mark {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
 .caption {
   display: flex;
+  margin-left: auto;
   -webkit-app-region: no-drag;
 }
 .cap-btn {

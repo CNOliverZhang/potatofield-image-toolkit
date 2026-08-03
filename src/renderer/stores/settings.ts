@@ -7,6 +7,7 @@ interface SettingsState {
   defaultSaveDirectory: string;
   defaultExportParams: Record<string, Record<string, unknown>>;
   identifier: string;
+  recentSaveDirs: string[];
 }
 
 function generateIdentifier(): string {
@@ -20,7 +21,8 @@ export const useSettingsStore = defineStore('settings', {
     darkMode: false,
     defaultSaveDirectory: '',
     defaultExportParams: {},
-    identifier: ''
+    identifier: '',
+    recentSaveDirs: []
   }),
   getters: {
     toolParams: (state) => (name: string) => state.defaultExportParams[name] ?? {}
@@ -34,6 +36,16 @@ export const useSettingsStore = defineStore('settings', {
     },
     setDefaultSaveDirectory(dir: string) {
       this.defaultSaveDirectory = dir;
+    },
+    addRecentSaveDir(dir: string) {
+      if (!dir) return;
+      const list = this.recentSaveDirs.filter((d) => d !== dir);
+      list.unshift(dir);
+      this.recentSaveDirs = list.slice(0, 12);
+      if (!this.defaultSaveDirectory) this.defaultSaveDirectory = dir;
+    },
+    removeRecentSaveDir(dir: string) {
+      this.recentSaveDirs = this.recentSaveDirs.filter((d) => d !== dir);
     },
     setToolParams(name: string, params: Record<string, unknown>) {
       this.defaultExportParams = { ...this.defaultExportParams, [name]: params };

@@ -45,5 +45,13 @@ export interface ImageToolkitApi {
     close: () => void;
     isMaximized: () => Promise<boolean>;
     onMaximizeChanged: (callback: (maximized: boolean) => void) => () => void;
+    open: (options: {
+      route?: string;
+      key?: string;
+      width?: number;
+      height?: number;
+      minWidth?: number;
+      minHeight?: number;
+    }) => void;
   };
 }

@@ -1,5 +1,6 @@
 import { ipcMain, dialog, shell, app, BrowserWindow } from 'electron';
 import { processImage } from './image';
+import { openWindow } from './windows';
 import {
   scanDirectory,
   readFileBase64,
@@ -61,6 +62,10 @@ export function registerIpc(): void {
   });
   ipcMain.on('window:close', (e) => senderWindow(e)?.close());
   ipcMain.handle('window:isMaximized', (e) => senderWindow(e)?.isMaximized() ?? false);
+
+  ipcMain.on('window:open', (_e, options: { route?: string; key?: string }) => {
+    openWindow(options);
+  });
 
   ipcMain.handle('image:process', async (_e, payload: ImageProcessPayload): Promise<ImageProcessResult> => {
     return processImage(payload);

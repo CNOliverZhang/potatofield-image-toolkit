@@ -1,35 +1,29 @@
 <template>
-  <div class="watermark-tool">
-    <!-- 预览区 -->
+  <div class="batch-tool">
+    <BatchImportPanel v-model="files" v-model:selected="selected" class="import-col" />
+
     <section class="preview-pane">
-      <div v-if="!inputPath" class="dropzone">
-        <font-awesome-icon icon="image" class="dz-icon" />
-        <p>选择一张图片开始添加水印</p>
-        <fluent-button appearance="accent" @click="pickImage">选择图片</fluent-button>
+      <div v-if="!selected" class="dropzone">
+        <font-awesome-icon icon="images" class="dz-icon" />
+        <p>从左侧导入图片，点击列表项预览</p>
       </div>
       <template v-else>
         <div class="preview-stage">
           <img v-if="previewUrl" :src="previewUrl" class="preview-img" alt="预览" />
         </div>
         <div class="preview-bar">
-          <span class="fname">{{ inputName }}</span>
-          <fluent-button appearance="neutral" @click="pickImage">重新选择</fluent-button>
+          <span class="fname">{{ selectedName }}</span>
         </div>
       </template>
     </section>
 
-    <!-- 参数面板 -->
     <aside class="controls-pane">
       <div class="controls-body">
-        <div class="batch-entry">
-          <fluent-button appearance="neutral" @click="openBatch">
-            <font-awesome-icon icon="layer-group" /> 批量处理
-          </fluent-button>
-        </div>
-        <WatermarkControls v-model="params" />
+        <WatermarkControls v-model="params" :lock-tile="lockTile" />
+        <SaveLocationSetting v-model="saveDir" />
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="save">
-            {{ processing ? '处理中…' : '保存水印图片' }}
+          <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="run">
+            {{ processing ? `处理中 ${progress.done}/${progress.total}` : `开始批量处理 (${files.length})` }}
           </fluent-button>
         </div>
       </div>
@@ -38,19 +32,31 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onBeforeUnmount } from 'vue';
+import { reactive, ref, watch, onBeforeUnmount, computed } from 'vue';
 import type { WatermarkParams } from '@shared/types';
-import { selectImageFiles, selectDirectory } from '@renderer/utils/filePicker';
+import { buildOutputPath } from '@renderer/utils/fileIO';
 import { useDialog } from '@renderer/composables/useDialog';
+import { useSettingsStore } from '@renderer/stores/settings';
+import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
 import WatermarkControls from '@renderer/components/WatermarkControls.vue';
+import SaveLocationSetting from '@renderer/components/SaveLocationSetting.vue';
+
+defineProps<{ lockTile?: boolean }>();
 
 const { message } = useDialog();
+const settings = useSettingsStore();
 
-const inputPath = ref('');
-const inputName = ref('');
+const files = ref<string[]>([]);
+const selected = ref('');
+const params = reactive<WatermarkParams>(defaultParams());
+const saveDir = ref(settings.defaultSaveDirectory || settings.recentSaveDirs[0] || '');
 const previewUrl = ref('');
 const processing = ref(false);
+const progress = reactive({ done: 0, total: 0 });
+
 let previewTimer: number | undefined;
+
+const selectedName = computed(() => (selected.value ? selected.value.split(/[\\/]/).pop() : ''));
 
 function defaultParams(): WatermarkParams {
   return {
@@ -74,34 +80,37 @@ function defaultParams(): WatermarkParams {
   };
 }
 
-const params = reactive<WatermarkParams>(defaultParams());
-
-async function pickImage() {
-  const files = await selectImageFiles(false);
-  if (!files || !files.length) return;
-  inputPath.value = files[0];
-  inputName.value = inputPath.value.split(/[\\/]/).pop() || '';
-  updatePreview();
+function extFor(fmt: WatermarkParams['format']): string {
+  return fmt === 'jpeg' ? '.jpg' : fmt === 'webp' ? '.webp' : '.png';
 }
 
-function schedulePreview() {
-  if (previewTimer) window.clearTimeout(previewTimer);
-  previewTimer = window.setTimeout(updatePreview, 220);
+function clearPreview() {
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value);
+    previewUrl.value = '';
+  }
 }
 
 async function updatePreview() {
-  if (!inputPath.value) return;
-  if (params.type === 'image' && !params.watermarkPath) return;
+  const path = selected.value;
+  if (!path) {
+    clearPreview();
+    return;
+  }
+  if (params.type === 'image' && !params.watermarkPath) {
+    clearPreview();
+    return;
+  }
   try {
     const res = await window.api.image.process({
       op: 'watermark',
-      inputPath: inputPath.value,
+      inputPath: path,
       extra: { ...params } as unknown as Record<string, unknown>
     });
     if (res.buffer) {
       const blob = new Blob([res.buffer], { type: 'image/png' });
       const url = URL.createObjectURL(blob);
-      if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+      clearPreview();
       previewUrl.value = url;
     }
   } catch (err) {
@@ -109,67 +118,75 @@ async function updatePreview() {
   }
 }
 
-function extFor(fmt: WatermarkParams['format']): string {
-  return fmt === 'jpeg' ? '.jpg' : fmt === 'webp' ? '.webp' : '.png';
+function schedulePreview() {
+  if (previewTimer) window.clearTimeout(previewTimer);
+  previewTimer = window.setTimeout(updatePreview, 220);
 }
 
-async function save() {
-  if (!inputPath.value) return;
+watch([params, selected], schedulePreview, { deep: true });
+
+async function run() {
+  if (!files.value.length) {
+    message('请先导入图片', 'warning');
+    return;
+  }
   if (params.type === 'image' && !params.watermarkPath) {
     message('请先选择水印图片', 'warning');
     return;
   }
-  const dir = await selectDirectory();
-  if (!dir) return;
-  const base = inputPath.value.split(/[\\/]/).pop() || 'image';
-  const dot = base.lastIndexOf('.');
-  const stem = dot > 0 ? base.slice(0, dot) : base;
-  const name = stem + '_watermarked' + extFor(params.format);
-  const outputPath = dir + (dir.endsWith('/') || dir.endsWith('\\') ? '' : '\\') + name;
+  if (!saveDir.value) {
+    message('请先设置保存位置', 'warning');
+    return;
+  }
   processing.value = true;
-  try {
-    await window.api.image.process({
-      op: 'watermark',
-      inputPath: inputPath.value,
-      outputPath,
-      options: { format: params.format, quality: params.quality },
-      extra: { ...params } as unknown as Record<string, unknown>
-    });
-    message('已保存到：' + name, 'success');
-    window.api.shell.showItemInFolder(outputPath);
-  } catch (err) {
-    message('保存失败：' + (err as Error).message, 'error');
-  } finally {
-    processing.value = false;
+  progress.done = 0;
+  progress.total = files.value.length;
+  let ok = 0;
+  for (const f of files.value) {
+    const base = f.split(/[\\/]/).pop() || 'image';
+    const dot = base.lastIndexOf('.');
+    const stem = dot > 0 ? base.slice(0, dot) : base;
+    const name = stem + '_watermarked' + extFor(params.format);
+    const out = buildOutputPath(saveDir.value, name);
+    try {
+      await window.api.image.process({
+        op: 'watermark',
+        inputPath: f,
+        outputPath: out,
+        options: { format: params.format, quality: params.quality },
+        extra: { ...params } as unknown as Record<string, unknown>
+      });
+      ok++;
+    } catch (e) {
+      message('失败 ' + base + '：' + (e as Error).message, 'error');
+    }
+    progress.done++;
+  }
+  processing.value = false;
+  message(`批量处理完成：${ok}/${files.value.length} 张成功`, 'success');
+  if (ok > 0) {
+    window.api.shell.showItemInFolder(buildOutputPath(saveDir.value, files.value[0].split(/[\\/]/).pop() || 'image'));
   }
 }
 
-function openBatch() {
-  window.api.window.open({
-    route: '/watermark/batch',
-    key: 'batch-watermark',
-    width: 1280,
-    height: 820,
-    minWidth: 1024,
-    minHeight: 680
-  });
-}
-
-watch(params, schedulePreview, { deep: true });
-
 onBeforeUnmount(() => {
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+  clearPreview();
   if (previewTimer) window.clearTimeout(previewTimer);
 });
 </script>
 
 <style scoped>
-.watermark-tool {
+.batch-tool {
   display: flex;
-  gap: calc(var(--design-unit) * 1px * 6);
+  gap: calc(var(--design-unit) * 1px * 5);
   height: 100%;
   min-height: 0;
   margin-bottom: calc(var(--design-unit) * 1px * -4);
+  overflow: hidden;
+}
+.import-col {
+  width: calc(var(--design-unit) * 1px * 70);
+  flex-shrink: 0;
 }
 .preview-pane {
   flex: 1;
@@ -247,17 +264,6 @@ onBeforeUnmount(() => {
   min-height: 0;
   overflow-y: auto;
   padding: 0 calc(var(--design-unit) * 1px * 6) 0 0;
-}
-.batch-entry {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding-bottom: calc(var(--design-unit) * 1px * 2.5);
-  margin-bottom: calc(var(--design-unit) * 1px * 2);
-  background: linear-gradient(to bottom, var(--neutral-layer-1) 75%, transparent);
-}
-.batch-entry fluent-button {
-  width: 100%;
 }
 .controls-footer {
   position: sticky;

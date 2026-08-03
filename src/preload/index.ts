@@ -41,6 +41,7 @@ const api: ImageToolkitApi = {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
     close: () => ipcRenderer.send('window:close'),
+    open: (options) => ipcRenderer.send('window:open', options),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
     onMaximizeChanged: (callback: (maximized: boolean) => void) => {
       const listener = (_e: unknown, v: boolean) => callback(v);

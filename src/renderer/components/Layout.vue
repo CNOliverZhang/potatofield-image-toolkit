@@ -1,8 +1,8 @@
 <template>
   <div class="app-shell">
-    <WindowControls />
+    <WindowControls :inset="standalone ? 0 : 232" :title="standalone ? pageTitle : ''" />
     <div class="body">
-      <aside class="sidebar">
+      <aside v-if="!standalone" class="sidebar">
         <div class="brand">
           <img class="brand-mark" src="@renderer/assets/logo.png" alt="logo" />
           <span class="brand-name">洋芋田图像工具箱</span>
@@ -29,7 +29,7 @@
         </div>
       </aside>
 
-      <main class="content">
+      <main class="content" :class="{ standalone }">
         <router-view />
       </main>
     </div>
@@ -37,7 +37,19 @@
 </template>
 
 <script setup lang="ts">
+import { computed, watchEffect } from 'vue';
+import { useRoute } from 'vue-router';
 import WindowControls from './WindowControls.vue';
+
+const route = useRoute();
+
+// 批量处理等以独立窗口打开的页面（route.meta.standalone）不显示左侧功能导航
+const standalone = computed(() => route.meta.standalone === true);
+const pageTitle = computed(() => (route.meta.title as string | undefined) ?? '');
+
+watchEffect(() => {
+  document.title = standalone.value && pageTitle.value ? `${pageTitle.value} - 洋芋田图像工具箱` : '洋芋田图像工具箱';
+});
 
 const nav = [
   { to: '/', label: '首页', icon: ['fas', 'house'] as [string, string] },
@@ -154,5 +166,9 @@ const nav = [
   overflow: auto;
   /* 顶部留 40px 让出悬浮的窗口控制栏（32px 按钮 + 余量） */
   padding: 40px 32px 28px;
+}
+/* 独立窗口：无侧边栏，内容区四周留白略收紧 */
+.content.standalone {
+  padding: 40px 20px 20px;
 }
 </style>
