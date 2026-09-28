@@ -57,7 +57,7 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
       return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer };
     }
     case 'extract': {
-      const opt = options as Record<string, number>;
+      const opt = options as Record<string, unknown>;
       const rawLeft = Number(opt.left ?? 0);
       const rawTop = Number(opt.top ?? 0);
       const rawWidth = Number(opt.width ?? 0);
@@ -73,7 +73,11 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
       const height = Math.max(1, Math.min(Math.max(1, Math.round(rawHeight)), maxH));
       const pipeline = sharp(inputPath).extract({ left, top, width, height });
       if (outputPath) {
-        await pipeline.toFile(outputPath);
+        const format = opt.format as string | undefined;
+        const quality = opt.quality as number | undefined;
+        let out = pipeline;
+        if (format) out = out.toFormat(format as keyof sharp.FormatEnum, quality ? { quality } : {});
+        await out.toFile(outputPath);
         return { outputPath };
       }
       const buf = await pipeline.png().toBuffer();

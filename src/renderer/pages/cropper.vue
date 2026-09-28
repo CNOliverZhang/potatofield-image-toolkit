@@ -155,11 +155,35 @@
           <fluent-button appearance="neutral" @click="useFull">使用整图</fluent-button>
           <p class="hint">提示：在预览区可直接拖拽、缩放裁剪框。</p>
         </div>
-      </div>
-      <div class="controls-footer">
-        <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="onSave">
-          {{ processing ? '处理中…' : '保存图片' }}
-        </fluent-button>
+        <!-- 输出设置（与水印工具一致） -->
+        <div class="group">
+          <span class="group-title">输出设置</span>
+          <label class="field">
+            <span class="field-label">格式</span>
+            <fluent-select :value="format" @change="onFormat">
+              <fluent-option value="original">保持原格式</fluent-option>
+              <fluent-option value="png">PNG（无损）</fluent-option>
+              <fluent-option value="jpeg">JPG（有损）</fluent-option>
+              <fluent-option value="webp">WebP（有损）</fluent-option>
+            </fluent-select>
+          </label>
+          <div v-if="format === 'jpeg' || format === 'webp'" class="field">
+            <span class="field-label">质量 <em>{{ quality }}%</em></span>
+            <fluent-slider
+              :value="quality"
+              :min="10"
+              :max="100"
+              :step="1"
+              @change="onQuality"
+            ></fluent-slider>
+          </div>
+        </div>
+        <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
+        <div class="controls-footer">
+          <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="onSave">
+            {{ processing ? '处理中…' : '保存图片' }}
+          </fluent-button>
+        </div>
       </div>
     </aside>
   </div>
@@ -184,6 +208,8 @@ const ratio = ref('free');
 const position = ref('nw'); // 默认左上角基准：两轴都可自由拖动（避免初始即锁死）
 const unit = ref<'px' | 'ratio'>('px');
 const region = reactive({ left: 0, top: 0, width: 0, height: 0 });
+const format = ref<'original' | 'png' | 'jpeg' | 'webp'>('original');
+const quality = ref(90);
 
 /** 定位基准（九宫格），与水印工具保持一致 */
 const POSITIONS: { g: string; label: string }[] = [
@@ -374,6 +400,19 @@ function onUnit(e: Event) {
   unit.value = evVal(e) === 'ratio' ? 'ratio' : 'px';
 }
 
+function onFormat(e: Event) {
+  format.value = evVal(e) as 'original' | 'png' | 'jpeg' | 'webp';
+}
+function onQuality(e: Event) {
+  quality.value = evNum(e);
+}
+
+/** 输出扩展名：跟随所选格式 */
+function outExt(): string {
+  if (format.value === 'original') return extOf(inputPath.value);
+  return format.value === 'jpeg' ? '.jpg' : format.value === 'webp' ? '.webp' : '.png';
+}
+
 /** 按定位基准锁定被约束的轴：居中方向的轴不允许移动（只能缩放）。
  *  返回是否发生了修正。 */
 function enforceAnchors(): boolean {
@@ -495,7 +534,14 @@ function useFull() {
 }
 
 function buildOptions() {
-  return { left: region.left, top: region.top, width: region.width, height: region.height };
+  return {
+    left: region.left,
+    top: region.top,
+    width: region.width,
+    height: region.height,
+    format: format.value === 'original' ? undefined : format.value,
+    quality: format.value === 'jpeg' || format.value === 'webp' ? quality.value : undefined
+  };
 }
 
 async function onPick() {
@@ -511,7 +557,7 @@ async function onPick() {
 async function onSave() {
   clampRegion();
   await runSave(
-    (stem) => `${stem}_cropped${extOf(inputPath.value)}`,
+    (stem) => `${stem}_cropped${outExt()}`,
     async (outputPath) => {
       await window.api.image.process({
         op: 'extract',
