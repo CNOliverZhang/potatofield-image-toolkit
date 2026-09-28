@@ -412,17 +412,7 @@ onBeforeUnmount(() => {
   bottom: 0;
   isolation: isolate;
 }
-.controls-footer::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--design-unit) * 1px * 8);
-  top: calc(var(--design-unit) * 1px * -7);
-  background: linear-gradient(to top, color-mix(in srgb, var(--app-bg) 90%, transparent), transparent);
-  pointer-events: none;
-  z-index: -1;
-}
+/* footer 渐隐遮罩由 global.css 的 .controls-footer::before 统一提供 */
 .save-btn {
   width: 100%;
 }

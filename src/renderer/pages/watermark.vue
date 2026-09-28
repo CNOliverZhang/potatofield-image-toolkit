@@ -254,14 +254,7 @@ onBeforeUnmount(() => {
   display: block;
   gap: 0;
 }
-.batch-entry {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding-bottom: calc(var(--design-unit) * 1px * 2.5);
-  margin-bottom: calc(var(--design-unit) * 1px * 2);
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--app-bg) 90%, transparent) 75%, transparent);
-}
+/* .batch-entry 顶部渐变与 .controls-footer::before 渐隐由 global.css 统一提供 */
 .batch-entry fluent-button {
   width: 100%;
 }
@@ -270,17 +263,6 @@ onBeforeUnmount(() => {
   bottom: 0;
   isolation: isolate;
   padding: 0;
-}
-.controls-footer::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--design-unit) * 1px * 8);
-  top: calc(var(--design-unit) * 1px * -7);
-  background: linear-gradient(to top, color-mix(in srgb, var(--app-bg) 90%, transparent), transparent);
-  pointer-events: none;
-  z-index: -1;
 }
 .save-btn {
   width: 100%;

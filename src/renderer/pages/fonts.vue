@@ -15,6 +15,7 @@
       </div>
     </div>
     <div v-if="store.fontFamilies.length" class="list-wrap">
+      <GradientMask to="top" />
       <div class="list">
         <template v-for="family in store.fontFamilies" :key="family.id">
         <!-- 多字体族：SettingExpander 式可展开卡片 -->
@@ -82,9 +83,7 @@
         </section>
         </template>
       </div>
-      <!-- 覆盖层遮罩：不占布局，配合列表的上下内边距，首末项不会被挡住 -->
-      <div class="fade fade-top" aria-hidden="true"></div>
-      <div class="fade fade-bottom" aria-hidden="true"></div>
+      <GradientMask to="bottom" />
     </div>
     <div v-else class="empty">{{ store.loading ? '加载中…' : '暂无在线字体，点击上方按钮加载' }}</div>
   </div>
@@ -94,6 +93,7 @@
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useFontsStore } from '@renderer/stores/fonts';
 import { useDialog } from '@renderer/composables/useDialog';
+import GradientMask from '@renderer/components/GradientMask.vue';
 import type { FontItem } from '@renderer/stores/fonts';
 
 const store = useFontsStore();
@@ -181,22 +181,14 @@ async function install(font: FontItem) {
   border: 1px solid var(--neutral-stroke-rest);
   border-radius: calc(var(--control-corner-radius) * 1px); /* WinUI 卡片圆角 4px */
   /* 默认不透明（可展开项默认态、不可展开项、以及子项均不透明） */
-  background: var(--neutral-fill-layer-rest);
+  background: var(--app-card);
   overflow: hidden;
   /* 列表是 flex 容器，卡片必须不收缩，否则会被压扁而不产生滚动 */
   flex-shrink: 0;
 }
-/* 深色模式：卡片贴近应用整体背景色（整体背景 + 约 5% 白，与 PowerToys 的 Layer fill 一致，
-   不用 layer-rest 是因为它在深色下偏亮） */
-html[data-theme='dark'] .family-card {
-  background: rgba(255, 255, 255, 0.05);
-}
 /* 仅可展开项的展开态有极轻微的透明度（对应 WinUI 的活跃态） */
 .family-card.expanded {
-  background: color-mix(in srgb, var(--neutral-fill-layer-rest) 94%, transparent);
-}
-html[data-theme='dark'] .family-card.expanded {
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--app-card) 94%, transparent);
 }
 .family-head {
   display: flex;
@@ -319,22 +311,5 @@ html[data-theme='dark'] .font-row:hover {
   color: var(--neutral-foreground-secondary-rest);
   padding: calc(var(--design-unit) * 6 * 1px) 0;
   font-size: 13px;
-}
-/* 列表两端渐隐遮罩（与水印/裁剪工具右侧操作区一致） */
-.fade {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: calc(var(--design-unit) * 7 * 1px);
-  pointer-events: none;
-  z-index: 2;
-}
-.fade-top {
-  top: 0;
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--app-bg) 90%, transparent), transparent);
-}
-.fade-bottom {
-  bottom: 0;
-  background: linear-gradient(to top, color-mix(in srgb, var(--app-bg) 90%, transparent), transparent);
 }
 </style>
