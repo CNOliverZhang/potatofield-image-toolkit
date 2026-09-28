@@ -8,9 +8,14 @@ const routes = [
     children: [
       { path: '', name: 'home', component: () => import('@renderer/pages/index.vue') },
       { path: 'watermark', name: 'watermark', component: () => import('@renderer/pages/watermark.vue') },
-      { path: 'global-watermark', name: 'globalWatermark', component: () => import('@renderer/pages/globalWatermark.vue') },
       { path: 'splicer', name: 'splicer', component: () => import('@renderer/pages/splicer.vue') },
       { path: 'cropper', name: 'cropper', component: () => import('@renderer/pages/cropper.vue') },
+      {
+        path: 'cropper/batch',
+        name: 'cropperBatch',
+        component: () => import('@renderer/pages/cropper-batch.vue'),
+        meta: { standalone: true, title: '批量裁剪' }
+      },
       { path: 'slicer', name: 'slicer', component: () => import('@renderer/pages/slicer.vue') },
       { path: 'text-to-image', name: 'textToImage', component: () => import('@renderer/pages/textToImage.vue') },
       { path: 'resizer', name: 'resizer', component: () => import('@renderer/pages/resizer.vue') },
@@ -26,12 +31,6 @@ const routes = [
         name: 'watermarkBatch',
         component: () => import('@renderer/pages/watermark-batch.vue'),
         meta: { standalone: true, title: '批量加水印' }
-      },
-      {
-        path: 'global-watermark/batch',
-        name: 'globalWatermarkBatch',
-        component: () => import('@renderer/pages/global-watermark-batch.vue'),
-        meta: { standalone: true, title: '批量全屏水印' }
       },
       {
         path: 'resizer/batch',

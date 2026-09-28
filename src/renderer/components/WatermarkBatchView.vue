@@ -190,6 +190,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .batch-tool {
   display: flex;
+  flex-direction: row;
   gap: calc(var(--design-unit) * 1px * 5);
   height: 100%;
   min-height: 0;
@@ -276,11 +277,14 @@ onBeforeUnmount(() => {
   min-height: 0;
   overflow-y: auto;
   padding: 0 calc(var(--design-unit) * 1px * 6) 0 0;
+  display: block;
+  gap: 0;
 }
 .controls-footer {
   position: sticky;
   bottom: 0;
   isolation: isolate;
+  padding: 0;
 }
 .controls-footer::before {
   content: '';

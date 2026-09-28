@@ -18,47 +18,68 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
       return { info: info as unknown as Record<string, unknown> };
     }
     case 'resize': {
-      if (!outputPath) throw new Error('resize 需要 outputPath');
       const { width, height, fit = 'inside', background } = options;
-      await sharp(inputPath)
-        .resize(width, height, { fit: fit as keyof sharp.FitEnum, background: background ?? '#ffffff' })
-        .toFile(outputPath);
-      return { outputPath };
+      const pipeline = sharp(inputPath).resize(width, height, { fit: fit as keyof sharp.FitEnum, background: background ?? '#ffffff' });
+      if (outputPath) {
+        await pipeline.toFile(outputPath);
+        return { outputPath };
+      }
+      const buf = await pipeline.png().toBuffer();
+      return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer };
     }
     case 'convert': {
-      if (!outputPath) throw new Error('convert 需要 outputPath');
       const { format = 'png', quality } = options;
-      await sharp(inputPath)
-        .toFormat(format as keyof sharp.FormatEnum, quality ? { quality } : {})
-        .toFile(outputPath);
-      return { outputPath };
+      const pipeline = sharp(inputPath).toFormat(format as keyof sharp.FormatEnum, quality ? { quality } : {});
+      if (outputPath) {
+        await pipeline.toFile(outputPath);
+        return { outputPath };
+      }
+      const buf = await pipeline.toBuffer();
+      return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer };
     }
     case 'compress': {
-      if (!outputPath) throw new Error('compress 需要 outputPath');
       const format = options.format;
       const quality = options.quality ?? 80;
       let img = sharp(inputPath);
       if (format) {
-        // 指定目标格式：转换并应用质量
         img = img.toFormat(format as keyof sharp.FormatEnum, { quality });
       } else if (quality !== undefined) {
-        // 保持原格式：仅对有损格式重新编码以应用质量（png/gif 无损，保持原样）
         const srcFormat = (await sharp(inputPath).metadata()).format;
         if (srcFormat && srcFormat !== 'png' && srcFormat !== 'gif') {
           img = img.toFormat(srcFormat as keyof sharp.FormatEnum, { quality });
         }
       }
-      await img.toFile(outputPath);
-      return { outputPath };
+      if (outputPath) {
+        await img.toFile(outputPath);
+        return { outputPath };
+      }
+      const buf = await img.png().toBuffer();
+      return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer };
     }
     case 'extract': {
-      if (!outputPath) throw new Error('extract 需要 outputPath');
-      const { left = 0, top = 0, width = 0, height = 0 } = extra as Record<string, number>;
-      await sharp(inputPath).extract({ left, top, width, height }).toFile(outputPath);
-      return { outputPath };
+      const opt = options as Record<string, number>;
+      const rawLeft = Number(opt.left ?? 0);
+      const rawTop = Number(opt.top ?? 0);
+      const rawWidth = Number(opt.width ?? 0);
+      const rawHeight = Number(opt.height ?? 0);
+      const meta = await sharp(inputPath).metadata();
+      const iw = meta.width ?? 0;
+      const ih = meta.height ?? 0;
+      const left = Math.max(0, Math.min(Math.round(rawLeft), Math.max(0, iw - 1)));
+      const top = Math.max(0, Math.min(Math.round(rawTop), Math.max(0, ih - 1)));
+      const maxW = Math.max(1, iw - left);
+      const maxH = Math.max(1, ih - top);
+      const width = Math.max(1, Math.min(Math.max(1, Math.round(rawWidth)), maxW));
+      const height = Math.max(1, Math.min(Math.max(1, Math.round(rawHeight)), maxH));
+      const pipeline = sharp(inputPath).extract({ left, top, width, height });
+      if (outputPath) {
+        await pipeline.toFile(outputPath);
+        return { outputPath };
+      }
+      const buf = await pipeline.png().toBuffer();
+      return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer };
     }
     case 'append': {
-      if (!outputPath) throw new Error('append 需要 outputPath');
       const images = (extra.images as string[]) ?? [];
       const direction = (extra.direction as 'vertical' | 'horizontal') ?? 'vertical';
       if (!images.length) throw new Error('append 需要 images 列表');
@@ -72,18 +93,20 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
         left: direction === 'horizontal' ? widths.slice(0, i).reduce((a, b) => a + b, 0) : 0,
         top: direction === 'vertical' ? heights.slice(0, i).reduce((a, b) => a + b, 0) : 0
       }));
-      await sharp({
+      const pipeline = sharp({
         create: {
           width: totalW,
           height: totalH,
           channels: 4,
           background: { r: 255, g: 255, b: 255, alpha: 0 }
         }
-      })
-        .composite(composites)
-        .png()
-        .toFile(outputPath);
-      return { outputPath };
+      }).composite(composites).png();
+      if (outputPath) {
+        await pipeline.toFile(outputPath);
+        return { outputPath };
+      }
+      const buf = await pipeline.toBuffer();
+      return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer };
     }
     case 'watermark': {
       const composites = await buildWatermarkComposites(inputPath, extra);

@@ -54,7 +54,6 @@ watchEffect(() => {
 const nav = [
   { to: '/', label: '首页', icon: ['fas', 'house'] as [string, string] },
   { to: '/watermark', label: '水印', icon: ['fas', 'stamp'] as [string, string] },
-  { to: '/global-watermark', label: '全局水印', icon: ['fas', 'images'] as [string, string] },
   { to: '/splicer', label: '拼图', icon: ['fas', 'table-cells-large'] as [string, string] },
   { to: '/cropper', label: '裁剪', icon: ['fas', 'crop-simple'] as [string, string] },
   { to: '/slicer', label: '切片', icon: ['fas', 'border-all'] as [string, string] },

@@ -251,6 +251,8 @@ onBeforeUnmount(() => {
   min-height: 0;
   overflow-y: auto;
   padding: 0 calc(var(--design-unit) * 1px * 6) 0 0;
+  display: block;
+  gap: 0;
 }
 .batch-entry {
   position: sticky;
@@ -267,6 +269,7 @@ onBeforeUnmount(() => {
   position: sticky;
   bottom: 0;
   isolation: isolate;
+  padding: 0;
 }
 .controls-footer::before {
   content: '';

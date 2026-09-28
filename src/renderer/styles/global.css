@@ -105,3 +105,214 @@ a {
 fluent-card {
   border-radius: calc(var(--layer-corner-radius) * 1px);
 }
+
+/* ===================== 工具页通用布局 ===================== */
+.tool {
+  display: flex;
+  gap: calc(var(--design-unit) * 1px * 6);
+  height: 100%;
+  min-height: 0;
+  margin-bottom: calc(var(--design-unit) * 1px * -4);
+}
+.preview-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--neutral-fill-hover);
+  border: 1px solid var(--neutral-stroke-rest);
+  border-radius: calc(var(--layer-corner-radius) * 1px);
+  overflow: hidden;
+}
+.dropzone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--design-unit) * 1px * 3.5);
+  color: var(--neutral-foreground-secondary-rest);
+}
+.dz-icon {
+  font-size: calc(var(--design-unit) * 1px * 11.5);
+  opacity: 0.5;
+}
+.preview-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--design-unit) * 1px);
+  background-color: var(--neutral-layer-1);
+  background-image: linear-gradient(45deg, var(--neutral-layer-3) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--neutral-layer-3) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--neutral-layer-3) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--neutral-layer-3) 75%);
+  background-size: calc(var(--design-unit) * 1px * 5) calc(var(--design-unit) * 1px * 5);
+  background-position: 0 0, 0 calc(var(--design-unit) * 1px * 2.5),
+    calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * -2.5),
+    calc(var(--design-unit) * 1px * -2.5) 0;
+}
+.preview-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  box-shadow: 0 calc(var(--design-unit) * 1px * 0.5) calc(var(--design-unit) * 1px * 3) rgba(0, 0, 0, 0.18);
+}
+.preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--design-unit) * 1px * 3);
+  padding: calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * 3.5);
+  border-top: 1px solid var(--neutral-stroke-rest);
+  background: var(--neutral-layer-2);
+}
+.fname {
+  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--neutral-foreground-secondary-rest);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.controls-pane {
+  width: 340px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-right: -32px;
+}
+.controls-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 calc(var(--design-unit) * 1px * 6) 0 0;
+  display: block;
+  gap: 0;
+}
+.group {
+  margin-bottom: calc(var(--design-unit) * 1px * 5.5);
+}
+.group-title {
+  display: block;
+  font-size: var(--type-ramp-minus-1-font-size);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--neutral-foreground-secondary-rest);
+  margin-bottom: calc(var(--design-unit) * 1px * 2.5);
+}
+.field {
+  display: block;
+  margin-bottom: calc(var(--design-unit) * 1px * 3.5);
+}
+.field.row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--design-unit) * 1px * 3);
+}
+.field.row .field-label {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+.field.row fluent-text-field,
+.field.row fluent-number-field,
+.field.row fluent-select,
+.field.row fluent-slider {
+  flex: 1;
+  min-width: 0;
+}
+.field-label {
+  display: block;
+  font-size: var(--type-ramp-minus-1-font-size);
+  margin-bottom: calc(var(--design-unit) * 1px * 1.5);
+  color: var(--neutral-foreground-rest);
+}
+.field-label em {
+  font-style: normal;
+  color: var(--neutral-foreground-secondary-rest);
+  font-weight: 500;
+}
+.hint {
+  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--neutral-foreground-secondary-rest);
+  opacity: 0.7;
+}
+.batch-entry {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: calc(var(--design-unit) * 1px * 2.5);
+  margin-bottom: calc(var(--design-unit) * 1px * 2);
+  background: linear-gradient(to bottom, var(--neutral-layer-1) 75%, transparent);
+}
+.batch-entry fluent-button {
+  width: 100%;
+}
+.batch-link {
+  width: 100%;
+}
+.controls-footer {
+  position: sticky;
+  bottom: 0;
+  isolation: isolate;
+  padding: 0;
+}
+.controls-footer::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--design-unit) * 1px * 8);
+  top: calc(var(--design-unit) * 1px * -7);
+  background: linear-gradient(to top, var(--neutral-layer-1), transparent);
+  pointer-events: none;
+  z-index: -1;
+}
+.save-btn {
+  width: 100%;
+}
+
+/* ===================== 批量工具通用布局 ===================== */
+.batch-tool {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--design-unit) * 1px * 4);
+  height: 100%;
+  min-height: 0;
+  margin-bottom: calc(var(--design-unit) * 1px * -4);
+  overflow: auto;
+  padding-right: calc(var(--design-unit) * 1px * 2);
+}
+.batch-tool-head {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--design-unit) * 1px);
+}
+.batch-tool-head .title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--neutral-foreground-rest);
+}
+.batch-tool-head .desc {
+  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--neutral-foreground-secondary-rest);
+}
+.batch-tool-body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--design-unit) * 1px * 4.5);
+}
+.batch-tool-foot {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--design-unit) * 1px * 2.5);
+  padding-top: calc(var(--design-unit) * 1px * 2);
+}
+.batch-tool-foot .progress-text {
+  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--neutral-foreground-secondary-rest);
+}

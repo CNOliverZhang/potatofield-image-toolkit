@@ -30,9 +30,8 @@ const router = useRouter();
 
 const tools: ToolEntry[] = [
   { path: '/watermark', label: '加水印', icon: ['fas', 'stamp'], batchRoute: '/watermark/batch' },
-  { path: '/global-watermark', label: '全屏水印', icon: ['fas', 'fill-drip'], batchRoute: '/global-watermark/batch' },
   { path: '/splicer', label: '长图拼接', icon: ['fas', 'bars-staggered'] },
-  { path: '/cropper', label: '裁剪', icon: ['fas', 'crop'] },
+  { path: '/cropper', label: '裁剪', icon: ['fas', 'crop'], batchRoute: '/cropper/batch' },
   { path: '/slicer', label: '分割', icon: ['fas', 'grip'] },
   { path: '/text-to-image', label: '富文本制图', icon: ['fas', 'paragraph'] },
   { path: '/resizer', label: '尺寸调整', icon: ['fas', 'arrows-alt'], batchRoute: '/resizer/batch' },

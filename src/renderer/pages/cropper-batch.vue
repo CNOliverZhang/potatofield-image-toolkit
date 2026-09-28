@@ -4,8 +4,8 @@
 
     <section class="preview-pane">
       <div v-if="!selected" class="dropzone">
-        <font-awesome-icon icon="images" class="dz-icon" />
-        <p>从左侧导入图片，点击列表项预览</p>
+        <font-awesome-icon icon="crop" class="dz-icon" />
+        <p>从左侧导入图片，点击列表项预览裁剪效果</p>
       </div>
       <template v-else>
         <div class="preview-stage">
@@ -20,59 +20,51 @@
     <aside class="controls-pane">
       <div class="controls-body">
         <div class="group">
-          <span class="group-title">{{ config[tool].title }}设置</span>
-
-          <template v-if="tool === 'resizer'">
-            <div class="field row">
-              <span class="field-label">宽度</span>
-              <fluent-number-field :value="opts.width" @input="opts.width = evNum($event)">px</fluent-number-field>
-            </div>
-            <div class="field row">
-              <span class="field-label">高度（0=按比例）</span>
-              <fluent-number-field :value="opts.height" @input="opts.height = evNum($event)">px</fluent-number-field>
-            </div>
-            <label class="field">
-              <span class="field-label">适配方式</span>
-              <fluent-select :value="opts.fit" @change="opts.fit = evVal($event) as ImageProcessOptions['fit']">
-                <fluent-option value="inside">等比缩放</fluent-option>
-                <fluent-option value="cover">裁剪填充</fluent-option>
-                <fluent-option value="fill">拉伸</fluent-option>
-              </fluent-select>
-            </label>
-          </template>
-
-          <template v-else-if="tool === 'compress'">
-            <label class="field">
-              <span class="field-label">格式</span>
-              <fluent-select :value="opts.format || 'original'" @change="opts.format = evVal($event) === 'original' ? undefined : (evVal($event) as ImageFormat)">
-                <fluent-option value="original">原格式</fluent-option>
-                <fluent-option value="jpeg">JPG</fluent-option>
-                <fluent-option value="png">PNG</fluent-option>
-                <fluent-option value="webp">WebP</fluent-option>
-              </fluent-select>
-            </label>
-            <div class="field">
-              <span class="field-label">质量 <em>{{ opts.quality }}%</em></span>
-              <fluent-slider :value="opts.quality" :min="10" :max="100" :step="1" @change="opts.quality = evNum($event)"></fluent-slider>
-            </div>
-          </template>
-
-          <template v-else-if="tool === 'convert'">
-            <label class="field">
-              <span class="field-label">目标格式</span>
-              <fluent-select :value="opts.format || 'png'" @change="opts.format = evVal($event) as ImageFormat">
-                <fluent-option value="png">PNG</fluent-option>
-                <fluent-option value="jpeg">JPG</fluent-option>
-                <fluent-option value="webp">WebP</fluent-option>
-              </fluent-select>
-            </label>
-          </template>
+          <span class="group-title">裁剪区域（像素）</span>
+          <div class="field row">
+            <span class="field-label">比例预设</span>
+            <fluent-select :value="ratio" @change="onRatio">
+              <fluent-option value="free">自由</fluent-option>
+              <fluent-option value="1:1">1:1</fluent-option>
+              <fluent-option value="4:3">4:3</fluent-option>
+              <fluent-option value="16:9">16:9</fluent-option>
+              <fluent-option value="3:2">3:2</fluent-option>
+              <fluent-option value="2:3">2:3</fluent-option>
+            </fluent-select>
+          </div>
+          <div class="field row" v-if="ratio !== 'free'">
+            <span class="field-label">位置</span>
+            <fluent-select :value="position" @change="onPosition">
+              <fluent-option value="center">居中</fluent-option>
+              <fluent-option value="nw">左上</fluent-option>
+              <fluent-option value="ne">右上</fluent-option>
+              <fluent-option value="sw">左下</fluent-option>
+              <fluent-option value="se">右下</fluent-option>
+            </fluent-select>
+          </div>
+          <div class="field row">
+            <span class="field-label">X（左）</span>
+            <fluent-number-field :value="region.left" min="0" @input="region.left = evNum($event)">px</fluent-number-field>
+          </div>
+          <div class="field row">
+            <span class="field-label">Y（上）</span>
+            <fluent-number-field :value="region.top" min="0" @input="region.top = evNum($event)">px</fluent-number-field>
+          </div>
+          <div class="field row">
+            <span class="field-label">宽度</span>
+            <fluent-number-field :value="region.width" min="1" @input="region.width = evNum($event)">px</fluent-number-field>
+          </div>
+          <div class="field row">
+            <span class="field-label">高度</span>
+            <fluent-number-field :value="region.height" min="1" @input="region.height = evNum($event)">px</fluent-number-field>
+          </div>
+          <fluent-button appearance="neutral" @click="useFull">使用整图</fluent-button>
         </div>
 
         <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
 
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="run">
+          <fluent-button appearance="accent" class="save-btn" :disabled="processing || files.length === 0" @click="run">
             {{ processing ? `处理中 ${progress.done}/${progress.total}` : `开始批量处理 (${files.length})` }}
           </fluent-button>
         </div>
@@ -82,69 +74,96 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onBeforeUnmount, computed } from 'vue';
-import type { ImageProcessOptions } from '@shared/types';
-import { buildOutputPath, resolveBatchOutputPath, ensureDir } from '@renderer/utils/fileIO';
+import { reactive, ref, watch, computed, onBeforeUnmount } from 'vue';
+import { resolveBatchOutputPath, ensureDir } from '@renderer/utils/fileIO';
 import type { BatchItem } from '@renderer/utils/directoryScanner';
 import { useDialog } from '@renderer/composables/useDialog';
 import { useSettingsStore } from '@renderer/stores/settings';
+import { evNum } from '@renderer/composables/useSingleTool';
 import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
 import SaveLocationSetting from '@renderer/components/SaveLocationSetting.vue';
 
-type ToolKey = 'resizer' | 'compress' | 'convert';
-type ImageFormat = 'png' | 'jpeg' | 'webp';
-
-const props = defineProps<{ tool: ToolKey }>();
-
-const config: Record<ToolKey, { title: string; op: 'resize' | 'compress' | 'convert'; suffix: string }> = {
-  resizer: { title: '尺寸调整', op: 'resize', suffix: '_resized' },
-  compress: { title: '压缩', op: 'compress', suffix: '_compressed' },
-  convert: { title: '格式转换', op: 'convert', suffix: '_converted' }
-};
+interface Meta {
+  width: number;
+  height: number;
+}
 
 const { message } = useDialog();
 const settings = useSettingsStore();
 
 const files = ref<BatchItem[]>([]);
-const keepRelative = ref(false);
 const selected = ref('');
 const saveDir = ref(settings.defaultSaveDirectory || settings.recentSaveDirs[0] || '');
+const keepRelative = ref(false);
 const previewUrl = ref('');
 const processing = ref(false);
 const progress = reactive({ done: 0, total: 0 });
-const opts = reactive({
-  width: 800,
-  height: 0,
-  fit: 'inside' as ImageProcessOptions['fit'],
-  format: undefined as ImageFormat | undefined,
-  quality: 80
-});
 
-let previewTimer: number | undefined;
+const region = reactive({ left: 0, top: 0, width: 0, height: 0 });
+const ratio = ref('free');
+const position = ref('center');
+
+const RATIOS: Record<string, [number, number]> = {
+  '1:1': [1, 1],
+  '4:3': [4, 3],
+  '16:9': [16, 9],
+  '3:2': [3, 2],
+  '2:3': [2, 3]
+};
+
+const selectedMeta = ref<Meta | null>(null);
 
 const selectedName = computed(() => (selected.value ? selected.value.split(/[\\/]/).pop() : ''));
 
-function evVal(e: Event): string {
-  return (e.target as HTMLInputElement).value;
+function onRatio(e: Event) {
+  ratio.value = (e.target as HTMLInputElement).value;
+  applyPreset();
 }
-function evNum(e: Event): number {
-  return Number((e.target as HTMLInputElement).value);
+function onPosition(e: Event) {
+  position.value = (e.target as HTMLInputElement).value;
+  applyPreset();
 }
 
-function buildOptions(): ImageProcessOptions {
-  const o: ImageProcessOptions = {};
-  if (props.tool === 'resizer') {
-    if (opts.width) o.width = opts.width;
-    if (opts.height) o.height = opts.height;
-    o.fit = opts.fit;
-  } else if (props.tool === 'compress') {
-    if (opts.format) o.format = opts.format;
-    o.quality = opts.quality;
-  } else if (props.tool === 'convert') {
-    o.format = opts.format;
+function applyPreset() {
+  if (!selectedMeta.value || ratio.value === 'free') return;
+  const [rw, rh] = RATIOS[ratio.value];
+  const iw = selectedMeta.value.width;
+  const ih = selectedMeta.value.height;
+  let w = iw;
+  let h = (iw * rh) / rw;
+  if (h > ih) {
+    h = ih;
+    w = (ih * rw) / rh;
   }
-  return o;
+  let left = 0;
+  let top = 0;
+  if (position.value === 'center') {
+    left = (iw - w) / 2;
+    top = (ih - h) / 2;
+  } else {
+    if (position.value === 'ne' || position.value === 'se') left = iw - w;
+    else if (position.value === 'nw' || position.value === 'sw') left = 0;
+    else left = (iw - w) / 2;
+    if (position.value === 'sw' || position.value === 'se') top = ih - h;
+    else if (position.value === 'nw' || position.value === 'ne') top = 0;
+    else top = (ih - h) / 2;
+  }
+  region.left = Math.round(left);
+  region.top = Math.round(top);
+  region.width = Math.round(w);
+  region.height = Math.round(h);
 }
+
+function useFull() {
+  if (!selectedMeta.value) return;
+  ratio.value = 'free';
+  region.left = 0;
+  region.top = 0;
+  region.width = selectedMeta.value.width;
+  region.height = selectedMeta.value.height;
+}
+
+let previewTimer: number | undefined;
 
 function clearPreview() {
   if (previewUrl.value) {
@@ -161,9 +180,9 @@ async function updatePreview() {
   }
   try {
     const res = await window.api.image.process({
-      op: config[props.tool].op,
+      op: 'extract',
       inputPath: path,
-      options: buildOptions()
+      options: { left: region.left, top: region.top, width: region.width, height: region.height }
     });
     if (res.buffer) {
       const blob = new Blob([res.buffer], { type: 'image/png' });
@@ -181,7 +200,26 @@ function schedulePreview() {
   previewTimer = window.setTimeout(updatePreview, 220);
 }
 
-watch([opts, selected], schedulePreview, { deep: true });
+async function fetchSelectedMeta() {
+  if (!selected.value) {
+    selectedMeta.value = null;
+    return;
+  }
+  try {
+    const res = await window.api.image.process({ op: 'metadata', inputPath: selected.value });
+    const m = res.info as unknown as Meta;
+    selectedMeta.value = { width: m.width || 0, height: m.height || 0 };
+    useFull();
+  } catch {
+    selectedMeta.value = null;
+  }
+}
+
+watch(selected, async () => {
+  await fetchSelectedMeta();
+  schedulePreview();
+}, { immediate: true });
+watch(region, schedulePreview, { deep: true });
 
 async function run() {
   if (!files.value.length) {
@@ -192,33 +230,33 @@ async function run() {
     message('请先设置保存位置', 'warning');
     return;
   }
-  if (props.tool === 'convert' && !opts.format) {
-    message('请选择目标格式', 'warning');
-    return;
-  }
   processing.value = true;
   progress.done = 0;
   progress.total = files.value.length;
   let ok = 0;
   for (const item of files.value) {
-    const forcedExt =
-      (props.tool === 'convert' || props.tool === 'compress') && opts.format
-        ? '.' + opts.format
-        : undefined;
-    const out = resolveBatchOutputPath(saveDir.value, item, {
-      suffix: config[props.tool].suffix,
-      ext: forcedExt,
-      keepStructure: keepRelative.value
-    });
-    if (keepRelative.value && item.rel.includes('/')) {
-      await ensureDir(out.substring(0, out.lastIndexOf('/')));
-    }
     try {
+      const res = await window.api.image.process({ op: 'metadata', inputPath: item.path });
+      const m = res.info as unknown as Meta;
+      const iw = m.width || 0;
+      const ih = m.height || 0;
+      const w = Math.max(1, Math.min(region.width, iw));
+      const h = Math.max(1, Math.min(region.height, ih));
+      const left = Math.max(0, Math.min(region.left, Math.max(0, iw - w)));
+      const top = Math.max(0, Math.min(region.top, Math.max(0, ih - h)));
+      const out = resolveBatchOutputPath(saveDir.value, item, {
+        suffix: '_cropped',
+        ext: undefined,
+        keepStructure: keepRelative.value
+      });
+      if (keepRelative.value && item.rel.includes('/')) {
+        await ensureDir(out.substring(0, out.lastIndexOf('/')));
+      }
       await window.api.image.process({
-        op: config[props.tool].op,
+        op: 'extract',
         inputPath: item.path,
         outputPath: out,
-        options: buildOptions()
+        options: { left, top, width: w, height: h }
       });
       ok++;
     } catch (e) {
@@ -228,10 +266,14 @@ async function run() {
     progress.done++;
   }
   processing.value = false;
-  message(`批量处理完成：${ok}/${files.value.length} 张成功`, 'success');
+  message(`批量裁剪完成：${ok}/${files.value.length} 张成功`, 'success');
   if (ok > 0) {
     window.api.shell.showItemInFolder(
-      buildOutputPath(saveDir.value, files.value[0].path.split(/[\\/]/).pop() || 'image')
+      resolveBatchOutputPath(saveDir.value, files.value[0], {
+        suffix: '_cropped',
+        ext: undefined,
+        keepStructure: keepRelative.value
+      })
     );
   }
 }

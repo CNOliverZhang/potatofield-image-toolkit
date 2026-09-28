@@ -1,10 +1,17 @@
+export type ImageFormat = 'jpeg' | 'png' | 'webp' | 'tiff' | 'gif' | 'avif';
+
 export interface ImageProcessOptions {
   width?: number;
   height?: number;
   fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside';
-  format?: 'jpeg' | 'png' | 'webp' | 'tiff' | 'gif' | 'avif';
+  format?: ImageFormat;
   quality?: number;
   background?: string;
+  /** 裁剪区域（op='extract'） */
+  left?: number;
+  top?: number;
+  /** 拼接方向（op='append'） */
+  dir?: 'vertical' | 'horizontal';
 }
 
 export type ImageProcessOp =
@@ -28,6 +35,8 @@ export interface ImageProcessResult {
   outputPath?: string;
   info?: Record<string, unknown>;
   buffer?: ArrayBuffer;
+  /** 读取元数据时返回的完整元数据（op='metadata'） */
+  tags?: Record<string, unknown>;
 }
 
 export interface SelectFileOptions {
