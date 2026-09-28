@@ -419,7 +419,7 @@ onBeforeUnmount(() => {
   right: 0;
   bottom: calc(var(--design-unit) * 1px * 8);
   top: calc(var(--design-unit) * 1px * -7);
-  background: linear-gradient(to top, color-mix(in srgb, var(--neutral-layer-floating) 90%, transparent), transparent);
+  background: linear-gradient(to top, color-mix(in srgb, var(--app-bg) 90%, transparent), transparent);
   pointer-events: none;
   z-index: -1;
 }

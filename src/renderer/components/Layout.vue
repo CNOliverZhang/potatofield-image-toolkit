@@ -84,7 +84,7 @@ const nav = [
   overflow: hidden;
   /* Mica 风格背景（纯 CSS 渐变）—— 仅在卡片内部绘制，
      窗口边缘的透明余量由 body padding 提供 */
-  background: var(--neutral-layer-floating);
+  background: var(--app-bg);
   /* 对称柔和阴影：单侧最大延伸 = 6+20 = 26px < --window-pad(28px)，
      四向阴影均完整可见，不再被窗口边界裁切 */
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.2);
@@ -150,7 +150,7 @@ html[data-theme='dark'] .blob.b4 { --blob-c: #3a2a10; }
   width: 232px;
   flex-shrink: 0;
   /* 半透明底色：让流动的淡彩背景隐约透出（PowerToys 视觉），不用 backdrop-filter 以省资源 */
-  background: color-mix(in srgb, var(--neutral-layer-1) 80%, transparent);
+  background: color-mix(in srgb, var(--app-bg) 80%, transparent);
   border-right: 1px solid var(--neutral-stroke-rest);
   display: flex;
   flex-direction: column;

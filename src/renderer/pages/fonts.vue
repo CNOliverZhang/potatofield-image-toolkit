@@ -186,9 +186,17 @@ async function install(font: FontItem) {
   /* 列表是 flex 容器，卡片必须不收缩，否则会被压扁而不产生滚动 */
   flex-shrink: 0;
 }
+/* 深色模式：卡片贴近应用整体背景色（整体背景 + 约 5% 白，与 PowerToys 的 Layer fill 一致，
+   不用 layer-rest 是因为它在深色下偏亮） */
+html[data-theme='dark'] .family-card {
+  background: rgba(255, 255, 255, 0.05);
+}
 /* 仅可展开项的展开态有极轻微的透明度（对应 WinUI 的活跃态） */
 .family-card.expanded {
   background: color-mix(in srgb, var(--neutral-fill-layer-rest) 94%, transparent);
+}
+html[data-theme='dark'] .family-card.expanded {
+  background: rgba(255, 255, 255, 0.03);
 }
 .family-head {
   display: flex;
@@ -211,6 +219,16 @@ async function install(font: FontItem) {
 /* 按压态：轻微的透明度反馈 */
 .family-head:active {
   background: color-mix(in srgb, var(--neutral-fill-hover) 60%, transparent);
+}
+/* 深色模式交互色：与 WinUI 一致用低亮度白叠加（hover 6% / 按压 4%） */
+html[data-theme='dark'] .family-head:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+html[data-theme='dark'] .family-head:active {
+  background: rgba(255, 255, 255, 0.04);
+}
+html[data-theme='dark'] .font-row:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 /* 无子项卡片：整行不可展开，不做 hover 高亮 */
 .family-head.static {
@@ -313,10 +331,10 @@ async function install(font: FontItem) {
 }
 .fade-top {
   top: 0;
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--neutral-layer-floating) 90%, transparent), transparent);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--app-bg) 90%, transparent), transparent);
 }
 .fade-bottom {
   bottom: 0;
-  background: linear-gradient(to top, color-mix(in srgb, var(--neutral-layer-floating) 90%, transparent), transparent);
+  background: linear-gradient(to top, color-mix(in srgb, var(--app-bg) 90%, transparent), transparent);
 }
 </style>

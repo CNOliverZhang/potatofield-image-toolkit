@@ -10,6 +10,13 @@
   /* 悬浮卡片与窗口边缘之间的透明余量，用于显示边框与外阴影
      （需 ≥ 阴影在单侧的最大延伸，否则阴影会被窗口矩形边界裁切） */
   --window-pad: 28px;
+
+  /* 应用主背景：浅色跟随 Fluent 令牌；深色模式覆盖为更深的底色
+     （Fluent 深色默认 #333 偏浅，WinUI/Mica 实际约 #20-#21） */
+  --app-bg: var(--neutral-layer-floating);
+}
+html[data-theme='dark'] {
+  --app-bg: #212121;
 }
 
 * {
@@ -247,7 +254,7 @@ fluent-card {
   z-index: 2;
   padding-bottom: calc(var(--design-unit) * 1px * 2.5);
   margin-bottom: calc(var(--design-unit) * 1px * 2);
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--neutral-layer-floating) 90%, transparent) 75%, transparent);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--app-bg) 90%, transparent) 75%, transparent);
 }
 .batch-entry fluent-button {
   width: 100%;
@@ -268,7 +275,7 @@ fluent-card {
   right: 0;
   bottom: calc(var(--design-unit) * 1px * 8);
   top: calc(var(--design-unit) * 1px * -7);
-  background: linear-gradient(to top, color-mix(in srgb, var(--neutral-layer-floating) 90%, transparent), transparent);
+  background: linear-gradient(to top, color-mix(in srgb, var(--app-bg) 90%, transparent), transparent);
   pointer-events: none;
   z-index: -1;
 }
