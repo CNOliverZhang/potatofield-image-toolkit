@@ -377,7 +377,7 @@ onBeforeUnmount(() => {
   right: 0;
   bottom: calc(var(--design-unit) * 1px * 8);
   top: calc(var(--design-unit) * 1px * -7);
-  background: linear-gradient(to top, var(--neutral-layer-1), transparent);
+  background: linear-gradient(to top, var(--neutral-layer-floating), transparent);
   pointer-events: none;
   z-index: -1;
 }

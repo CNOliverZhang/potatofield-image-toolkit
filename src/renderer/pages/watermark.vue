@@ -260,7 +260,7 @@ onBeforeUnmount(() => {
   z-index: 2;
   padding-bottom: calc(var(--design-unit) * 1px * 2.5);
   margin-bottom: calc(var(--design-unit) * 1px * 2);
-  background: linear-gradient(to bottom, var(--neutral-layer-1) 75%, transparent);
+  background: linear-gradient(to bottom, var(--neutral-layer-floating) 75%, transparent);
 }
 .batch-entry fluent-button {
   width: 100%;
@@ -278,7 +278,7 @@ onBeforeUnmount(() => {
   right: 0;
   bottom: calc(var(--design-unit) * 1px * 8);
   top: calc(var(--design-unit) * 1px * -7);
-  background: linear-gradient(to top, var(--neutral-layer-1), transparent);
+  background: linear-gradient(to top, var(--neutral-layer-floating), transparent);
   pointer-events: none;
   z-index: -1;
 }
