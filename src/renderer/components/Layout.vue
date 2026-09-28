@@ -166,14 +166,17 @@ const nav = [
   margin-top: calc(var(--design-unit) * 1.5 * 1px);
 }
 .content {
+  /* 水平内边距变量化：个别页面（如字体管理）用它把滚动区延伸到窗口右缘 */
+  --content-pad-x: 32px;
   flex: 1;
   min-width: 0;
   overflow: auto;
   /* 顶部留 40px 让出悬浮的窗口控制栏（32px 按钮 + 余量） */
-  padding: 40px 32px 28px;
+  padding: 40px var(--content-pad-x) 28px;
 }
 /* 独立窗口：无侧边栏，内容区四周留白略收紧 */
 .content.standalone {
-  padding: 40px 20px 20px;
+  --content-pad-x: 20px;
+  padding: 40px var(--content-pad-x) 20px;
 }
 </style>

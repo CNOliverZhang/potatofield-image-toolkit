@@ -13,7 +13,8 @@ withDefaults(defineProps<{ to?: 'top' | 'bottom' }>(), { to: 'top' });
 .gradient-mask {
   position: absolute;
   left: 0;
-  right: 0;
+  /* right 可用 --mask-r 避让悬浮滚动条，避免遮罩盖住滚动条两端 */
+  right: var(--mask-r, 0px);
   height: var(--mask-h, calc(var(--design-unit) * 7 * 1px));
   pointer-events: none;
   z-index: 2;

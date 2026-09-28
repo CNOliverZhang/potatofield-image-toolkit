@@ -16,7 +16,7 @@
     </div>
     <div v-if="store.fontFamilies.length" class="list-wrap">
       <GradientMask to="top" />
-      <div class="list">
+      <div ref="listEl" class="list" :class="{ 'has-scrollbar': hasScrollbar }">
         <template v-for="family in store.fontFamilies" :key="family.id">
         <!-- 多字体族：SettingExpander 式可展开卡片 -->
         <section
@@ -90,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useFontsStore } from '@renderer/stores/fonts';
 import { useDialog } from '@renderer/composables/useDialog';
 import GradientMask from '@renderer/components/GradientMask.vue';
@@ -102,6 +102,16 @@ const dialog = useDialog();
 const keyword = ref('');
 const expanded = reactive<Record<number, boolean>>({});
 let searchTimer: number | undefined;
+
+const listEl = ref<HTMLElement | null>(null);
+const hasScrollbar = ref(false);
+
+/** 是否出现垂直滚动条：出现时补偿其占位宽度，保证卡片右缘与工具栏按钮对齐 */
+function updateScrollbar() {
+  const el = listEl.value;
+  if (!el) return;
+  hasScrollbar.value = el.scrollHeight > el.clientHeight + 1;
+}
 
 function toggle(id: number) {
   expanded[id] = !expanded[id];
@@ -118,10 +128,21 @@ function onSearch(e: Event) {
   searchTimer = window.setTimeout(refresh, 350);
 }
 
-onMounted(() => refresh());
+onMounted(() => {
+  refresh();
+  window.addEventListener('resize', updateScrollbar);
+});
 onBeforeUnmount(() => {
   if (searchTimer) window.clearTimeout(searchTimer);
+  window.removeEventListener('resize', updateScrollbar);
 });
+
+// 列表数据、展开/收起、窗口尺寸变化都可能改变滚动条的出现
+watch(
+  () => [store.fontFamilies.length, store.loading, expanded],
+  () => nextTick(updateScrollbar),
+  { deep: true }
+);
 
 async function install(font: FontItem) {
   try {
@@ -165,6 +186,10 @@ async function install(font: FontItem) {
   flex: 1;
   min-height: 0;
   position: relative;
+  /* 遮罩避让 10px 的悬浮滚动条 */
+  --mask-r: 10px;
+  /* 抵消内容区右内边距，使滚动条贴靠窗口右缘（卡片仍与工具栏按钮对齐） */
+  margin-right: calc(-1 * var(--content-pad-x));
 }
 /* 仅列表滚动 */
 .list {
@@ -175,6 +200,12 @@ async function install(font: FontItem) {
   gap: calc(var(--design-unit) * 1px); /* WinUI 设置卡间距 4px */
   /* 上下留出遮罩高度的内边距，使首/末项滚到顶/底时不被遮罩挡住 */
   padding: calc(var(--design-unit) * 7 * 1px) 0;
+  /* 右侧内边距使卡片右缘与工具栏按钮对齐（滚动条贴窗口右缘） */
+  padding-right: var(--content-pad-x);
+}
+/* 出现滚动条时补偿其占位（10px），使卡片右缘在有无滚动条时都与按钮对齐 */
+.list.has-scrollbar {
+  padding-right: calc(var(--content-pad-x) - var(--scrollbar-w));
 }
 /* SettingExpander 式卡片（PowerToys 设置页风格） */
 .family-card {

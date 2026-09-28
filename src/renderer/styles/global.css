@@ -16,6 +16,9 @@
      深色：背景 #202020（近黑），卡片 #2b2b2b（浅一档灰）——Fluent 深色无对应实色令牌，自定义 */
   --app-bg: var(--neutral-layer-2);
   --app-card: var(--neutral-fill-layer-rest);
+
+  /* 经典滚动条宽度（::-webkit-scrollbar width），用于布局补偿 */
+  --scrollbar-w: 10px;
 }
 html[data-theme='dark'] {
   --app-bg: #202020;
