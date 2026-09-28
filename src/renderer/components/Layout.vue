@@ -1,5 +1,12 @@
 <template>
   <div class="app-shell">
+    <!-- 缓慢流动的淡彩背景（GPU 合成动画，仅在 app-shell 内绘制） -->
+    <div class="bg-flow" aria-hidden="true">
+      <span class="blob b1"></span>
+      <span class="blob b2"></span>
+      <span class="blob b3"></span>
+      <span class="blob b4"></span>
+    </div>
     <WindowControls :inset="standalone ? 0 : 232" :title="standalone ? pageTitle : ''" />
     <div class="body">
       <aside v-if="!standalone" class="sidebar">
@@ -82,15 +89,68 @@ const nav = [
      四向阴影均完整可见，不再被窗口边界裁切 */
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.2);
 }
+/* 注意：只提升内容区，不要写 `.app-shell > *` ——
+   WindowControls 是靠 absolute 定位的标题栏，被覆盖成 relative 会进入文档流并撑出横向滚动 */
+
+/* ===== 缓慢流动的淡彩背景 =====
+   性能：仅动画 transform（GPU 合成层，不触发重排/重绘）；
+   柔边用大半径径向渐变实现，不用 filter: blur（那会每帧重绘） */
+.bg-flow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  /* clip 不创建滚动容器，彻底避免色块溢出影响外壳布局 */
+  overflow: clip;
+  contain: paint;
+  pointer-events: none;
+  --flow-opacity: 0.2;
+}
+.blob {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: var(--flow-opacity);
+  background: radial-gradient(circle closest-side, var(--blob-c), transparent 72%);
+  will-change: transform;
+  animation: var(--flow-dur, 64s) ease-in-out infinite alternate;
+}
+.blob.b1 { --blob-c: #a8c8ff; --flow-dur: 56s; width: 58%; top: -14%; left: -8%; animation-name: flow-a; }
+.blob.b2 { --blob-c: #c9b6ff; --flow-dur: 74s; width: 54%; top: 14%; right: -12%; animation-name: flow-b; animation-delay: -18s; }
+.blob.b3 { --blob-c: #ffc2da; --flow-dur: 66s; width: 50%; bottom: -16%; left: 16%; animation-name: flow-c; animation-delay: -30s; }
+.blob.b4 { --blob-c: #ffdfba; --flow-dur: 88s; width: 44%; bottom: -6%; right: 4%; animation-name: flow-d; animation-delay: -44s; }
+@keyframes flow-a { from { transform: translate(-4%, -3%) scale(1); } to { transform: translate(9%, 7%) scale(1.18); } }
+@keyframes flow-b { from { transform: translate(5%, 4%) scale(1.1); } to { transform: translate(-8%, -6%) scale(0.94); } }
+@keyframes flow-c { from { transform: translate(-6%, 5%) scale(1.05); } to { transform: translate(7%, -5%) scale(0.92); } }
+@keyframes flow-d { from { transform: translate(4%, -4%) scale(0.96); } to { transform: translate(-6%, 6%) scale(1.14); } }
+
+/* 深色模式：更暗、更淡的色斑（html[data-theme] 由 useTheme 切换） */
+html[data-theme='dark'] .bg-flow {
+  --flow-opacity: 0.14;
+}
+html[data-theme='dark'] .blob.b1 { --blob-c: #1b3358; }
+html[data-theme='dark'] .blob.b2 { --blob-c: #2a2050; }
+html[data-theme='dark'] .blob.b3 { --blob-c: #3d1a2e; }
+html[data-theme='dark'] .blob.b4 { --blob-c: #3a2a10; }
+
+/* 尊重系统"减弱动态效果" */
+@media (prefers-reduced-motion: reduce) {
+  .blob {
+    animation: none;
+  }
+}
 .body {
   flex: 1;
   display: flex;
   min-height: 0;
+  /* 内容区提升到背景动画层之上（bg-flow 为 z-index:0 的绝对定位层） */
+  position: relative;
+  z-index: 1;
 }
 .sidebar {
   width: 232px;
   flex-shrink: 0;
-  background: var(--neutral-layer-1);
+  /* 半透明底色：让流动的淡彩背景隐约透出（PowerToys 视觉），不用 backdrop-filter 以省资源 */
+  background: color-mix(in srgb, var(--neutral-layer-1) 80%, transparent);
   border-right: 1px solid var(--neutral-stroke-rest);
   display: flex;
   flex-direction: column;

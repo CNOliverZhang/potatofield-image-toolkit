@@ -7,10 +7,12 @@ const instance = axios.create({
 
 // ── 字体库（/font_library 前缀） ──────────────────────────────
 
-/** 获取在线字体列表 */
+/** 获取在线字体列表
+ *  注意：该接口返回 { count, list }，顶层即 list，没有 data 层
+ *  （与 image_toolkit 前缀接口 data.data.list 的结构不同） */
 export async function getFontList(): Promise<any[]> {
   const { data } = await instance.get('/font_library/font/list');
-  return data?.data?.list ?? [];
+  return data?.list ?? [];
 }
 
 /** 下载字体文件（返回 ArrayBuffer） */
@@ -20,10 +22,19 @@ export async function downloadFont(font: { fontFile?: string }): Promise<ArrayBu
   return resp.data as ArrayBuffer;
 }
 
-/** 获取随机字体 */
+/** 获取随机字体（该接口直接返回字体对象，没有 data 层） */
 export async function getRandomFont(): Promise<any> {
   const { data } = await instance.get('/font_library/font/random');
-  return data?.data ?? null;
+  return data ?? null;
+}
+
+/** 获取字体族列表（含族内字体；接口顶层 { count, list }，无 data 层；
+ *  不传 page/size 返回全部；name 为字体族名模糊搜索） */
+export async function getFontFamilyList(name?: string): Promise<any[]> {
+  const { data } = await instance.get('/font_library/font_family/list', {
+    params: name ? { name } : undefined
+  });
+  return data?.list ?? [];
 }
 
 // ── 图像工具箱（/image_toolkit 前缀） ─────────────────────────
