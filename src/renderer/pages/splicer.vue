@@ -134,6 +134,30 @@
           </div>
         </div>
 
+        <div class="group">
+          <span class="group-title">输出设置</span>
+          <label class="field">
+            <span class="field-label">格式</span>
+            <fluent-select :value="out.format" @change="onFormat">
+              <fluent-option value="png">PNG（无损）</fluent-option>
+              <fluent-option value="jpeg">JPG（有损）</fluent-option>
+              <fluent-option value="webp">WebP（有损）</fluent-option>
+            </fluent-select>
+          </label>
+          <div v-if="lossy" class="field row">
+            <span class="field-label">质量</span>
+            <fluent-slider
+              :value="out.quality"
+              :min="10"
+              :max="100"
+              :step="1"
+              @change="out.quality = evNum($event)"
+            ></fluent-slider>
+            <span class="q-val">{{ out.quality }}</span>
+          </div>
+          <p class="hint" v-if="out.format === 'jpeg' && !useBg">JPG 不支持透明，未设置底色时按白色输出</p>
+        </div>
+
         <p v-if="overLimit" class="warn">{{ limitHint }}</p>
 
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
@@ -160,6 +184,14 @@ import { scanImageDirectory, type BatchItem } from '@renderer/utils/directorySca
 import { relativePath } from '@renderer/utils/fileIO';
 import { useDialog } from '@renderer/composables/useDialog';
 import { evChk, evNum, evVal, useSingleTool } from '@renderer/composables/useSingleTool';
+import {
+  createOutputOpts,
+  isLossy,
+  outExt,
+  withOutput,
+  type OutputOpts
+} from '@renderer/composables/useOutputSettings';
+import type { DefaultOutputFormat } from '@renderer/stores/settings';
 
 const { message } = useDialog();
 /** 复用单图工具的保存流程：点击保存时选择目录，输出一张图片 */
@@ -379,6 +411,15 @@ function onColor(e: Event) {
   bgColor.value = (e.target as HTMLInputElement).value;
 }
 
+/** 输出格式/质量：默认取设置页的「默认输出」（拼接无「保持原格式」概念，默认 PNG） */
+const out: OutputOpts = createOutputOpts();
+if (out.format === 'original') out.format = 'png';
+const lossy = computed(() => isLossy(out.format));
+
+function onFormat(e: Event) {
+  out.format = (e.target as HTMLInputElement).value as DefaultOutputFormat;
+}
+
 function onDirection(e: Event) {
   direction.value = evVal(e) as 'vertical' | 'horizontal';
 }
@@ -461,12 +502,13 @@ async function run() {
     return;
   }
   await runSave(
-    (stem) => `${stem}_spliced.png`,
+    (stem) => `${stem}_spliced${outExt(out.format, files.value[0].path)}`,
     async (outputPath) => {
       await window.api.image.process({
         op: 'append',
         inputPath: files.value[0].path,
         outputPath,
+        options: withOutput({}, out),
         extra: appendExtra()
       });
     }

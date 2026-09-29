@@ -175,19 +175,26 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
         left: direction === 'horizontal' ? m + sum(scaled.slice(0, i).map((s) => s.w)) + m * i : m,
         top: direction === 'vertical' ? m + sum(scaled.slice(0, i).map((s) => s.h)) + m * i : m
       }));
+      // JPG 不支持透明：未指定底色时按白底合成，否则透明区会变黑
+      const needWhite = options.format === 'jpeg' && !bg;
       const pipeline = sharp({
         create: {
           width: Math.max(1, outW),
           height: Math.max(1, outH),
           channels: 4,
-          background: bg ?? { r: 255, g: 255, b: 255, alpha: 0 }
+          background: bg ?? (needWhite ? { r: 255, g: 255, b: 255, alpha: 1 } : { r: 255, g: 255, b: 255, alpha: 0 })
         }
-      }).composite(composites).png();
+      }).composite(composites);
+      // 支持输出格式与质量（PNG 无损，quality 仅在有损格式下传入）
+      const applyFormat = (p: sharp.Sharp) =>
+        options.format
+          ? p.toFormat(options.format as keyof sharp.FormatEnum, options.quality ? { quality: options.quality } : {})
+          : p.png();
       if (outputPath) {
-        await pipeline.toFile(outputPath);
+        await applyFormat(pipeline).toFile(outputPath);
         return { outputPath, width: fullW, height: fullH };
       }
-      const buf = await pipeline.toBuffer();
+      const buf = await applyFormat(pipeline).toBuffer();
       return {
         buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer,
         width: fullW,

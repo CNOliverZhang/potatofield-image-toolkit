@@ -57,7 +57,7 @@ const nav = [
   { to: '/splicer', label: '拼图', icon: ['fas', 'table-cells-large'] as [string, string] },
   { to: '/cropper', label: '裁剪', icon: ['fas', 'crop-simple'] as [string, string] },
   { to: '/slicer', label: '切片', icon: ['fas', 'border-all'] as [string, string] },
-  { to: '/text-to-image', label: '文字转图片', icon: ['fas', 'heading'] as [string, string] },
+  { to: '/text-to-image', label: '富文本编辑器', icon: ['fas', 'heading'] as [string, string] },
   { to: '/resizer', label: '改尺寸', icon: ['fas', 'arrows-left-right-to-line'] as [string, string] },
   { to: '/compress', label: '压缩', icon: ['fas', 'compress'] as [string, string] },
   { to: '/convert', label: '格式转换', icon: ['fas', 'arrows-rotate'] as [string, string] },

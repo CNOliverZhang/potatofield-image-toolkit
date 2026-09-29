@@ -33,7 +33,7 @@ const tools: ToolEntry[] = [
   { path: '/splicer', label: '长图拼接', icon: ['fas', 'bars-staggered'] },
   { path: '/cropper', label: '裁剪', icon: ['fas', 'crop'], batchRoute: '/cropper/batch' },
   { path: '/slicer', label: '分割', icon: ['fas', 'grip'] },
-  { path: '/text-to-image', label: '富文本制图', icon: ['fas', 'paragraph'] },
+  { path: '/text-to-image', label: '富文本编辑器', icon: ['fas', 'paragraph'] },
   { path: '/resizer', label: '尺寸调整', icon: ['fas', 'arrows-alt'], batchRoute: '/resizer/batch' },
   { path: '/compress', label: '压缩', icon: ['fas', 'compress'], batchRoute: '/compress/batch' },
   { path: '/convert', label: '格式转换', icon: ['fas', 'repeat'], batchRoute: '/convert/batch' },
