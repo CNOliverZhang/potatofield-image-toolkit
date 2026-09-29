@@ -21,6 +21,29 @@
           </div>
           <p class="hint" v-if="meta">原图尺寸：{{ meta.width }} × {{ meta.height }}，将分为 {{ rows }} × {{ cols }} 块</p>
         </div>
+        <div class="group">
+          <span class="group-title">输出设置</span>
+          <label class="field">
+            <span class="field-label">格式</span>
+            <fluent-select :value="out.format" @change="onFormat">
+              <fluent-option value="original">保持原格式</fluent-option>
+              <fluent-option value="png">PNG（无损）</fluent-option>
+              <fluent-option value="jpeg">JPG（有损）</fluent-option>
+              <fluent-option value="webp">WebP（有损）</fluent-option>
+            </fluent-select>
+          </label>
+          <div v-if="lossy" class="field row">
+            <span class="field-label">质量</span>
+            <fluent-slider
+              :value="out.quality"
+              :min="10"
+              :max="100"
+              :step="1"
+              @change="out.quality = evNum($event)"
+            ></fluent-slider>
+            <span class="q-val">{{ out.quality }}</span>
+          </div>
+        </div>
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
         <div class="controls-footer">
           <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
@@ -33,8 +56,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useSingleTool, evNum, extOf } from '@renderer/composables/useSingleTool';
+import {
+  createOutputOpts,
+  isLossy,
+  outExt,
+  withOutput,
+  type OutputOpts
+} from '@renderer/composables/useOutputSettings';
+import type { DefaultOutputFormat } from '@renderer/stores/settings';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
 import { selectDirectory } from '@renderer/utils/filePicker';
 import { buildOutputPath } from '@renderer/utils/fileIO';
@@ -51,6 +82,14 @@ const meta = ref<Meta | null>(null);
 const rows = ref(2);
 const cols = ref(2);
 const progress = ref(0);
+
+/** 输出格式/质量：默认取设置页的「默认输出」 */
+const out: OutputOpts = createOutputOpts();
+const lossy = computed(() => isLossy(out.format));
+
+function onFormat(e: Event) {
+  out.format = (e.target as HTMLInputElement).value as DefaultOutputFormat;
+}
 
 async function fetchMeta(): Promise<void> {
   if (!inputPath.value) return;
@@ -113,13 +152,16 @@ async function onSave() {
   progress.value = 0;
   try {
     for (const t of tiles) {
-      const name = `${stem}_r${t.ri}c${t.ci}${extOf(inputPath.value)}`;
+      const name = `${stem}_r${t.ri}c${t.ci}${outExt(out.format, inputPath.value)}`;
       const outputPath = buildOutputPath(dir, name);
       await window.api.image.process({
         op: 'extract',
         inputPath: inputPath.value,
         outputPath,
-        options: { left: t.left, top: t.top, width: t.width, height: t.height }
+        options: withOutput(
+          { left: t.left, top: t.top, width: t.width, height: t.height },
+          out
+        )
       });
       progress.value++;
     }

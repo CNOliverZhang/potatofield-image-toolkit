@@ -118,6 +118,16 @@ a {
 fluent-card {
   border-radius: calc(var(--layer-corner-radius) * 1px);
 }
+/* slider：
+   1) 在 flex 行里不被拉伸（否则轨道区贴顶）
+   2) FAST 把轨道与滑块定位在「轨道区」顶部，导致控件视觉整体偏上，
+      这里把定位区下移，使轨道/滑块垂直居中（偏移量 = thumb-size/2 - 轨道宽/2） */
+fluent-slider {
+  align-self: center;
+}
+fluent-slider::part(positioning-region) {
+  transform: translateY(calc(var(--thumb-size) * 0.5px - 2px));
+}
 
 /* ===================== 工具页通用布局 ===================== */
 .tool {
@@ -255,6 +265,14 @@ fluent-card {
   font-size: var(--type-ramp-minus-1-font-size);
   color: var(--neutral-foreground-secondary-rest);
   opacity: 0.7;
+}
+/* 滑块右侧的数值（质量等） */
+.q-val {
+  width: 36px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--neutral-foreground-secondary-rest);
 }
 .batch-entry {
   position: sticky;

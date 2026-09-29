@@ -32,6 +32,30 @@
       <fluent-button appearance="neutral" @click="pickDir">选择</fluent-button>
     </div>
 
+    <div class="group-title">默认输出</div>
+    <div class="row">
+      <span class="label">输出格式</span>
+      <fluent-select class="out-select" :value="settings.defaultOutput.format" @change="onFormat">
+        <fluent-option value="original">保持原格式</fluent-option>
+        <fluent-option value="png">PNG（无损）</fluent-option>
+        <fluent-option value="jpeg">JPG（有损）</fluent-option>
+        <fluent-option value="webp">WebP（有损）</fluent-option>
+      </fluent-select>
+    </div>
+    <!-- 默认质量是通用默认值（工具里选 JPG/WebP 时才会用到），因此始终显示 -->
+    <div class="row">
+      <span class="label">默认质量 <em class="value">{{ settings.defaultOutput.quality }}%</em></span>
+      <fluent-slider
+        class="out-slider"
+        :value="settings.defaultOutput.quality"
+        :min="10"
+        :max="100"
+        :step="1"
+        @change="onQuality"
+      ></fluent-slider>
+    </div>
+    <p class="hint">作为「改尺寸 / 压缩 / 格式转换 / 切片」等工具新增图片时的初始设置，工具内可单独修改。</p>
+
     <div class="group-title">关于</div>
     <div class="row">
       <span class="label">设备标识</span>
@@ -48,6 +72,7 @@
 import { ref, onMounted } from 'vue';
 import { useSettingsStore } from '@renderer/stores/settings';
 import { selectDirectory } from '@renderer/utils/filePicker';
+import type { DefaultOutputFormat } from '@renderer/stores/settings';
 
 const settings = useSettingsStore();
 const identifier = ref('');
@@ -63,6 +88,12 @@ function onColor(e: Event) {
 }
 function onDark(e: Event) {
   settings.toggleDark(Boolean((e.target as HTMLInputElement).checked));
+}
+function onFormat(e: Event) {
+  settings.setDefaultOutput({ format: (e.target as HTMLInputElement).value as DefaultOutputFormat });
+}
+function onQuality(e: Event) {
+  settings.setDefaultOutput({ quality: Number((e.target as HTMLInputElement).value) });
 }
 async function pickDir() {
   const dir = await selectDirectory(settings.defaultSaveDirectory || undefined);
@@ -111,5 +142,17 @@ async function pickDir() {
 }
 .dir-field {
   flex: 1;
+}
+.out-select {
+  width: 220px;
+}
+.out-slider {
+  flex: 1;
+}
+.hint {
+  margin: calc(var(--design-unit) * 1px * 1.5) 0 0;
+  font-size: 12px;
+  color: var(--neutral-foreground-secondary-rest);
+  opacity: 0.8;
 }
 </style>

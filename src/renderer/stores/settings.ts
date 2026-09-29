@@ -1,11 +1,21 @@
 import { defineStore } from 'pinia';
 import CryptoJS from 'crypto-js';
 
+/** 默认输出格式：original 表示保持原图格式 */
+export type DefaultOutputFormat = 'original' | 'png' | 'jpeg' | 'webp';
+
+interface DefaultOutput {
+  format: DefaultOutputFormat;
+  quality: number;
+}
+
 interface SettingsState {
   themeColor: string;
   darkMode: boolean;
   defaultSaveDirectory: string;
   defaultExportParams: Record<string, Record<string, unknown>>;
+  /** 各工具新增「输出设置」时的默认值 */
+  defaultOutput: DefaultOutput;
   identifier: string;
   recentSaveDirs: string[];
 }
@@ -21,6 +31,7 @@ export const useSettingsStore = defineStore('settings', {
     darkMode: false,
     defaultSaveDirectory: '',
     defaultExportParams: {},
+    defaultOutput: { format: 'original', quality: 90 },
     identifier: '',
     recentSaveDirs: []
   }),
@@ -49,6 +60,9 @@ export const useSettingsStore = defineStore('settings', {
     },
     setToolParams(name: string, params: Record<string, unknown>) {
       this.defaultExportParams = { ...this.defaultExportParams, [name]: params };
+    },
+    setDefaultOutput(patch: Partial<DefaultOutput>) {
+      this.defaultOutput = { ...this.defaultOutput, ...patch };
     },
     ensureIdentifier(): string {
       if (!this.identifier) this.identifier = generateIdentifier();

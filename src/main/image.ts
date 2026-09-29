@@ -18,13 +18,17 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
       return { info: info as unknown as Record<string, unknown> };
     }
     case 'resize': {
-      const { width, height, fit = 'inside', background } = options;
+      const { width, height, fit = 'inside', background, format, quality } = options;
       const pipeline = sharp(inputPath).resize(width, height, { fit: fit as keyof sharp.FitEnum, background: background ?? '#ffffff' });
+      // 支持输出格式与质量（PNG 为无损，quality 无意义，仅在有损格式下传入）
+      const applyFormat = (p: sharp.Sharp) =>
+        format ? p.toFormat(format as keyof sharp.FormatEnum, quality ? { quality } : {}) : p.png();
       if (outputPath) {
-        await pipeline.toFile(outputPath);
+        const out = format ? applyFormat(pipeline) : pipeline;
+        await out.toFile(outputPath);
         return { outputPath };
       }
-      const buf = await pipeline.png().toBuffer();
+      const buf = await applyFormat(pipeline).toBuffer();
       return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer };
     }
     case 'convert': {
