@@ -3,6 +3,7 @@
     <ImagePicker
       :src="previewUrl"
       :name="inputName"
+      icon="file-zipper"
       hint="选择一张图片开始压缩"
       @pick="onPick"
     />

@@ -3,6 +3,7 @@
     <ImagePicker
       :src="previewUrl"
       :name="inputName"
+      icon="maximize"
       hint="选择一张图片开始调整尺寸"
       @pick="onPick"
     />

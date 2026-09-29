@@ -4,6 +4,7 @@
     <ImagePicker
       :src="previewUrl || inputSrc"
       :name="inputName"
+      icon="stamp"
       hint="选择一张图片开始添加水印"
       @pick="pickImage"
     />

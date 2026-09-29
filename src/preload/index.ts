@@ -6,7 +6,8 @@ const api: ImageToolkitApi = {
   app: {
     version: () => ipcRenderer.invoke('app:version'),
     appDataPath: () => ipcRenderer.invoke('app:appDataPath'),
-    relaunch: () => ipcRenderer.invoke('app:relaunch')
+    relaunch: () => ipcRenderer.invoke('app:relaunch'),
+    isPackaged: () => ipcRenderer.invoke('app:isPackaged')
   },
   dialog: {
     selectFile: (options) => ipcRenderer.invoke('dialog:selectFile', options),

@@ -3,6 +3,7 @@
     <ImagePicker
       :src="previewUrl"
       :name="inputName"
+      icon="repeat"
       hint="选择一张图片开始格式转换"
       @pick="onPick"
     />

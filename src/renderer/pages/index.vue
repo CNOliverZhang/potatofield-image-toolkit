@@ -1,46 +1,56 @@
 <template>
   <div class="home">
-    <div class="grid">
-      <div v-for="tool in tools" :key="tool.path" class="card" @click="go(tool.path)">
-        <font-awesome-icon :icon="tool.icon" class="card-icon" />
-        <div class="card-label">{{ tool.label }}</div>
-        <button
-          v-if="tool.batchRoute"
-          class="card-batch"
-          @click.stop="goBatch(tool)"
-        >
-          批量处理
-        </button>
+    <section v-for="group in groups" :key="group.name" class="group">
+      <div class="group-head">
+        <span class="group-bar"></span>
+        <h2 class="group-title">{{ group.name }}</h2>
+        <span class="group-count">{{ group.items.length }}</span>
       </div>
-    </div>
+
+      <div class="grid">
+        <div
+          v-for="tool in group.items"
+          :key="tool.path"
+          class="card"
+          @click="go(tool.path)"
+        >
+          <div class="card-head">
+            <span class="card-icon">
+              <font-awesome-icon :icon="['fas', tool.icon]" />
+            </span>
+            <span class="card-title">{{ tool.label }}</span>
+          </div>
+          <div class="card-desc">{{ tool.desc }}</div>
+          <div v-if="tool.batchRoute" class="card-foot">
+            <fluent-button
+              appearance="accent"
+              class="card-batch"
+              @click.stop="goBatch(tool)"
+            >
+              批量处理
+            </fluent-button>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
-
-interface ToolEntry {
-  path: string;
-  label: string;
-  icon: [string, string];
-  batchRoute?: string;
-}
+import { computed } from "vue";
+import { useRouter } from "vue-router";
+import { tools, toolGroups, type ToolEntry } from "@renderer/consts/tools";
 
 const router = useRouter();
 
-const tools: ToolEntry[] = [
-  { path: '/watermark', label: '加水印', icon: ['fas', 'stamp'], batchRoute: '/watermark/batch' },
-  { path: '/splicer', label: '长图拼接', icon: ['fas', 'bars-staggered'] },
-  { path: '/cropper', label: '裁剪', icon: ['fas', 'crop'], batchRoute: '/cropper/batch' },
-  { path: '/slicer', label: '分割', icon: ['fas', 'grip'] },
-  { path: '/text-to-image', label: '富文本编辑器', icon: ['fas', 'paragraph'] },
-  { path: '/resizer', label: '尺寸调整', icon: ['fas', 'arrows-alt'], batchRoute: '/resizer/batch' },
-  { path: '/compress', label: '压缩', icon: ['fas', 'compress'], batchRoute: '/compress/batch' },
-  { path: '/convert', label: '格式转换', icon: ['fas', 'repeat'], batchRoute: '/convert/batch' },
-  { path: '/exif', label: 'EXIF 读取', icon: ['fas', 'circle-info'] },
-  { path: '/palette', label: '色彩提取', icon: ['fas', 'palette'] },
-  { path: '/fonts', label: '字体管理', icon: ['fas', 'font'] }
-];
+const groups = computed(() =>
+  toolGroups
+    .map((name) => ({
+      name,
+      items: tools.filter((tool) => tool.group === name),
+    }))
+    .filter((group) => group.items.length > 0),
+);
 
 function go(path: string) {
   router.push(path);
@@ -50,59 +60,142 @@ function goBatch(tool: ToolEntry) {
   if (!tool.batchRoute) return;
   window.api.window.open({
     route: tool.batchRoute,
-    key: 'batch' + tool.path.replace(/\//g, '-'),
+    key: "batch" + tool.path.replace(/\//g, "-"),
     width: 1280,
     height: 820,
     minWidth: 1024,
-    minHeight: 680
+    minHeight: 680,
   });
 }
 </script>
 
 <style scoped>
 .home {
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
 }
+
+/* ── 分组 ── */
+.group {
+  margin-bottom: calc(var(--design-unit) * 4 * 1px);
+}
+.group:last-child {
+  margin-bottom: 0;
+}
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--design-unit) * 1.5 * 1px);
+  margin-bottom: calc(var(--design-unit) * 2 * 1px);
+}
+/* 左侧细条与侧边栏选中态的指示条同款，保持视觉语言一致 */
+.group-bar {
+  width: 3px;
+  height: 14px;
+  border-radius: calc(var(--design-unit) * 0.75 * 1px);
+  background: var(--accent-base-color);
+}
+.group-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neutral-foreground-secondary-rest);
+}
+.group-count {
+  font-size: 12px;
+  color: var(--neutral-foreground-secondary-rest);
+  opacity: 0.7;
+}
+
+/* ── 工具卡片（图标与名称同行，整体紧凑）── */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: calc(var(--design-unit) * 4 * 1px);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: calc(var(--design-unit) * 1.5 * 1px);
 }
 .card {
-  background: var(--neutral-layer-2);
+  display: flex;
+  flex-direction: column;
+  /* 定高：没有批量按钮的卡片不会塌陷，整行卡片高度一致 */
+  height: 132px;
+  overflow: hidden;
+  background: var(--app-card);
   border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--layer-corner-radius) * 1px + var(--design-unit) * 1px / 2);
-  padding: calc(var(--design-unit) * 5.5 * 1px) calc(var(--design-unit) * 3 * 1px);
-  text-align: center;
+  border-radius: calc(
+    var(--layer-corner-radius) * 1px + var(--design-unit) * 1px / 2
+  );
+  padding: calc(var(--design-unit) * 2 * 1px)
+    calc(var(--design-unit) * 2.5 * 1px);
   cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s;
-  position: relative;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
 }
 .card:hover {
-  transform: translateY(-3px);
-  border-color: var(--accent-base-color);
+  transform: translateY(-1px);
+  border-color: color-mix(
+    in srgb,
+    var(--accent-base-color) 55%,
+    var(--neutral-stroke-rest)
+  );
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.09);
 }
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--design-unit) * 1.5 * 1px);
+}
+/* 图标放进强调色圆角底块，比裸图标更有「应用磁贴」的层次 */
 .card-icon {
-  font-size: 26px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(
+    var(--control-corner-radius) * 1px + var(--design-unit) * 1px
+  );
+  background: color-mix(in srgb, var(--accent-base-color) 12%, transparent);
   color: var(--accent-base-color);
-  margin-bottom: calc(var(--design-unit) * 2.5 * 1px);
-}
-.card-label {
   font-size: 14px;
 }
-.card-batch {
-  margin-top: calc(var(--design-unit) * 2.5 * 1px);
-  border: 1px solid var(--neutral-stroke-rest);
-  background: transparent;
-  color: var(--accent-base-color);
-  font-size: var(--type-ramp-minus-2-font-size);
-  padding: calc(var(--design-unit) * 1 * 1px) calc(var(--design-unit) * 2.5 * 1px);
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
-  cursor: pointer;
-  transition: background 0.12s ease;
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.card-batch:hover {
-  background: var(--neutral-fill-hover);
+.card-desc {
+  margin: calc(var(--design-unit) * 4 * 1px) 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--neutral-foreground-secondary-rest);
+  /* 描述最多两行，避免个别卡片被撑高导致整行参差 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* 按钮贴底，卡片内上方留白由高度与描述间距决定，不会显得窒息 */
+.card-foot {
+  margin-top: auto;
+}
+.card-batch {
+  align-self: flex-start;
+}
+/*
+ * Fluent v2 的 fluent-button 只有 appearance，没有 size / shape 属性
+ * （v2 里 appearance="accent" 就是主按钮）。这里用 ::part(control) 覆盖
+ * 内部控件，实现 v3 的 size="small" + shape="circular" 等价效果。
+ */
+.card-batch::part(control) {
+  min-width: auto;
+  height: 24px;
+  padding: 0 calc(var(--design-unit) * 1.5 * 1px);
+  border-radius: 999px;
+  font-size: 12px;
 }
 </style>

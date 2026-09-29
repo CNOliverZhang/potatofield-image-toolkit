@@ -5,6 +5,7 @@
     <ImagePicker
       :src="imgSrc"
       :name="fileName"
+      icon="palette"
       hint="选择一张图片以提取主要色彩"
       @pick="selectImage"
       @load="onImgLoad"

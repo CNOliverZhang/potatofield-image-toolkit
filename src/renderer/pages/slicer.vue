@@ -3,7 +3,7 @@
     <ImagePicker
       :src="previewUrl"
       :name="inputName"
-      icon="table-cells"
+      icon="grip"
       hint="选择一张图片开始分割"
       @pick="onPick"
     />

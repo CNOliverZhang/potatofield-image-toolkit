@@ -3,7 +3,7 @@
     <ImagePicker
       :src="previewUrl || inputSrc"
       :name="inputName"
-      icon="file-image"
+      icon="circle-info"
       hint="选择一张图片读取 EXIF / 元数据"
       @pick="onPick"
     />

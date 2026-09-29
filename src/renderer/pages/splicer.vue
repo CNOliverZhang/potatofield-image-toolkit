@@ -3,7 +3,7 @@
     <!-- 左：拼接结果预览（长图可切换「适应 / 1:1」并滚动查看） -->
     <section class="preview-pane">
       <div v-if="!previewUrl" class="dropzone">
-        <font-awesome-icon icon="images" class="dz-icon" />
+        <font-awesome-icon icon="bars-staggered" class="dz-icon" />
         <p>导入 2 张以上图片后显示拼接预览</p>
       </div>
       <template v-else>

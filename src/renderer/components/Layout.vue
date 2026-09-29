@@ -40,6 +40,7 @@
 import { computed, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 import WindowControls from './WindowControls.vue';
+import { tools } from '@renderer/consts/tools';
 
 const route = useRoute();
 
@@ -51,19 +52,14 @@ watchEffect(() => {
   document.title = standalone.value && pageTitle.value ? `${pageTitle.value} - 洋芋田图像工具箱` : '洋芋田图像工具箱';
 });
 
+// 工具项与首页 / 图片输入区共用同一份清单，名称与图标不会不一致
 const nav = [
   { to: '/', label: '首页', icon: ['fas', 'house'] as [string, string] },
-  { to: '/watermark', label: '水印', icon: ['fas', 'stamp'] as [string, string] },
-  { to: '/splicer', label: '拼图', icon: ['fas', 'table-cells-large'] as [string, string] },
-  { to: '/cropper', label: '裁剪', icon: ['fas', 'crop-simple'] as [string, string] },
-  { to: '/slicer', label: '切片', icon: ['fas', 'border-all'] as [string, string] },
-  { to: '/text-to-image', label: '富文本编辑器', icon: ['fas', 'heading'] as [string, string] },
-  { to: '/resizer', label: '改尺寸', icon: ['fas', 'arrows-left-right-to-line'] as [string, string] },
-  { to: '/compress', label: '压缩', icon: ['fas', 'compress'] as [string, string] },
-  { to: '/convert', label: '格式转换', icon: ['fas', 'arrows-rotate'] as [string, string] },
-  { to: '/exif', label: 'EXIF 编辑', icon: ['fas', 'file-lines'] as [string, string] },
-  { to: '/palette', label: '色彩提取', icon: ['fas', 'palette'] as [string, string] },
-  { to: '/fonts', label: '字体管理', icon: ['fas', 'font'] as [string, string] }
+  ...tools.map((tool) => ({
+    to: tool.path,
+    label: tool.label,
+    icon: ['fas', tool.icon] as [string, string]
+  }))
 ];
 </script>
 
@@ -96,9 +92,8 @@ const nav = [
 .sidebar {
   width: 232px;
   flex-shrink: 0;
-  /* 与窗口背景同色（Windows 设置观感），右侧边框做分隔 */
+  /* 与窗口背景同色（Windows 设置观感），不再用右侧边框做分隔 */
   background: var(--app-bg);
-  border-right: 1px solid var(--neutral-stroke-rest);
   display: flex;
   flex-direction: column;
   padding: calc(var(--design-unit) * 2 * 1px);
@@ -165,7 +160,6 @@ const nav = [
   font-size: 15px;
 }
 .sidebar-footer {
-  border-top: 1px solid var(--neutral-stroke-rest);
   padding-top: calc(var(--design-unit) * 1.5 * 1px);
   margin-top: calc(var(--design-unit) * 1.5 * 1px);
 }

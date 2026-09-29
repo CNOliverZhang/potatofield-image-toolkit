@@ -20,6 +20,7 @@ import type {
 
 export function registerIpc(): void {
   ipcMain.handle('app:version', () => app.getVersion());
+  ipcMain.handle('app:isPackaged', () => app.isPackaged);
   ipcMain.handle('app:appDataPath', () => app.getPath('userData'));
 
   ipcMain.handle('dialog:selectFile', async (_e, options: SelectFileOptions): Promise<string[] | null> => {

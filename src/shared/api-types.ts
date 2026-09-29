@@ -10,6 +10,8 @@ export interface ImageToolkitApi {
     version: () => Promise<string>;
     appDataPath: () => Promise<string>;
     relaunch: () => Promise<void>;
+    /** 是否为打包后运行（开发模式下 electron-updater 不会真正检查更新） */
+    isPackaged: () => Promise<boolean>;
   };
   dialog: {
     selectFile: (options: SelectFileOptions) => Promise<string[] | null>;
