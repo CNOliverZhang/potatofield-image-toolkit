@@ -1,8 +1,31 @@
 import { app, BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { loadZoomFactor, saveZoomFactor } from './system';
 
 const windows = new Map<string, BrowserWindow>();
+
+/** 套用已保存的界面缩放；导航完成后缩放可能被重置，故补一次 */
+function applyZoom(win: BrowserWindow): void {
+  const apply = (): void => {
+    if (!win.isDestroyed()) win.webContents.setZoomFactor(loadZoomFactor());
+  };
+  apply();
+  win.webContents.on('did-finish-load', apply);
+}
+
+export function getZoomFactor(): number {
+  return loadZoomFactor();
+}
+
+/** 修改界面缩放：持久化后立即作用到所有已打开的窗口 */
+export function setZoomFactor(factor: number): number {
+  saveZoomFactor(factor);
+  for (const win of windows.values()) {
+    if (!win.isDestroyed()) win.webContents.setZoomFactor(factor);
+  }
+  return factor;
+}
 
 // 开发模式 electron-vite 将 preload 编译为 index.mjs，生产构建为 index.js，两者都要兼容
 function resolvePreload(): string {
@@ -70,6 +93,8 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'), { hash: route });
   }
+
+  applyZoom(win);
 
   win.once('ready-to-show', () => win.show());
 

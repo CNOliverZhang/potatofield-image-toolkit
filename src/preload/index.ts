@@ -7,7 +7,11 @@ const api: ImageToolkitApi = {
     version: () => ipcRenderer.invoke('app:version'),
     appDataPath: () => ipcRenderer.invoke('app:appDataPath'),
     relaunch: () => ipcRenderer.invoke('app:relaunch'),
-    isPackaged: () => ipcRenderer.invoke('app:isPackaged')
+    isPackaged: () => ipcRenderer.invoke('app:isPackaged'),
+    getOpenAtLogin: () => ipcRenderer.invoke('app:openAtLogin'),
+    setOpenAtLogin: (open: boolean) => ipcRenderer.invoke('app:setOpenAtLogin', open),
+    getZoomFactor: () => ipcRenderer.invoke('app:zoomFactor'),
+    setZoomFactor: (factor: number) => ipcRenderer.invoke('app:setZoomFactor', factor)
   },
   dialog: {
     selectFile: (options) => ipcRenderer.invoke('dialog:selectFile', options),

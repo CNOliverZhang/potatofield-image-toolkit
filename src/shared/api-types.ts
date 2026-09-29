@@ -12,6 +12,12 @@ export interface ImageToolkitApi {
     relaunch: () => Promise<void>;
     /** 是否为打包后运行（开发模式下 electron-updater 不会真正检查更新） */
     isPackaged: () => Promise<boolean>;
+    /** 是否随系统开机启动 */
+    getOpenAtLogin: () => Promise<boolean>;
+    setOpenAtLogin: (open: boolean) => Promise<void>;
+    /** 界面缩放比例（1 = 100%） */
+    getZoomFactor: () => Promise<number>;
+    setZoomFactor: (factor: number) => Promise<number>;
   };
   dialog: {
     selectFile: (options: SelectFileOptions) => Promise<string[] | null>;

@@ -1,6 +1,7 @@
 import { ipcMain, dialog, shell, app, BrowserWindow } from 'electron';
 import { processImage } from './image';
-import { openWindow } from './windows';
+import { openWindow, getZoomFactor, setZoomFactor } from './windows';
+import { getOpenAtLogin, setOpenAtLogin } from './system';
 import {
   scanDirectory,
   readFileBase64,
@@ -21,6 +22,10 @@ import type {
 export function registerIpc(): void {
   ipcMain.handle('app:version', () => app.getVersion());
   ipcMain.handle('app:isPackaged', () => app.isPackaged);
+  ipcMain.handle('app:openAtLogin', () => getOpenAtLogin());
+  ipcMain.handle('app:setOpenAtLogin', (_e, open: boolean) => setOpenAtLogin(open));
+  ipcMain.handle('app:zoomFactor', () => getZoomFactor());
+  ipcMain.handle('app:setZoomFactor', (_e, factor: number) => setZoomFactor(Number(factor)));
   ipcMain.handle('app:appDataPath', () => app.getPath('userData'));
 
   ipcMain.handle('dialog:selectFile', async (_e, options: SelectFileOptions): Promise<string[] | null> => {
