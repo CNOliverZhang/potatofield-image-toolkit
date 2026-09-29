@@ -46,28 +46,47 @@
     <!-- 右：图片列表（可调序）+ 拼接设置 -->
     <aside class="controls-pane">
       <div class="controls-body">
-        <div class="group">
-          <span class="group-title">图片（{{ files.length }}，按列表顺序拼接）</span>
-          <div class="import-actions">
+        <!-- 图片列表：撑满剩余高度，条目过多时面板内部滚动 -->
+        <div class="file-panel">
+          <div class="panel-head">
+            <span class="panel-title">拼接图片</span>
+            <span class="panel-count">{{ files.length }}</span>
+          </div>
+          <div class="panel-actions">
             <fluent-button appearance="accent" @click="chooseFiles">选择文件</fluent-button>
             <fluent-button appearance="neutral" @click="scanFolder">扫描文件夹</fluent-button>
           </div>
-          <div class="file-list">
+          <VueDraggable
+            v-model="files"
+            class="file-list"
+            handle=".grip"
+            :animation="220"
+            easing="cubic-bezier(0.22, 1, 0.36, 1)"
+            ghost-class="is-ghost"
+            chosen-class="is-chosen"
+            drag-class="is-dragging"
+            :force-fallback="true"
+            :fallback-on-body="true"
+            :fallback-tolerance="3"
+          >
             <div v-if="!files.length" class="list-empty">尚未导入图片</div>
-            <div
-              v-for="(f, i) in files"
-              :key="f.path"
-              class="file-item"
-              :class="{ dragging: dragIndex === i, 'drop-target': dropIndex === i }"
-              draggable="true"
-              @dragstart="onDragStart(i)"
-              @dragover.prevent="onDragOver(i)"
-              @dragleave="dropIndex = -1"
-              @drop.prevent="onDrop(i)"
-              @dragend="onDragEnd"
-            >
-              <span class="grip" title="拖动调整顺序">⋮⋮</span>
+            <div v-for="(f, i) in files" :key="f.path" class="file-item">
+              <!-- 拖拽手柄：内联 SVG，六点 grip，fill 继承手柄颜色 -->
+              <span class="grip" title="按住拖动调整顺序">
+                <svg class="grip-icon" width="10" height="16" viewBox="0 0 10 16" aria-hidden="true">
+                  <circle cx="2.5" cy="3" r="1.3" />
+                  <circle cx="7.5" cy="3" r="1.3" />
+                  <circle cx="2.5" cy="8" r="1.3" />
+                  <circle cx="7.5" cy="8" r="1.3" />
+                  <circle cx="2.5" cy="13" r="1.3" />
+                  <circle cx="7.5" cy="13" r="1.3" />
+                </svg>
+              </span>
               <span class="idx">{{ i + 1 }}</span>
+              <span class="thumb">
+                <img v-if="thumbs[f.path]" :src="thumbs[f.path]" alt="" draggable="false" />
+                <font-awesome-icon v-else icon="images" class="thumb-ph" />
+              </span>
               <span class="name" :title="f.path">{{ f.path.split(/[\\/]/).pop() }}</span>
               <button class="mini" :disabled="i === 0" title="上移" @click="move(i, -1)">↑</button>
               <button class="mini" :disabled="i === files.length - 1" title="下移" @click="move(i, 1)">
@@ -75,8 +94,11 @@
               </button>
               <button class="mini danger" title="移除" @click="remove(i)">×</button>
             </div>
+          </VueDraggable>
+          <div v-if="files.length" class="panel-foot">
+            <span class="foot-text">按住左侧手柄拖动可调整顺序</span>
+            <button class="link-btn" @click="clearAll">清空</button>
           </div>
-          <p class="hint">拖动条目可调整拼接顺序</p>
         </div>
 
         <div class="group">
@@ -125,6 +147,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch, onBeforeUnmount, nextTick } from 'vue';
+import { VueDraggable } from 'vue-draggable-plus';
 import { selectImageFiles, selectDirectory } from '@renderer/utils/filePicker';
 import { scanImageDirectory, type BatchItem } from '@renderer/utils/directoryScanner';
 import { relativePath } from '@renderer/utils/fileIO';
@@ -142,9 +165,8 @@ const margin = ref(20);
 const useBg = ref(false);
 const bgColor = ref('#ffffff');
 
-/** 拖拽排序状态 */
-const dragIndex = ref(-1);
-const dropIndex = ref(-1);
+/** 列表项缩略图：path -> blob url */
+const thumbs = ref<Record<string, string>>({});
 
 const previewUrl = ref('');
 const imgEl = ref<HTMLImageElement | null>(null);
@@ -289,30 +311,42 @@ function move(i: number, delta: number) {
   files.value = next;
 }
 
-/** 拖拽排序 */
-function onDragStart(i: number) {
-  dragIndex.value = i;
+/** 为列表项生成缩略图（主进程 sharp 缩放，避免大图在列表里整张解码） */
+async function ensureThumbs(list: { path: string }[]): Promise<void> {
+  for (const it of list) {
+    if (thumbs.value[it.path]) continue;
+    try {
+      const res = await window.api.image.process({
+        op: 'resize',
+        inputPath: it.path,
+        options: { width: 96, fit: 'inside' }
+      });
+      if (res.buffer) {
+        thumbs.value[it.path] = URL.createObjectURL(new Blob([res.buffer], { type: 'image/png' }));
+      }
+    } catch {
+      /* 缩略图失败不影响列表与拼接 */
+    }
+  }
 }
-function onDragOver(i: number) {
-  if (dragIndex.value >= 0 && i !== dragIndex.value) dropIndex.value = i;
-}
-function onDrop(i: number) {
-  const from = dragIndex.value;
-  if (from < 0 || from === i) return;
-  const next = files.value.slice();
-  const [item] = next.splice(from, 1);
-  next.splice(i, 0, item);
-  files.value = next;
-  dragIndex.value = -1;
-  dropIndex.value = -1;
-}
-function onDragEnd() {
-  dragIndex.value = -1;
-  dropIndex.value = -1;
+
+/** 清理已不在列表中的缩略图 */
+function pruneThumbs(list: { path: string }[]): void {
+  const keep = new Set(list.map((f) => f.path));
+  const next: Record<string, string> = {};
+  for (const [p, url] of Object.entries(thumbs.value)) {
+    if (keep.has(p)) next[p] = url;
+    else URL.revokeObjectURL(url);
+  }
+  thumbs.value = next;
 }
 
 function remove(i: number) {
   files.value = files.value.filter((_, idx) => idx !== i);
+}
+
+function clearAll() {
+  files.value = [];
 }
 
 function onColor(e: Event) {
@@ -373,6 +407,15 @@ watch(previewUrl, async () => {
 });
 
 watch(
+  files,
+  (list) => {
+    pruneThumbs(list);
+    ensureThumbs(list);
+  },
+  { deep: true }
+);
+
+watch(
   [files, direction, useMargin, margin, useBg, bgColor],
   () => {
     // 供保存流程推导默认文件名/目录
@@ -403,6 +446,7 @@ async function run() {
 
 onBeforeUnmount(() => {
   ro?.disconnect();
+  for (const url of Object.values(thumbs.value)) URL.revokeObjectURL(url);
   if (previewTimer) window.clearTimeout(previewTimer);
   revoke(previewUrl.value);
   revoke(lastUrl);
@@ -433,37 +477,161 @@ onBeforeUnmount(() => {
   text-align: center;
   padding: calc(var(--design-unit) * 4 * 1px) 0;
 }
+/* 控制区整体不滚动：列表面板撑起剩余高度，设置区固定 */
+.controls-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* 图片列表面板：与批量工具左侧导入面板同款容器 */
+.file-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: calc(var(--design-unit) * 1px * 5.5);
+  background: var(--neutral-layer-2);
+  border: 1px solid var(--neutral-stroke-rest);
+  border-radius: calc(var(--layer-corner-radius) * 1px);
+  padding: calc(var(--design-unit) * 1px * 3);
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: calc(var(--design-unit) * 1px * 2.5);
+}
+.panel-title {
+  font-size: var(--type-ramp-base-font-size);
+  font-weight: 600;
+}
+.panel-count {
+  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--neutral-foreground-secondary-rest);
+  background: var(--neutral-fill-hover);
+  border-radius: calc(var(--control-corner-radius) * 1px);
+  padding: calc(var(--design-unit) * 1px * 0.5) calc(var(--design-unit) * 1px * 2);
+}
+.panel-actions {
+  display: flex;
+  gap: calc(var(--design-unit) * 1px * 2);
+  margin-bottom: calc(var(--design-unit) * 1px * 3);
+}
+.panel-actions fluent-button {
+  flex: 1;
+}
+.file-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--design-unit) * 1px * 1.5);
+  padding-right: calc(var(--design-unit) * 1px);
+}
+.list-empty {
+  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--type-ramp-minus-1-font-size);
+  text-align: center;
+  padding: calc(var(--design-unit) * 1px * 6) 0;
+}
+.panel-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--design-unit) * 1px * 2);
+  margin-top: calc(var(--design-unit) * 1px * 2.5);
+  padding-top: calc(var(--design-unit) * 1px * 2.5);
+  border-top: 1px solid var(--neutral-stroke-rest);
+}
+.foot-text {
+  font-size: 11px;
+  color: var(--neutral-foreground-secondary-rest);
+}
+.link-btn {
+  border: 1px solid var(--neutral-stroke-rest);
+  background: transparent;
+  color: var(--accent-base-color);
+  padding: calc(var(--design-unit) * 1px * 1) calc(var(--design-unit) * 1px * 2.5);
+  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
+  cursor: pointer;
+  font-size: var(--type-ramp-minus-1-font-size);
+}
+.link-btn:hover {
+  background: var(--neutral-fill-hover);
+}
+
 .file-item {
   display: flex;
   align-items: center;
-  gap: calc(var(--design-unit) * 1 * 1px);
+  gap: calc(var(--design-unit) * 1.5 * 1px);
+  min-height: calc(var(--design-unit) * 13 * 1px);
   padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 2 * 1px);
   border: 1px solid var(--neutral-stroke-rest);
   border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
   background: var(--neutral-layer-1);
-  cursor: grab;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
-/* 拖拽排序的视觉反馈 */
-.file-item.dragging {
-  opacity: 0.4;
+.file-item:hover {
+  border-color: var(--accent-base-color);
+}
+/* 拖拽中的状态（vue-draggable-plus / SortableJS）：
+   ghost=原位置占位，chosen=选中，dragging=跟随鼠标的元素 */
+.file-item.is-ghost {
+  opacity: 0.45;
+  border-style: dashed;
+  background: var(--neutral-fill-hover);
+}
+.file-item.is-chosen {
   cursor: grabbing;
 }
-.file-item.drop-target {
+.file-item.is-dragging {
+  box-shadow: 0 calc(var(--design-unit) * 1px) calc(var(--design-unit) * 4 * 1px) rgba(0, 0, 0, 0.28);
+  transform: scale(1.02);
   border-color: var(--accent-base-color);
-  box-shadow: inset 0 0 0 1px var(--accent-base-color);
 }
 .grip {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 calc(var(--design-unit) * 0.5 * 1px);
   color: var(--neutral-foreground-secondary-rest);
-  font-size: 12px;
-  letter-spacing: -2px;
   cursor: grab;
 }
-.hint {
-  margin-top: calc(var(--design-unit) * 1.5 * 1px);
-  font-size: 11px;
+.grip-icon {
+  display: block;
+  width: 10px;
+  height: 16px;
+  fill: currentColor;
+  pointer-events: none; /* 保证拖拽事件落在手柄容器上 */
+}
+.grip:hover {
+  color: var(--neutral-foreground-rest);
+}
+.grip:active {
+  cursor: grabbing;
+}
+.thumb {
+  flex-shrink: 0;
+  width: calc(var(--design-unit) * 10 * 1px);
+  height: calc(var(--design-unit) * 10 * 1px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: calc(var(--control-corner-radius) * 1px);
+  background: var(--neutral-fill-hover);
+}
+.thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.thumb-ph {
   color: var(--neutral-foreground-secondary-rest);
-  opacity: 0.8;
+  opacity: 0.6;
 }
 .color {
   width: 40px;
