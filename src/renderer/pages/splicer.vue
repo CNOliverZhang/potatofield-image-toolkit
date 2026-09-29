@@ -134,9 +134,16 @@
           </div>
         </div>
 
+        <p v-if="overLimit" class="warn">{{ limitHint }}</p>
+
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="files.length < 2 || processing" @click="run">
+          <fluent-button
+            appearance="accent"
+            class="save-btn"
+            :disabled="files.length < 2 || processing || overLimit"
+            @click="run"
+          >
             {{ processing ? '处理中…' : '开始拼接' }}
           </fluent-button>
         </div>
@@ -184,7 +191,22 @@ let previewTimer: number | undefined;
 let lastUrl = '';
 let ro: ResizeObserver | undefined;
 
-const resultSize = computed(() => (natural.w && natural.h ? `拼接结果 ${natural.w} × ${natural.h}` : '拼接预览'));
+/** 真实输出尺寸（预览图被等比缩小，故由主进程返回） */
+const resultW = ref(0);
+const resultH = ref(0);
+
+const resultSize = computed(() => (resultW.value && resultH.value ? `拼接结果 ${resultW.value} × ${resultH.value}` : '拼接预览'));
+
+/** libvips 像素上限：超过后无法输出，提前提示 */
+const PIXEL_LIMIT = 268402689;
+const overLimit = computed(() => resultW.value * resultH.value > PIXEL_LIMIT);
+const limitHint = computed(() =>
+  overLimit.value
+    ? `输出约 ${Math.round((resultW.value * resultH.value) / 1e6)} 百万像素，超过上限 ${Math.floor(
+        PIXEL_LIMIT / 1e6
+      )} 百万像素，请减少图片数量或缩小图片`
+    : ''
+);
 
 /** contain 缩放：完整显示 */
 const fitScale = computed(() => {
@@ -292,13 +314,17 @@ async function scanFolder() {
   files.value = dedupe([...files.value, ...paths.map((p) => ({ path: p, rel: relativePath(d, p) }))]);
 }
 
-/** 预览与导出共用的拼接参数 */
-function appendExtra() {
+/** 预览长边上限：避免几十张长图预览时生成/传输 GB 级图片（主进程还会限制总像素） */
+const PREVIEW_MAX_DIMENSION = 10000;
+
+/** 预览与导出共用的拼接参数（预览会等比缩小，导出走全尺寸） */
+function appendExtra(preview = false) {
   return {
     images: files.value.map((f) => f.path),
     direction: direction.value,
     margin: useMargin.value ? margin.value : 0,
-    background: useBg.value ? bgColor.value : ''
+    background: useBg.value ? bgColor.value : '',
+    ...(preview ? { maxDimension: PREVIEW_MAX_DIMENSION } : {})
   };
 }
 
@@ -376,8 +402,11 @@ async function refresh() {
     const res = await window.api.image.process({
       op: 'append',
       inputPath: files.value[0].path,
-      extra: appendExtra()
+      extra: appendExtra(true)
     });
+    // 预览是等比缩小的，这里显示真实输出尺寸
+    resultW.value = res.width ?? 0;
+    resultH.value = res.height ?? 0;
     if (res.buffer) {
       const url = URL.createObjectURL(new Blob([res.buffer], { type: 'image/png' }));
       revoke(lastUrl);
@@ -645,6 +674,17 @@ onBeforeUnmount(() => {
 .color-val {
   font-size: 11px;
   color: var(--neutral-foreground-secondary-rest);
+}
+/* 输出尺寸超限预警 */
+.warn {
+  flex-shrink: 0;
+  margin-bottom: calc(var(--design-unit) * 2 * 1px);
+  padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 2 * 1px);
+  border: 1px solid var(--accent-base-color);
+  border-radius: calc(var(--control-corner-radius) * 1px);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--accent-base-color);
 }
 .idx {
   flex-shrink: 0;

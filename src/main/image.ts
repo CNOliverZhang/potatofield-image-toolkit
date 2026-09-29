@@ -111,50 +111,88 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
       // 对齐：横向拼接统一高度、纵向拼接统一宽度（取各图最大值，只放大不缩小，不损失原图细节）
       const targetH = Math.max(...originH);
       const targetW = Math.max(...originW);
+      // 对齐后的各图尺寸（未缩放，即真实输出尺寸）
+      const full = images.map((_, i) => {
+        const w = originW[i];
+        const h = originH[i];
+        if (direction === 'horizontal') {
+          return { w: h > 0 ? Math.round((w * targetH) / h) : w, h: targetH };
+        }
+        return { w: targetW, h: w > 0 ? Math.round((h * targetW) / w) : h };
+      });
+      const fullW =
+        direction === 'horizontal'
+          ? sum(full.map((f) => f.w)) + margin * (n - 1) + margin * 2
+          : Math.max(...full.map((f) => f.w)) + margin * 2;
+      const fullH =
+        direction === 'vertical'
+          ? sum(full.map((f) => f.h)) + margin * (n - 1) + margin * 2
+          : Math.max(...full.map((f) => f.h)) + margin * 2;
+
+      // 预览缩放：等比缩小整张拼接结果（避免生成/传输 GB 级预览图）。
+      // 双约束：长边上限 + 总像素上限，兼顾极端长图（否则长边受限后短边会被压到几十像素）
+      const maxDim = Math.max(0, Math.round(Number(extra.maxDimension ?? options.maxDimension ?? 0)) || 0);
+      const k = maxDim
+        ? Math.min(
+            1,
+            maxDim / Math.max(fullW, fullH),
+            Math.sqrt(PREVIEW_MAX_PIXELS / Math.max(1, fullW * fullH))
+          )
+        : 1;
+      const scaled = full.map((f) => ({
+        w: Math.max(1, Math.round(f.w * k)),
+        h: Math.max(1, Math.round(f.h * k))
+      }));
+      const m = Math.round(margin * k);
+      const outW =
+        direction === 'horizontal'
+          ? sum(scaled.map((s) => s.w)) + m * (n - 1) + m * 2
+          : Math.max(...scaled.map((s) => s.w)) + m * 2;
+      const outH =
+        direction === 'vertical'
+          ? sum(scaled.map((s) => s.h)) + m * (n - 1) + m * 2
+          : Math.max(...scaled.map((s) => s.h)) + m * 2;
+
+      // 超限会直接失败，这里给中文提示
+      if (outW * outH > PIXEL_LIMIT) {
+        throw new Error(
+          `拼接结果过大：${fullW} × ${fullH}（约 ${Math.round((fullW * fullH) / 1e6)} 百万像素），` +
+            `超过 ${Math.floor(PIXEL_LIMIT / 1e6)} 百万像素的上限。请减少图片数量或先缩小图片尺寸。`
+        );
+      }
+
+      // 一次 resize 同时完成「对齐」与「预览缩放」；尺寸未变时直接用原文件，省一次编解码
       const parts = await Promise.all(
         images.map(async (p, i): Promise<{ input: string | Buffer; width: number; height: number }> => {
-          const w = originW[i];
-          const h = originH[i];
-          if (direction === 'horizontal' && h > 0 && h !== targetH) {
-            const buf = await sharp(p).resize({ height: targetH }).png().toBuffer();
-            const m = await sharp(buf).metadata();
-            return { input: buf, width: m.width ?? Math.round((w * targetH) / h), height: m.height ?? targetH };
-          }
-          if (direction === 'vertical' && w > 0 && w !== targetW) {
-            const buf = await sharp(p).resize({ width: targetW }).png().toBuffer();
-            const m = await sharp(buf).metadata();
-            return { input: buf, width: m.width ?? targetW, height: m.height ?? Math.round((h * targetW) / w) };
-          }
-          return { input: p, width: w, height: h };
+          const { w, h } = scaled[i];
+          if (originW[i] === w && originH[i] === h) return { input: p, width: w, height: h };
+          const buf = await sharp(p).resize({ width: w, height: h, fit: 'fill' }).png().toBuffer();
+          return { input: buf, width: w, height: h };
         })
       );
-      const widths = parts.map((p) => p.width);
-      const heights = parts.map((p) => p.height);
-      const maxW = Math.max(...widths);
-      const maxH = Math.max(...heights);
-      const totalW =
-        direction === 'horizontal' ? sum(widths) + margin * (n - 1) + margin * 2 : maxW + margin * 2;
-      const totalH =
-        direction === 'vertical' ? sum(heights) + margin * (n - 1) + margin * 2 : maxH + margin * 2;
       const composites = parts.map((p, i) => ({
         input: p.input,
-        left: direction === 'horizontal' ? margin + sum(widths.slice(0, i)) + margin * i : margin,
-        top: direction === 'vertical' ? margin + sum(heights.slice(0, i)) + margin * i : margin
+        left: direction === 'horizontal' ? m + sum(scaled.slice(0, i).map((s) => s.w)) + m * i : m,
+        top: direction === 'vertical' ? m + sum(scaled.slice(0, i).map((s) => s.h)) + m * i : m
       }));
       const pipeline = sharp({
         create: {
-          width: Math.max(1, totalW),
-          height: Math.max(1, totalH),
+          width: Math.max(1, outW),
+          height: Math.max(1, outH),
           channels: 4,
           background: bg ?? { r: 255, g: 255, b: 255, alpha: 0 }
         }
       }).composite(composites).png();
       if (outputPath) {
         await pipeline.toFile(outputPath);
-        return { outputPath };
+        return { outputPath, width: fullW, height: fullH };
       }
       const buf = await pipeline.toBuffer();
-      return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer };
+      return {
+        buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer,
+        width: fullW,
+        height: fullH
+      };
     }
     case 'watermark': {
       const composites = await buildWatermarkComposites(inputPath, extra);
@@ -325,6 +363,11 @@ async function prepareImageWatermark(
   const out = await wm.png().toBuffer({ resolveWithObject: true });
   return { buf: out.data, width: out.info.width, height: out.info.height };
 }
+
+/** libvips 默认像素上限（约 268MP），超过后无法输出 */
+const PIXEL_LIMIT = 268402689;
+/** 预览图的最大像素数（仅预览缩放时生效）：兼顾清晰度与 IPC 传输体积 */
+const PREVIEW_MAX_PIXELS = 6_000_000;
 
 /** 解析 #rgb / #rrggbb / rgb(...) 颜色；不支持时返回 null（按透明处理） */
 function parseColor(input?: string): { r: number; g: number; b: number; alpha: number } | null {

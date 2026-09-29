@@ -12,6 +12,10 @@ export interface ImageProcessOptions {
   top?: number;
   /** 拼接方向（op='append'） */
   dir?: 'vertical' | 'horizontal';
+  /** 拼接边距（op='append'）：四周留白，图与图之间同宽 */
+  margin?: number;
+  /** 结果长边上限（op='append'）：用于预览时等比缩小，避免生成超大图 */
+  maxDimension?: number;
 }
 
 export type ImageProcessOp =
@@ -35,6 +39,9 @@ export interface ImageProcessResult {
   outputPath?: string;
   info?: Record<string, unknown>;
   buffer?: ArrayBuffer;
+  /** 结果图像的真实尺寸（拼接预览被等比缩小时，用于显示实际输出尺寸） */
+  width?: number;
+  height?: number;
   /** 读取元数据时返回的完整元数据（op='metadata'） */
   tags?: Record<string, unknown>;
 }
