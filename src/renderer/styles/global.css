@@ -10,6 +10,16 @@
   /* 悬浮卡片与窗口边缘之间的透明余量，用于显示边框与外阴影
      （需 ≥ 阴影在单侧的最大延伸，否则阴影会被窗口矩形边界裁切） */
   --window-pad: 28px;
+  /* 卡片自身的圆角与外阴影：Windows 下用来模拟 Win11 悬浮窗口，
+     macOS 窗口本身已提供圆角和阴影，需要关掉（见下方 mac 覆盖） */
+  --shell-radius: calc(var(--layer-corner-radius) * 1px + var(--design-unit) * 1px);
+  --shell-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.2);
+  /* 非 Windows 平台由系统提供窗口控制按钮（macOS 红绿灯），顶部需额外让位，
+     避免侧边栏的 Logo 与标题和系统按钮重叠 */
+  --titlebar-inset: 0px;
+  /* 内容区上边距：Windows 需让出右上角自绘的控制栏（32px + 余量）；
+     非 Windows 没有自绘按钮，与下边距保持一致即可 */
+  --content-pad-top: 40px;
 
   /* 应用主背景与卡片背景（Windows 设置 / PowerToys 非活跃态配色）：
      浅色：背景 = layer-2（#f3f3f3 浅灰），卡片 = fill-layer-rest（白）
@@ -51,13 +61,23 @@ body {
   user-select: none;
 }
 
-/* 最大化时取消内边距，卡片铺满整个窗口，并隐藏阴影 / 圆角 */
-html[data-maximized='true'] body {
-  padding: 0;
+/* macOS：窗口本身已提供圆角、阴影和红绿灯，卡片铺满窗口即可，
+   否则「系统窗口圆角 + 卡片边框阴影」会形成双层边框，
+   而透明余量还会透出后面的窗口（表现为边缘出现莫名的色块）。
+   Windows / Linux 仍使用无边框 + 右上角自绘按钮的悬浮卡片设计 */
+html[data-platform='mac'] {
+  --window-pad: 0px;
+  --shell-radius: 0px;
+  --shell-shadow: none;
+  --titlebar-inset: 28px;
+  --content-pad-top: 28px;
 }
-html[data-maximized='true'] .app-shell {
-  border-radius: 0;
-  box-shadow: none;
+
+/* 最大化时取消内边距，卡片铺满整个窗口，并隐藏阴影 / 圆角 */
+html[data-maximized='true'] {
+  --window-pad: 0px;
+  --shell-radius: 0px;
+  --shell-shadow: none;
 }
 
 #app {

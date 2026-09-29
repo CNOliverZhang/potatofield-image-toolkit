@@ -14,6 +14,15 @@ import './styles/global.css';
 
 library.add(fas, far);
 
+// macOS 与 Windows 的窗口观感差异较大（macOS 自带圆角、阴影与红绿灯，
+// Windows 需要靠透明余量 + 自绘卡片边框阴影模拟），
+// 这里提前在 <html> 上标记平台，供 CSS 做差异化处理
+const platform = navigator.platform.toLowerCase();
+document.documentElement.setAttribute(
+  'data-platform',
+  platform.includes('mac') ? 'mac' : platform.includes('win') ? 'win' : 'other',
+);
+
 const app = createApp(App);
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);

@@ -73,14 +73,15 @@ const nav = [
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-radius: calc(var(--layer-corner-radius) * 1px + var(--design-unit) * 1px);
+  /* 圆角与阴影走变量：Windows 模拟 Win11 悬浮窗口，macOS 由窗口自身提供（见 global.css） */
+  border-radius: var(--shell-radius);
   overflow: hidden;
   /* Mica 风格背景（纯 CSS 渐变）—— 仅在卡片内部绘制，
      窗口边缘的透明余量由 body padding 提供 */
   background: var(--app-bg);
   /* 对称柔和阴影：单侧最大延伸 = 6+20 = 26px < --window-pad(28px)，
      四向阴影均完整可见，不再被窗口边界裁切 */
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shell-shadow);
 }
 /* 注意：不要写 `.app-shell > *` 之类的通配层级规则 ——
    WindowControls 是靠 absolute 定位的标题栏，被覆盖成 relative 会进入文档流并撑出横向滚动 */
@@ -106,7 +107,10 @@ const nav = [
   display: flex;
   align-items: center;
   gap: calc(var(--design-unit) * 2.5 * 1px);
-  padding: calc(var(--design-unit) * 3 * 1px) calc(var(--design-unit) * 2.5 * 1px) calc(var(--design-unit) * 4 * 1px);
+  /* 上边距额外加上 --titlebar-inset：macOS 红绿灯会压在窗口左上角，
+     不给 Logo 与标题让位就会被遮住 */
+  padding: calc(var(--design-unit) * 3 * 1px + var(--titlebar-inset))
+    calc(var(--design-unit) * 2.5 * 1px) calc(var(--design-unit) * 4 * 1px);
   font-size: 15px;
   font-weight: 600;
 }
@@ -171,8 +175,8 @@ const nav = [
   flex: 1;
   min-width: 0;
   overflow: auto;
-  /* 顶部留 40px 让出悬浮的窗口控制栏（32px 按钮 + 余量） */
-  padding: 40px var(--content-pad-x) 28px;
+  /* 顶部让出悬浮的窗口控制栏；非 Windows 没有自绘按钮，用 --content-pad-top 与下边距对齐 */
+  padding: var(--content-pad-top) var(--content-pad-x) 28px;
 }
 /* 独立窗口：无侧边栏，内容区四周留白略收紧 */
 .content.standalone {

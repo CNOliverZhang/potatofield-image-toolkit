@@ -1,10 +1,15 @@
 <template>
-  <div class="window-controls" :style="{ left: `${inset}px` }">
+  <div
+    class="window-controls"
+    :class="{ native: !showCustomControls }"
+    :style="{ left: showCustomControls ? `${inset}px` : '0px' }"
+  >
     <div v-if="title" class="win-title">
       <img class="win-mark" src="@renderer/assets/logo.png" alt="logo" />
       <span>{{ title }}</span>
     </div>
-    <div class="caption">
+    <!-- 自绘的窗口控制按钮：Windows / Linux 使用；macOS 用系统红绿灯 -->
+    <div v-if="showCustomControls" class="caption">
       <button class="cap-btn" title="最小化" @click="minimize">
         <font-awesome-icon :icon="['fas', 'window-minimize']" />
       </button>
@@ -20,12 +25,16 @@
 
 <script setup lang="ts">
 import { useWindowState } from '../composables/useWindowState';
+import { getPlatform } from '../composables/useOnlineApi';
 
 // inset：控制栏左缘偏移（主窗口需避开 232px 宽的侧边栏，独立窗口为 0）
 // title：仅独立窗口显示，替代缺失的系统标题栏
 withDefaults(defineProps<{ inset?: number; title?: string }>(), { inset: 232, title: '' });
 
 const { maximized, toggleMax } = useWindowState();
+
+// macOS 使用系统红绿灯；Windows / Linux 使用右上角自绘的最小化 / 最大化 / 关闭按钮
+const showCustomControls = getPlatform() !== 'mac';
 
 function minimize() {
   window.api.window.minimize();
@@ -70,6 +79,12 @@ function close() {
   height: 16px;
   object-fit: contain;
   flex-shrink: 0;
+}
+/* 非 Windows：整条顶栏都是拖拽区（系统窗口按钮所在区域也要能拖动窗口），
+   独立窗口的标题居中，避开左上角的系统按钮（macOS 红绿灯） */
+.window-controls.native .win-title {
+  margin: 0 auto;
+  padding-left: 0;
 }
 .caption {
   display: flex;

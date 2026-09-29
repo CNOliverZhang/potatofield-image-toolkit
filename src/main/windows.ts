@@ -48,6 +48,8 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
     height: 720,
     minWidth: 900,
     minHeight: 600,
+    // macOS：隐藏标题栏但保留系统红绿灯，窗口控制交给系统；
+    // Windows：无边框，窗口控制由右上角自绘按钮提供（见 WindowControls.vue）
     titleBarStyle: 'hidden',
     frame: false,
     transparent: true,
