@@ -1,22 +1,12 @@
 <template>
   <div class="watermark-tool">
-    <!-- 预览区 -->
-    <section class="preview-pane">
-      <div v-if="!inputPath" class="dropzone">
-        <font-awesome-icon icon="image" class="dz-icon" />
-        <p>选择一张图片开始添加水印</p>
-        <fluent-button appearance="accent" @click="pickImage">选择图片</fluent-button>
-      </div>
-      <template v-else>
-        <div class="preview-stage">
-          <img v-if="previewUrl" :src="previewUrl" class="preview-img" alt="预览" />
-        </div>
-        <div class="preview-bar">
-          <span class="fname">{{ inputName }}</span>
-          <fluent-button appearance="neutral" @click="pickImage">重新选择</fluent-button>
-        </div>
-      </template>
-    </section>
+    <!-- 预览区（统一组件：未选图为占位框，选图后预览 + 「重新选择」） -->
+    <ImagePicker
+      :src="previewUrl || inputSrc"
+      :name="inputName"
+      hint="选择一张图片开始添加水印"
+      @pick="pickImage"
+    />
 
     <!-- 参数面板 -->
     <aside class="controls-pane">
@@ -38,17 +28,20 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onBeforeUnmount } from 'vue';
+import { computed, reactive, ref, watch, onBeforeUnmount } from 'vue';
 import type { WatermarkParams } from '@shared/types';
 import { selectImageFiles, selectDirectory } from '@renderer/utils/filePicker';
 import { useDialog } from '@renderer/composables/useDialog';
 import WatermarkControls from '@renderer/components/WatermarkControls.vue';
+import ImagePicker from '@renderer/components/ImagePicker.vue';
 
 const { message } = useDialog();
 
 const inputPath = ref('');
 const inputName = ref('');
 const previewUrl = ref('');
+/** 原图地址：作为水印预览生成前的兜底显示，避免选图后出现空白 */
+const inputSrc = computed(() => (inputPath.value ? `file://${inputPath.value}` : ''));
 const processing = ref(false);
 let previewTimer: number | undefined;
 
