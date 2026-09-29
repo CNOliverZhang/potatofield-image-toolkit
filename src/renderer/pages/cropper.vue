@@ -71,7 +71,7 @@
                 :max="maxOf('left')"
                 :step="1"
                 @input="onField('left', $event)"
-              >px</fluent-number-field>
+              ><span slot="end">px</span></fluent-number-field>
             </div>
             <div class="field row">
               <span class="field-label">Y（上）</span>
@@ -81,7 +81,7 @@
                 :max="maxOf('top')"
                 :step="1"
                 @input="onField('top', $event)"
-              >px</fluent-number-field>
+              ><span slot="end">px</span></fluent-number-field>
             </div>
             <div class="field row">
               <span class="field-label">宽度</span>
@@ -91,7 +91,7 @@
                 :max="maxOf('width')"
                 :step="1"
                 @input="onField('width', $event)"
-              >px</fluent-number-field>
+              ><span slot="end">px</span></fluent-number-field>
             </div>
             <div class="field row">
               <span class="field-label">高度</span>
@@ -101,7 +101,7 @@
                 :max="maxOf('height')"
                 :step="1"
                 @input="onField('height', $event)"
-              >px</fluent-number-field>
+              ><span slot="end">px</span></fluent-number-field>
             </div>
           </template>
 

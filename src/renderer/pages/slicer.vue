@@ -13,11 +13,11 @@
           <span class="group-title">分割网格</span>
           <div class="field row">
             <span class="field-label">行数</span>
-            <fluent-number-field :value="rows" min="1" max="50" @input="rows = evNum($event)">行</fluent-number-field>
+            <fluent-number-field :value="rows" min="1" max="50" @input="rows = evNum($event)"><span slot="end">行</span></fluent-number-field>
           </div>
           <div class="field row">
             <span class="field-label">列数</span>
-            <fluent-number-field :value="cols" min="1" max="50" @input="cols = evNum($event)">列</fluent-number-field>
+            <fluent-number-field :value="cols" min="1" max="50" @input="cols = evNum($event)"><span slot="end">列</span></fluent-number-field>
           </div>
           <p class="hint" v-if="meta">原图尺寸：{{ meta.width }} × {{ meta.height }}，将分为 {{ rows }} × {{ cols }} 块</p>
         </div>

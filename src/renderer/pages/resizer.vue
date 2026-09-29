@@ -17,11 +17,11 @@
           <span class="group-title">尺寸设置</span>
           <div class="field row">
             <span class="field-label">宽度</span>
-            <fluent-number-field :value="opts.width" min="1" @input="opts.width = evNum($event)">px</fluent-number-field>
+            <fluent-number-field :value="opts.width" min="1" @input="opts.width = evNum($event)"><span slot="end">px</span></fluent-number-field>
           </div>
           <div class="field row">
             <span class="field-label">高度（0=按比例）</span>
-            <fluent-number-field :value="opts.height" min="0" @input="opts.height = evNum($event)">px</fluent-number-field>
+            <fluent-number-field :value="opts.height" min="0" @input="opts.height = evNum($event)"><span slot="end">px</span></fluent-number-field>
           </div>
           <label class="field">
             <span class="field-label">适配方式</span>

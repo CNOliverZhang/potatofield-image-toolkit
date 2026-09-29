@@ -44,19 +44,19 @@
           </div>
           <div class="field row">
             <span class="field-label">X（左）</span>
-            <fluent-number-field :value="region.left" min="0" @input="region.left = evNum($event)">px</fluent-number-field>
+            <fluent-number-field :value="region.left" min="0" @input="region.left = evNum($event)"><span slot="end">px</span></fluent-number-field>
           </div>
           <div class="field row">
             <span class="field-label">Y（上）</span>
-            <fluent-number-field :value="region.top" min="0" @input="region.top = evNum($event)">px</fluent-number-field>
+            <fluent-number-field :value="region.top" min="0" @input="region.top = evNum($event)"><span slot="end">px</span></fluent-number-field>
           </div>
           <div class="field row">
             <span class="field-label">宽度</span>
-            <fluent-number-field :value="region.width" min="1" @input="region.width = evNum($event)">px</fluent-number-field>
+            <fluent-number-field :value="region.width" min="1" @input="region.width = evNum($event)"><span slot="end">px</span></fluent-number-field>
           </div>
           <div class="field row">
             <span class="field-label">高度</span>
-            <fluent-number-field :value="region.height" min="1" @input="region.height = evNum($event)">px</fluent-number-field>
+            <fluent-number-field :value="region.height" min="1" @input="region.height = evNum($event)"><span slot="end">px</span></fluent-number-field>
           </div>
           <fluent-button appearance="neutral" @click="useFull">使用整图</fluent-button>
         </div>
