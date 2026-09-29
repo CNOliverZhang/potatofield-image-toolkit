@@ -7,9 +7,11 @@ import {
   writeFileBase64,
   ensureDir,
   fileExists,
-  fileStat
+  fileStat,
+  removeFile
 } from './fs';
 import { checkForUpdates, downloadUpdate, quitAndInstall } from './updater';
+import { listInstalledFonts, isFontInstalled, matchInstalled } from './fonts';
 import type {
   ImageProcessPayload,
   ImageProcessResult,
@@ -44,6 +46,10 @@ export function registerIpc(): void {
   });
   ipcMain.handle('shell:showItemInFolder', (_e, fullPath: string) => {
     shell.showItemInFolder(fullPath);
+  });
+  // 用系统默认程序打开：字体文件会调起 Windows 字体预览/安装器
+  ipcMain.handle('shell:openPath', (_e, fullPath: string) => {
+    return shell.openPath(fullPath);
   });
 
   ipcMain.handle('app:relaunch', () => {
@@ -89,6 +95,16 @@ export function registerIpc(): void {
   ipcMain.handle('fs:ensureDir', (_e, path: string) => ensureDir(path));
   ipcMain.handle('fs:exists', (_e, path: string) => fileExists(path));
   ipcMain.handle('fs:stat', (_e, path: string) => fileStat(path));
+  ipcMain.handle('fs:remove', (_e, path: string) => removeFile(path));
+
+  // 系统字体：直接读注册表/字体目录，不受 Chromium 字体缓存影响
+  ipcMain.handle('font:listInstalled', (_e, force?: boolean) => listInstalledFonts(!!force));
+  ipcMain.handle('font:isInstalled', (_e, family: string, style?: string) =>
+    isFontInstalled(family, style)
+  );
+  ipcMain.handle('font:matchInstalled', (_e, list: { family: string; style: string }[], family: string, style?: string) =>
+    matchInstalled(list ?? [], family, style)
+  );
 
   ipcMain.handle('updater:check', () => checkForUpdates());
   ipcMain.handle('updater:download', () => downloadUpdate());

@@ -14,7 +14,8 @@ const api: ImageToolkitApi = {
   },
   shell: {
     openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
-    showItemInFolder: (fullPath) => ipcRenderer.invoke('shell:showItemInFolder', fullPath)
+    showItemInFolder: (fullPath) => ipcRenderer.invoke('shell:showItemInFolder', fullPath),
+    openPath: (fullPath) => ipcRenderer.invoke('shell:openPath', fullPath)
   },
   image: {
     process: (payload) => ipcRenderer.invoke('image:process', payload)
@@ -25,7 +26,14 @@ const api: ImageToolkitApi = {
     writeFileBase64: (path, base64) => ipcRenderer.invoke('fs:writeFileBase64', path, base64),
     ensureDir: (path) => ipcRenderer.invoke('fs:ensureDir', path),
     exists: (path) => ipcRenderer.invoke('fs:exists', path),
-    stat: (path) => ipcRenderer.invoke('fs:stat', path)
+    stat: (path) => ipcRenderer.invoke('fs:stat', path),
+    remove: (path) => ipcRenderer.invoke('fs:remove', path)
+  },
+  font: {
+    listInstalled: (force?: boolean) => ipcRenderer.invoke('font:listInstalled', force),
+    isInstalled: (family, style) => ipcRenderer.invoke('font:isInstalled', family, style),
+    matchInstalled: (list, family, style) =>
+      ipcRenderer.invoke('font:matchInstalled', list, family, style)
   },
   updater: {
     check: () => ipcRenderer.invoke('updater:check'),

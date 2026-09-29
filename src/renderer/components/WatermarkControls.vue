@@ -30,16 +30,14 @@
         <span class="field-label">颜色</span>
         <input class="color" type="color" :value="params.color" @input="params.color = evVal($event)" />
       </div>
-      <div class="field row">
-        <span class="field-label">加粗</span>
-        <label class="chk">
-          <fluent-checkbox :checked="params.bold" @change="params.bold = evChk($event)"></fluent-checkbox>
-        </label>
+      <div class="field">
+        <span class="field-label">字体</span>
+        <FontSelect v-model="params.fontFamily" :options="fontOptions" placeholder="选择字体" />
       </div>
       <label class="field">
-        <span class="field-label">字体</span>
-        <fluent-select :value="params.fontFamily" @change="params.fontFamily = evVal($event)">
-          <fluent-option v-for="f in FONTS" :key="f.value" :value="f.value">{{ f.label }}</fluent-option>
+        <span class="field-label">字重</span>
+        <fluent-select :value="weightValue" @change="onWeight">
+          <fluent-option v-for="w in weightOptions" :key="w.value" :value="w.value">{{ w.label }}</fluent-option>
         </fluent-select>
       </label>
     </div>
@@ -164,20 +162,79 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import type { WatermarkParams, WatermarkGravity } from '@shared/types';
 import { selectImageFiles } from '@renderer/utils/filePicker';
+import { queryLocalFonts, groupLocalFonts, supportsLocalFonts } from '@renderer/composables/useLocalFonts';
+import { familyCandidates, canonicalStyle, styleWeight, styleLabel } from '@shared/fontStyle';
+import FontSelect from '@renderer/components/FontSelect.vue';
 
 const params = defineModel<WatermarkParams>({ required: true });
 defineProps<{ lockTile?: boolean }>();
 
-const FONTS = [
+const BASE_FONTS = [
   { label: '无衬线', value: 'sans-serif' },
   { label: '衬线', value: 'serif' },
-  { label: '等宽', value: 'monospace' },
-  { label: '微软雅黑', value: 'Microsoft YaHei' },
-  { label: '黑体', value: 'SimHei' }
+  { label: '等宽', value: 'monospace' }
 ];
+
+/** 系统已安装字体（按族名），异步加载，不阻塞面板渲染 */
+const systemFonts = ref<string[]>([]);
+/** 族名候选（归一化）→ 该族在系统里的样式列表，供字重选择器使用 */
+const localStyles = ref<Record<string, string[]>>({});
+
+onMounted(async () => {
+  if (!supportsLocalFonts()) return;
+  try {
+    const fonts = await queryLocalFonts();
+    systemFonts.value = groupLocalFonts(fonts).map((f) => f.name);
+    const map: Record<string, string[]> = {};
+    for (const fam of groupLocalFonts(fonts)) {
+      const styles = fam.fonts.map((f) => f.style).filter(Boolean);
+      for (const key of familyCandidates(fam.name)) {
+        map[key] = [...(map[key] ?? []), ...styles];
+      }
+    }
+    localStyles.value = map;
+  } catch {
+    systemFonts.value = [];
+  }
+});
+
+/** 字重选项：优先取所选字体在系统里的真实样式；查不到（如通用族）时给一组固定字重 */
+const weightOptions = computed<{ value: string; label: string }[]>(() => {
+  const cands = familyCandidates(params.value.fontFamily);
+  const seen = new Set<string>();
+  const opts: { value: string; label: string }[] = [];
+  for (const key of cands) {
+    for (const s of localStyles.value[key] ?? []) {
+      const value = String(styleWeight(s));
+      if (seen.has(value)) continue;
+      seen.add(value);
+      opts.push({ value, label: styleLabel(s) });
+    }
+  }
+  if (opts.length) return opts;
+  return [300, 400, 500, 600, 700, 900].map((v) => ({ value: String(v), label: styleLabel(String(v)) }));
+});
+
+/** 当前选中值；字体切换后原字重不在选项里时回落到常规 */
+const weightValue = computed(() => {
+  const cur = params.value.fontWeight ?? (params.value.bold ? '700' : '400');
+  return weightOptions.value.some((o) => o.value === cur) ? cur : '400';
+});
+
+function onWeight(e: Event) {
+  const v = evVal(e);
+  params.value.fontWeight = v;
+  params.value.bold = Number(v) >= 600; // 同步旧的加粗标记，兼容历史逻辑
+}
+
+/** 下拉选项：通用族 + 系统已安装字体 */
+const fontOptions = computed(() => [
+  ...BASE_FONTS,
+  ...systemFonts.value.map((name) => ({ label: name, value: name }))
+]);
 
 const POSITIONS: { g: WatermarkGravity; label: string }[] = [
   { g: 'nw', label: '左上' },
@@ -200,10 +257,6 @@ function evVal(e: Event): string {
 function evNum(e: Event): number {
   return Number((e.target as HTMLInputElement).value);
 }
-function evChk(e: Event): boolean {
-  return (e.target as HTMLInputElement).checked;
-}
-
 async function pickWatermarkImage() {
   const files = await selectImageFiles(false);
   if (!files || !files.length) return;

@@ -237,6 +237,8 @@ async function prepareTextWatermark(extra: Record<string, unknown>): Promise<Pre
   const opacity = clamp(Number(extra.opacity ?? 0.5), 0, 1);
   const bold = Boolean(extra.bold);
   const fontFamily = String(extra.fontFamily ?? 'sans-serif');
+  // 字重优先用显式传入的数值；未传时按旧的 bold 开关推断（兼容历史参数）
+  const fontWeight = Math.min(900, Math.max(100, Number(extra.fontWeight ?? (bold ? 700 : 400)) || 400));
   const rotation = Number(extra.rotation ?? 0);
 
   const chars = [...text];
@@ -247,7 +249,7 @@ async function prepareTextWatermark(extra: Record<string, unknown>): Promise<Pre
   const svg = Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${estW}" height="${estH}">` +
       `<text x="4" y="${Math.round(fontSize * 1.12)}" font-size="${fontSize}" ` +
-      `font-family="${escapeXml(fontFamily)}" font-weight="${bold ? 700 : 400}" ` +
+      `font-family="${escapeXml(fontFamily)}" font-weight="${fontWeight}" ` +
       `fill="${color}" fill-opacity="${opacity}">${escapeXml(text)}</text>` +
       `</svg>`
   );

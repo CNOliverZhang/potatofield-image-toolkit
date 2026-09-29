@@ -18,6 +18,8 @@ export interface ImageToolkitApi {
   shell: {
     openExternal: (url: string) => Promise<void>;
     showItemInFolder: (fullPath: string) => Promise<void>;
+    /** 用系统默认程序打开（字体文件会调起系统字体安装器） */
+    openPath: (fullPath: string) => Promise<string>;
   };
   image: {
     process: (payload: ImageProcessPayload) => Promise<ImageProcessResult>;
@@ -32,6 +34,18 @@ export interface ImageToolkitApi {
     ensureDir: (path: string) => Promise<void>;
     exists: (path: string) => Promise<boolean>;
     stat: (path: string) => Promise<{ size: number; isDirectory: boolean } | null>;
+    /** 删除文件或目录（不存在也不报错） */
+    remove: (path: string) => Promise<void>;
+  };
+  font: {
+    /** 列出系统已安装字体（force 跳过缓存立即重读） */
+    listInstalled: (force?: boolean) => Promise<{ family: string; style: string }[]>;
+    isInstalled: (family: string, style?: string) => Promise<boolean>;
+    matchInstalled: (
+      list: { family: string; style: string }[],
+      family: string,
+      style?: string
+    ) => Promise<boolean>;
   };
   updater: {
     check: () => Promise<void>;

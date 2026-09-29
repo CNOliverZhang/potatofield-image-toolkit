@@ -1,110 +1,253 @@
 <template>
   <div class="fonts">
     <div class="toolbar">
-      <h2>字体管理</h2>
+      <!-- 组件自带的 activeIndicator 在本环境不生效，这里用共享指示条实现滑动动画 -->
+      <div ref="tabsWrapEl" class="tabs-wrap">
+        <fluent-tabs ref="tabsEl" class="fs-tabs" :activeid="tab" @change="onTabsChange">
+          <fluent-tab id="online" :class="{ 'is-active': tab === 'online' }" @click="switchTab('online')">
+            线上字体
+          </fluent-tab>
+          <fluent-tab id="local" :class="{ 'is-active': tab === 'local' }" @click="switchTab('local')">
+            本地字体
+          </fluent-tab>
+        </fluent-tabs>
+        <span class="tab-indicator" :style="indicatorStyle"></span>
+      </div>
       <div class="toolbar-actions">
         <fluent-text-field
           class="search"
           :value="keyword"
-          placeholder="搜索字体族"
+          :placeholder="tab === 'online' ? '搜索字体族' : '搜索本地字体'"
           @input="onSearch"
         ></fluent-text-field>
-        <fluent-button appearance="accent" :disabled="store.loading" @click="refresh">
-          刷新字体族
+        <fluent-button
+          v-if="tab === 'online'"
+          appearance="neutral"
+          :disabled="store.loading || cleaning"
+          @click="cleanCache"
+        >
+          清理缓存
+        </fluent-button>
+        <fluent-button appearance="accent" :disabled="loading" @click="refresh">
+          {{ loading ? '加载中…' : refreshLabel }}
         </fluent-button>
       </div>
     </div>
-    <div v-if="store.fontFamilies.length" class="list-wrap">
-      <GradientMask to="top" />
-      <div ref="listEl" class="list" :class="{ 'has-scrollbar': hasScrollbar }">
-        <template v-for="family in store.fontFamilies" :key="family.id">
-        <!-- 多字体族：SettingExpander 式可展开卡片 -->
-        <section
-          v-if="family.fonts.length > 1"
-          class="family-card"
-          :class="{ expanded: isOpen(family.id) }"
-        >
-          <button class="family-head" :aria-expanded="isOpen(family.id)" @click="toggle(family.id)">
-            <font-awesome-icon icon="font" class="family-icon" />
-            <span class="head-text">
-              <span class="family-name">{{ family.name }}</span>
-              <span class="family-sub">{{ family.fonts.length }} 个字体</span>
-            </span>
-            <font-awesome-icon icon="chevron-down" class="chev" :class="{ open: isOpen(family.id) }" />
-          </button>
-          <div class="family-body" :class="{ open: isOpen(family.id) }">
-            <div class="body-inner">
-              <div v-for="font in family.fonts" :key="font.id" class="font-row">
-                <img v-if="font.previewImage" :src="font.previewImage" class="preview" :alt="font.name" />
-                <span class="font-name">{{ font.name }}</span>
+
+    <!-- 新装字体需重启应用才能在预览中生效（导出不受影响） -->
+    <div v-if="store.pendingRestart > 0" class="notice">
+      <span>{{ store.pendingRestart }} 个新安装的字体需重启应用后才能在预览中显示（导出可立即使用）</span>
+      <button class="link-btn" @click="relaunch">重启应用</button>
+    </div>
+
+    <!-- 线上字体 -->
+    <template v-if="tab === 'online'">
+      <div v-if="onlineFamilies.length" class="list-wrap">
+        <GradientMask to="top" />
+        <div ref="listEl" class="list" :class="{ 'has-scrollbar': hasScrollbar }">
+          <template v-for="family in onlineFamilies" :key="family.id">
+            <!-- 多字体族：SettingExpander 式可展开卡片 -->
+            <section
+              v-if="family.fonts.length > 1"
+              class="family-card"
+              :class="{ expanded: isOpen(family.id) }"
+            >
+              <button class="family-head" :aria-expanded="isOpen(family.id)" @click="toggle(family.id)">
+                <font-awesome-icon icon="font" class="family-icon" />
+                <span class="head-text">
+                  <span class="family-name">{{ family.name }}</span>
+                  <span class="family-sub">{{ familySub(family) }}</span>
+                </span>
+                <font-awesome-icon icon="chevron-down" class="chev" :class="{ open: isOpen(family.id) }" />
+              </button>
+              <div class="family-body" :class="{ open: isOpen(family.id) }">
+                <div class="body-inner">
+                  <div v-for="font in family.fonts" :key="font.id" class="font-row">
+                    <span class="font-name">{{ font.name }}</span>
+                    <img
+                      v-if="font.previewImage"
+                      :src="font.previewImage"
+                      class="preview"
+                      :alt="font.name"
+                    />
+                    <fluent-button
+                      appearance="accent"
+                      :disabled="!!store.installed[font.id] || !!store.installing[font.id]"
+                      @click="install(font)"
+                    >
+                      {{ installLabel(font) }}
+                    </fluent-button>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <!-- 单字体族：无子项的设置卡，无展开箭头 -->
+            <section v-else-if="family.fonts.length === 1" class="family-card plain">
+              <div class="family-head static">
+                <font-awesome-icon icon="font" class="family-icon" />
+                <span class="head-text">
+                  <span class="family-name">{{ family.name }}</span>
+                  <span class="family-sub">{{ familySub(family) }}</span>
+                </span>
+                <img
+                  v-if="family.fonts[0].previewImage"
+                  :src="family.fonts[0].previewImage"
+                  class="preview head-preview"
+                  :alt="family.fonts[0].name"
+                />
                 <fluent-button
                   appearance="accent"
-                  :disabled="!!store.installed[font.id]"
-                  @click="install(font)"
+                  :disabled="!!store.installed[family.fonts[0].id] || !!store.installing[family.fonts[0].id]"
+                  @click="install(family.fonts[0])"
                 >
-                  {{ store.installed[font.id] ? '已安装' : '安装' }}
+                  {{ installLabel(family.fonts[0]) }}
                 </fluent-button>
               </div>
-            </div>
-          </div>
-        </section>
-        <!-- 单字体族：无子项的设置卡，无展开箭头 -->
-        <section v-else-if="family.fonts.length === 1" class="family-card plain">
-          <div class="family-head static">
-            <font-awesome-icon icon="font" class="family-icon" />
-            <span class="head-text">
-              <span class="family-name">{{ family.name }}</span>
-              <span class="family-sub">1 个字体</span>
-            </span>
-            <img
-              v-if="family.fonts[0].previewImage"
-              :src="family.fonts[0].previewImage"
-              class="preview head-preview"
-              :alt="family.fonts[0].name"
-            />
-            <fluent-button
-              appearance="accent"
-              :disabled="!!store.installed[family.fonts[0].id]"
-              @click="install(family.fonts[0])"
-            >
-              {{ store.installed[family.fonts[0].id] ? '已安装' : '安装' }}
-            </fluent-button>
-          </div>
-        </section>
-        <!-- 空字体族：仅展示名称 -->
-        <section v-else class="family-card plain">
-          <div class="family-head static">
-            <font-awesome-icon icon="font" class="family-icon" />
-            <span class="head-text">
-              <span class="family-name">{{ family.name }}</span>
-              <span class="family-sub">暂无字体</span>
-            </span>
-          </div>
-        </section>
-        </template>
+            </section>
+            <!-- 空字体族：仅展示名称 -->
+            <section v-else class="family-card plain">
+              <div class="family-head static">
+                <font-awesome-icon icon="font" class="family-icon" />
+                <span class="head-text">
+                  <span class="family-name">{{ family.name }}</span>
+                  <span class="family-sub">暂无字体</span>
+                </span>
+              </div>
+            </section>
+          </template>
+        </div>
+        <GradientMask to="bottom" />
       </div>
-      <GradientMask to="bottom" />
-    </div>
-    <div v-else class="empty">{{ store.loading ? '加载中…' : '暂无在线字体，点击上方按钮加载' }}</div>
+      <div v-else class="empty">
+        {{ store.loading ? '加载中…' : '没有匹配的字体族' }}
+      </div>
+    </template>
+
+    <!-- 本地字体（系统已安装） -->
+    <template v-else>
+      <div v-if="!store.localSupported" class="empty">
+        当前环境不支持读取系统字体列表
+      </div>
+      <div v-else-if="localFamilies.length" class="list-wrap">
+        <GradientMask to="top" />
+        <div ref="listEl" class="list" :class="{ 'has-scrollbar': hasScrollbar }">
+          <template v-for="fam in localFamilies" :key="fam.name">
+            <section
+              v-if="fam.fonts.length > 1"
+              class="family-card"
+              :class="{ expanded: isOpen(fam.name) }"
+            >
+              <button class="family-head" :aria-expanded="isOpen(fam.name)" @click="toggle(fam.name)">
+                <font-awesome-icon icon="font" class="family-icon" />
+                <span class="head-text">
+                  <span class="family-name">{{ fam.name }}</span>
+                  <span class="family-sub">{{ fam.fonts.length }} 个样式</span>
+                </span>
+                <font-awesome-icon icon="chevron-down" class="chev" :class="{ open: isOpen(fam.name) }" />
+              </button>
+              <div class="family-body" :class="{ open: isOpen(fam.name) }">
+                <div class="body-inner">
+                  <div v-for="f in fam.fonts" :key="f.fullName" class="font-row">
+                    <span class="font-name style-name">{{ f.style || '常规' }}</span>
+                    <span class="sample" :style="fontStyle(f.family, f.style)">{{ SAMPLE_TEXT }}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section v-else class="family-card plain">
+              <div class="family-head static">
+                <font-awesome-icon icon="font" class="family-icon" />
+                <span class="head-text">
+                  <span class="family-name">{{ fam.name }}</span>
+                  <span class="family-sub">{{ fam.fonts[0]?.style || '常规' }}</span>
+                </span>
+                <span class="sample head-sample" :style="fontStyle(fam.name, fam.fonts[0]?.style)">
+                  {{ SAMPLE_TEXT }}
+                </span>
+              </div>
+            </section>
+          </template>
+        </div>
+        <GradientMask to="bottom" />
+      </div>
+      <div v-else class="empty">
+        {{ store.localLoading ? '读取中…' : '没有匹配的系统字体' }}
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useFontsStore } from '@renderer/stores/fonts';
 import { useDialog } from '@renderer/composables/useDialog';
 import GradientMask from '@renderer/components/GradientMask.vue';
-import type { FontItem } from '@renderer/stores/fonts';
+import type { FontItem, FontFamilyItem } from '@renderer/stores/fonts';
+import type { LocalFontFamily } from '@renderer/composables/useLocalFonts';
+
+const SAMPLE_TEXT = '洋芋田 Potatofield 0123';
 
 const store = useFontsStore();
 const dialog = useDialog();
 
+type TabKey = 'online' | 'local';
+type OpenKey = string | number;
+
+const tab = ref<TabKey>('online');
 const keyword = ref('');
-const expanded = reactive<Record<number, boolean>>({});
+const expanded = reactive<Record<string, boolean>>({});
+const cleaning = ref(false);
 let searchTimer: number | undefined;
 
 const listEl = ref<HTMLElement | null>(null);
 const hasScrollbar = ref(false);
+
+const loading = computed(() =>
+  tab.value === 'online' ? store.loading : store.localLoading
+);
+const refreshLabel = computed(() => (tab.value === 'online' ? '刷新字体族' : '刷新本地字体'));
+
+/** 线上列表按关键字过滤（前端过滤，避免每次输入都请求接口） */
+const onlineFamilies = computed(() => {
+  const kw = keyword.value.trim().toLowerCase();
+  if (!kw) return store.fontFamilies;
+  return store.fontFamilies.filter(
+    (f) => f.name.toLowerCase().includes(kw) || f.fonts.some((x) => x.name.toLowerCase().includes(kw))
+  );
+});
+
+const localFamilies = computed<LocalFontFamily[]>(() => {
+  const kw = keyword.value.trim().toLowerCase();
+  if (!kw) return store.localFamilies;
+  return store.localFamilies.filter((f) => f.name.toLowerCase().includes(kw));
+});
+
+/** 族副标题：展示字体数，已安装的给出数量提示 */
+function familySub(family: FontFamilyItem): string {
+  const total = family.fonts.length;
+  const done = family.fonts.filter((f) => store.installed[f.id]).length;
+  return done ? `${total} 个字体 · 已安装 ${done}` : `${total} 个字体`;
+}
+
+function installLabel(font: FontItem): string {
+  if (store.installing[font.id]) return '等待安装…';
+  if (store.installed[font.id]) return '已安装';
+  return '安装';
+}
+
+function fontStyle(family: string, style?: string): Record<string, string> {
+  const fam = `"${String(family ?? '').replace(/"/g, '')}"`;
+  const s = style ?? '';
+  // 字重映射：注意顺序，semibold/extrabold 都含 "bold"，要先判更具体的
+  let weight = '400';
+  if (/black|extrabold|ultra|特粗|超粗/i.test(s)) weight = '900';
+  else if (/semibold|demibold|semi|半粗/i.test(s)) weight = '600';
+  else if (/medium|中黑|中等/i.test(s)) weight = '500';
+  else if (/light|thin|细/i.test(s)) weight = '300';
+  else if (/bold|粗/i.test(s)) weight = '700';
+  const italic = /italic|oblique|斜/i.test(s) ? 'italic' : 'normal';
+  return { fontFamily: fam, fontWeight: weight, fontStyle: italic };
+}
 
 /** 是否出现垂直滚动条：出现时补偿其占位宽度，保证卡片右缘与工具栏按钮对齐 */
 function updateScrollbar() {
@@ -113,45 +256,145 @@ function updateScrollbar() {
   hasScrollbar.value = el.scrollHeight > el.clientHeight + 1;
 }
 
-function toggle(id: number) {
-  expanded[id] = !expanded[id];
+function toggle(id: OpenKey) {
+  expanded[String(id)] = !expanded[String(id)];
 }
-function isOpen(id: number) {
-  return !!expanded[id];
+function isOpen(id: OpenKey) {
+  return !!expanded[String(id)];
 }
+
+/** 标签页指示条：跟随激活项滑动（组件自带指示器在本环境不生效，故自行绘制） */
+const tabsWrapEl = ref<HTMLElement | null>(null);
+const tabsEl = ref<HTMLElement | null>(null);
+const indicatorStyle = ref<{ left: string; width: string; opacity: string }>({
+  left: '0px',
+  width: '0px',
+  opacity: '0' // 首帧位置未算出前先隐藏，避免从原点滑入
+});
+
+function updateIndicator() {
+  const wrap = tabsWrapEl.value;
+  const tabs = tabsEl.value;
+  if (!wrap || !tabs) return;
+  const el = tabs.querySelector(`fluent-tab#${tab.value}`) as HTMLElement | null;
+  if (!el) return;
+  const wr = wrap.getBoundingClientRect();
+  const er = el.getBoundingClientRect();
+  indicatorStyle.value = {
+    left: `${Math.round(er.left - wr.left)}px`,
+    width: `${Math.round(er.width)}px`,
+    opacity: '1'
+  };
+}
+
+/** fluent-tabs 的 change 事件：不同版本 detail 可能是 id 字符串或对象，兼容读取 */
+function onTabsChange(e: Event) {
+  const target = e.target as (HTMLElement & { activeid?: string }) | null;
+  const detail = (e as CustomEvent).detail as unknown;
+  const id =
+    (typeof detail === 'string' ? detail : (detail as { id?: string } | null)?.id) ??
+    target?.activeid;
+  if (id === 'online' || id === 'local') switchTab(id);
+}
+
+function switchTab(next: TabKey) {
+  if (tab.value === next) return;
+  tab.value = next;
+  keyword.value = '';
+  if (next === 'local') store.loadLocalFonts();
+  else if (!store.fontFamilies.length) store.loadFontFamilies();
+  nextTick(updateScrollbar);
+}
+
 function refresh() {
-  store.loadFontFamilies(keyword.value.trim() || undefined);
+  if (tab.value === 'online') store.loadFontFamilies();
+  else store.loadLocalFonts();
 }
+
 function onSearch(e: Event) {
   keyword.value = (e.target as HTMLInputElement).value;
-  if (searchTimer) window.clearTimeout(searchTimer);
-  searchTimer = window.setTimeout(refresh, 350);
+  nextTick(updateScrollbar);
+  // 线上列表支持按关键字请求后端，这里仅本地过滤即可
+  if (tab.value === 'online') {
+    if (searchTimer) window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(() => store.refreshInstalledState(), 200);
+  }
 }
 
-onMounted(() => {
-  refresh();
-  window.addEventListener('resize', updateScrollbar);
-});
-onBeforeUnmount(() => {
-  if (searchTimer) window.clearTimeout(searchTimer);
-  window.removeEventListener('resize', updateScrollbar);
-});
-
-// 列表数据、展开/收起、窗口尺寸变化都可能改变滚动条的出现
-watch(
-  () => [store.fontFamilies.length, store.loading, expanded],
-  () => nextTick(updateScrollbar),
-  { deep: true }
-);
+async function cleanCache() {
+  cleaning.value = true;
+  try {
+    const n = await store.cleanDownloads();
+    dialog.message(n ? `已清理 ${n} 个缓存文件` : '没有可清理的缓存', n ? 'success' : 'info');
+  } catch {
+    dialog.message('缓存清理失败', 'error');
+  } finally {
+    cleaning.value = false;
+  }
+}
 
 async function install(font: FontItem) {
   try {
-    await store.installFont(font);
-    dialog.message(`已安装字体：${font.name}`, 'success');
+    const res = await store.installFont(font);
+    if (res.ok) {
+      dialog.message(`已安装：${font.familyName} ${font.name}，导出时可直接选择`, 'success');
+    } else if (res.pending) {
+      dialog.message('未检测到安装完成，请在弹出的窗口点击「安装」', 'warning');
+    }
   } catch {
     dialog.message('字体安装失败', 'error');
   }
 }
+
+function relaunch() {
+  window.api.app.relaunch();
+}
+
+let tabsObserver: ResizeObserver | null = null;
+
+onMounted(() => {
+  // 标签宽度受字体加载影响，需在实际布局后计算指示条位置
+  nextTick(updateIndicator);
+  window.addEventListener('resize', updateIndicator);
+  if (typeof ResizeObserver !== 'undefined' && tabsWrapEl.value) {
+    tabsObserver = new ResizeObserver(() => updateIndicator());
+    tabsObserver.observe(tabsWrapEl.value);
+  }
+  store.loadFontFamilies();
+  // 预读渲染进程字体列表：用于比对出「已装但预览尚未生效」的字体
+  store.loadLocalFonts().catch(() => undefined);
+  // 启动兜底：静默清理上次遗留的已安装字体缓存
+  store.cleanDownloads().catch(() => undefined);
+  window.addEventListener('resize', updateScrollbar);
+  // 从字体安装窗口返回时刷新系统字体列表，尽快标记已安装
+  window.addEventListener('focus', onWindowFocus);
+});
+onBeforeUnmount(() => {
+  if (searchTimer) window.clearTimeout(searchTimer);
+  window.removeEventListener('resize', updateScrollbar);
+  window.removeEventListener('focus', onWindowFocus);
+  window.removeEventListener('resize', updateIndicator);
+  tabsObserver?.disconnect();
+  tabsObserver = null;
+});
+
+function onWindowFocus() {
+  store.loadLocalFonts();
+}
+
+const listCount = computed(() =>
+  tab.value === 'online' ? onlineFamilies.value.length : localFamilies.value.length
+);
+
+// 切换标签后指示条滑动到新位置
+watch(tab, () => nextTick(updateIndicator));
+
+// 列表数据、展开/收起、窗口尺寸变化都可能改变滚动条的出现
+watch(
+  () => [listCount.value, loading.value, expanded, tab.value],
+  () => nextTick(updateScrollbar),
+  { deep: true }
+);
 </script>
 
 <style scoped>
@@ -169,8 +412,35 @@ async function install(font: FontItem) {
   gap: calc(var(--design-unit) * 3 * 1px);
   flex-shrink: 0;
 }
-.toolbar h2 {
-  margin: 0;
+/* Fluent 标签页：组件的 activeIndicator 依赖内部激活状态（在本环境不生效），
+   隐藏它，改用共享指示条，切换时带滑动动画 */
+.tabs-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.fs-tabs {
+  width: auto;
+}
+.fs-tabs::part(activeIndicator) {
+  display: none;
+}
+.fs-tabs fluent-tab {
+  cursor: pointer;
+}
+.fs-tabs fluent-tab.is-active {
+  color: var(--accent-base-color);
+}
+.tab-indicator {
+  position: absolute;
+  bottom: 0;
+  height: calc(var(--design-unit) * 0.75 * 1px);
+  border-radius: calc(var(--design-unit) * 0.375 * 1px);
+  background: var(--accent-base-color);
+  pointer-events: none;
+  transition:
+    left 0.24s cubic-bezier(0.33, 0, 0.67, 1),
+    width 0.24s cubic-bezier(0.33, 0, 0.67, 1),
+    opacity 0.12s ease;
 }
 .toolbar-actions {
   margin-left: auto;
@@ -321,26 +591,79 @@ html[data-theme='dark'] .font-row:hover {
 .font-row:hover {
   background: var(--neutral-fill-hover);
 }
+/* 安装按钮统一宽度：否则「安装/已安装」宽度不同，预览图的右缘会随按钮浮动 */
+.font-row fluent-button,
+.family-head fluent-button {
+  min-width: 76px;
+}
+/* 线上字体预览：接口下发的图片，靠右显示 */
 .preview {
   height: 32px;
   max-width: 150px;
   object-fit: contain;
+  margin-left: auto;
 }
 .head-preview {
   height: 32px;
   max-width: 140px;
 }
+/* 深色模式：下发的预览图是黑色字体，反色为白色以适配深色卡片 */
+html[data-theme='dark'] .preview {
+  filter: invert(1);
+}
 .font-name {
-  flex: 1;
   font-size: var(--type-ramp-minus-1-font-size);
   color: var(--neutral-foreground-secondary-rest);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+/* 子行样式名固定宽度，预览占余下空间并右对齐 */
+.style-name {
+  flex: 0 0 96px;
+}
+.sample {
+  flex: 1;
+  min-width: 0;
+  text-align: right; /* 预览统一靠右（单样式卡与多样式子行一致） */
+  font-size: 18px;
+  color: var(--neutral-foreground-rest);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.head-sample {
+  flex: 0 1 auto;
+  max-width: 260px;
 }
 .empty {
   color: var(--neutral-foreground-secondary-rest);
   padding: calc(var(--design-unit) * 6 * 1px) 0;
   font-size: 13px;
+}
+/* 需重启提示条 */
+.notice {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--design-unit) * 2 * 1px);
+  flex-shrink: 0;
+  padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 3 * 1px);
+  border: 1px solid var(--neutral-stroke-rest);
+  border-radius: calc(var(--control-corner-radius) * 1px);
+  background: var(--app-card);
+  font-size: 12px;
+  color: var(--neutral-foreground-secondary-rest);
+}
+.notice span {
+  flex: 1;
+}
+.link-btn {
+  border: none;
+  background: transparent;
+  color: var(--accent-base-color);
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
 }
 </style>

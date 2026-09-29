@@ -57,6 +57,11 @@ export function fileExists(path: string): boolean {
   return existsSync(path);
 }
 
+/** 删除文件或目录（不存在也不报错），用于安装后清理字体下载缓存 */
+export async function removeFile(path: string): Promise<void> {
+  await fsp.rm(path, { force: true, recursive: true });
+}
+
 export function fileStat(path: string): { size: number; isDirectory: boolean } | null {
   try {
     const s = statSync(path);

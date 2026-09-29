@@ -65,6 +65,8 @@ export interface WatermarkParams {
   opacity: number;
   bold: boolean;
   fontFamily: string;
+  /** 文字字重（数值字符串，如 "400"/"700"/"900"）；缺省时导出按 bold 推断 */
+  fontWeight?: string;
   /** 旋转角度（度） */
   rotation: number;
   gravity: WatermarkGravity;
