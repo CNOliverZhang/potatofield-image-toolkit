@@ -1,21 +1,11 @@
 <template>
   <div class="tool">
-    <section class="preview-pane">
-      <div v-if="!inputPath" class="dropzone">
-        <font-awesome-icon icon="image" class="dz-icon" />
-        <p>选择一张图片开始压缩</p>
-        <fluent-button appearance="accent" @click="onPick">选择图片</fluent-button>
-      </div>
-      <template v-else>
-        <div class="preview-stage">
-          <img v-if="previewUrl" :src="previewUrl" class="preview-img" alt="预览" />
-        </div>
-        <div class="preview-bar">
-          <span class="fname">{{ inputName }}</span>
-          <fluent-button appearance="neutral" @click="onPick">重新选择</fluent-button>
-        </div>
-      </template>
-    </section>
+    <ImagePicker
+      :src="previewUrl"
+      :name="inputName"
+      hint="选择一张图片开始压缩"
+      @pick="onPick"
+    />
     <aside class="controls-pane">
       <div class="controls-body">
         <div class="batch-entry">
@@ -47,11 +37,12 @@
             <span style="width: 36px; text-align: right">{{ opts.quality }}</span>
           </div>
         </div>
-      </div>
-      <div class="controls-footer">
-        <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="onSave">
-          {{ processing ? '处理中…' : '保存图片' }}
-        </fluent-button>
+        <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
+        <div class="controls-footer">
+          <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="onSave">
+            {{ processing ? '处理中…' : '保存图片' }}
+          </fluent-button>
+        </div>
       </div>
     </aside>
   </div>
@@ -61,6 +52,7 @@
 import { reactive, watch } from 'vue';
 import type { ImageFormat, ImageProcessOptions } from '@shared/types';
 import { useSingleTool, evVal, evNum, extOf } from '@renderer/composables/useSingleTool';
+import ImagePicker from '@renderer/components/ImagePicker.vue';
 
 const { inputPath, inputName, previewUrl, processing, pickImage, schedulePreview, runSave } =
   useSingleTool();

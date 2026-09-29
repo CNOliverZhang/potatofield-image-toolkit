@@ -1,6 +1,7 @@
 <template>
-  <div class="palette">
-    <!-- 左：统一图片选择/预览组件（与水印工具一致，含「重新选择」） -->
+  <!-- 与其他工具页同一套布局类（.tool + .controls-pane），保证左右分栏宽度一致 -->
+  <div class="tool">
+    <!-- 左：统一图片选择/预览组件（含「重新选择」） -->
     <ImagePicker
       :src="imgSrc"
       :name="fileName"
@@ -10,7 +11,8 @@
     />
 
     <!-- 右：控制面板 -->
-    <aside class="side">
+    <aside class="controls-pane">
+      <div class="controls-body palette-body">
       <div class="side-head">
         <h2>色彩提取</h2>
         <label class="field">
@@ -38,8 +40,9 @@
           <span class="hex">{{ c }}</span>
         </div>
       </div>
-      <div v-else class="placeholder">
-        {{ imagePath ? '提取中…' : '选择图片后自动提取主要色彩' }}
+        <div v-else class="placeholder">
+          {{ imagePath ? '提取中…' : '选择图片后自动提取主要色彩' }}
+        </div>
       </div>
     </aside>
   </div>
@@ -117,22 +120,12 @@ function copy(color: string) {
 </script>
 
 <style scoped>
-/* 整页固定高度，任何状态都不滚动 */
-.palette {
-  display: flex;
-  gap: calc(var(--design-unit) * 4 * 1px);
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-/* 右侧面板：不滚动，色卡自适应填充剩余空间 */
-.side {
-  width: 320px;
-  flex-shrink: 0;
+/* 右栏：沿用全局 controls-body（宽度/间距与其它工具页一致），但整页不滚动 */
+.palette-body {
   display: flex;
   flex-direction: column;
   gap: calc(var(--design-unit) * 3 * 1px);
-  min-height: 0;
+  overflow: hidden;
 }
 .side-head {
   display: flex;

@@ -1,30 +1,26 @@
 <template>
   <div class="tool">
-    <section class="preview-pane">
-      <div v-if="!inputPath" class="dropzone">
-        <font-awesome-icon icon="crop" class="dz-icon" />
-        <p>选择一张图片开始裁剪</p>
-        <fluent-button appearance="accent" @click="onPick">选择图片</fluent-button>
-      </div>
-      <template v-else>
-        <div class="preview-stage">
-          <div ref="cropperBoxEl" class="cropper-box">
-            <img
-              ref="imgEl"
-              :key="inputPath"
-              :src="originalUrl"
-              class="src-img"
-              alt="预览"
-              @load="onImgLoad"
-            />
-          </div>
-        </div>
-        <div class="preview-bar">
-          <span class="fname">{{ inputName }}</span>
-          <fluent-button appearance="neutral" @click="onPick">重新选择</fluent-button>
+    <ImagePicker
+      :src="originalUrl"
+      :name="inputName"
+      icon="crop"
+      hint="选择一张图片开始裁剪"
+      @pick="onPick"
+    >
+      <!-- cropper.js 需要挂载在真实 img 上，这里自定义预览主体 -->
+      <template #stage>
+        <div ref="cropperBoxEl" class="cropper-box">
+          <img
+            ref="imgEl"
+            :key="inputPath"
+            :src="originalUrl"
+            class="src-img"
+            alt="预览"
+            @load="onImgLoad"
+          />
         </div>
       </template>
-    </section>
+    </ImagePicker>
     <aside class="controls-pane">
       <div class="controls-body">
         <div class="batch-entry">
@@ -194,6 +190,7 @@ import { computed, reactive, ref, watch, onBeforeUnmount } from 'vue';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import { useSingleTool, evNum, evVal, extOf } from '@renderer/composables/useSingleTool';
+import ImagePicker from '@renderer/components/ImagePicker.vue';
 
 const { inputPath, inputName, processing, pickImage, runSave } = useSingleTool();
 

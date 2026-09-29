@@ -202,6 +202,8 @@ fluent-card {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* 始终预留滚动条位置：否则内容高度不同会导致底部按钮左右跳动 */
+  scrollbar-gutter: stable;
   padding: 0 calc(var(--design-unit) * 1px * 6) 0 0;
   display: block;
   gap: 0;

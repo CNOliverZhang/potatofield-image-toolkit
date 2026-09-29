@@ -1,21 +1,12 @@
 <template>
   <div class="tool">
-    <section class="preview-pane">
-      <div v-if="!inputPath" class="dropzone">
-        <font-awesome-icon icon="grid" class="dz-icon" />
-        <p>选择一张图片开始分割</p>
-        <fluent-button appearance="accent" @click="onPick">选择图片</fluent-button>
-      </div>
-      <template v-else>
-        <div class="preview-stage">
-          <img v-if="previewUrl" :src="previewUrl" class="preview-img" alt="预览" />
-        </div>
-        <div class="preview-bar">
-          <span class="fname">{{ inputName }}</span>
-          <fluent-button appearance="neutral" @click="onPick">重新选择</fluent-button>
-        </div>
-      </template>
-    </section>
+    <ImagePicker
+      :src="previewUrl"
+      :name="inputName"
+      icon="table-cells"
+      hint="选择一张图片开始分割"
+      @pick="onPick"
+    />
     <aside class="controls-pane">
       <div class="controls-body">
         <div class="group">
@@ -30,11 +21,12 @@
           </div>
           <p class="hint" v-if="meta">原图尺寸：{{ meta.width }} × {{ meta.height }}，将分为 {{ rows }} × {{ cols }} 块</p>
         </div>
-      </div>
-      <div class="controls-footer">
-        <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
-          {{ processing ? `处理中 ${progress}…` : '分割并保存' }}
-        </fluent-button>
+        <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
+        <div class="controls-footer">
+          <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
+            {{ processing ? `处理中 ${progress}…` : '分割并保存' }}
+          </fluent-button>
+        </div>
       </div>
     </aside>
   </div>
@@ -43,6 +35,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useSingleTool, evNum, extOf } from '@renderer/composables/useSingleTool';
+import ImagePicker from '@renderer/components/ImagePicker.vue';
 import { selectDirectory } from '@renderer/utils/filePicker';
 import { buildOutputPath } from '@renderer/utils/fileIO';
 import { useDialog } from '@renderer/composables/useDialog';
