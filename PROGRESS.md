@@ -1,6 +1,25 @@
 # 进度跟踪（跨会话）
 
-最后更新：2026-07-31 · 会话 2（样式系统 + 资源管理）
+最后更新：**2026-09-29 · 会话 N（单图处理收尾 + 一致性梳理）**
+> 本轮产出三份文档，后续会话请先读 `PLANNING.md` + `PROGRESS.md` + `docs/` 下三份：
+> - `docs/TOOL_CONSISTENCY.md` —— 单图 vs 批量、批量导入导出的差异与待确认清单
+> - `docs/LEGACY_COMPARISON.md` —— 新老版本实现/表现/性能对比
+> - `docs/DEVELOPMENT_GUIDE.md` —— 统一组件、既有约定、开发维护规范
+
+## 本轮（2026-09-29）已完成：单图处理收尾
+- [x] 字体管理改造：双 Tab（线上字体 / 系统已安装字体，基于 `queryLocalFonts`）
+- [x] 线上字体「安装到系统」：`shell.openPath` 调起系统字体安装器；**已安装判定改由主进程实时检测**（`main/fonts.ts` 读注册表 + 字体目录），绕开 Chromium 字体枚举缓存；安装成功即删除下载缓存 + 启动兜底清理 + 手动「清理缓存」入口
+- [x] 水印工具接入系统字体（字体选择器支持搜索、按字体本身渲染、中文字体别名搜索、滚动不穿透）
+- [x] 字体管理 Tab 改用 Fluent 官方 `fluent-tabs`
+- [x] 长图拼接：横向等高 / 纵向等宽对齐；可选边距（宽度）+ 可选底色（颜色），默认关闭（透明底）
+- [x] 长图拼接：拖拽排序（`vue-draggable-plus`）、item 缩略图、列表面板化（与批量工具同款）、控制区不滚动 + 列表内部滚动
+- [x] 长图拼接：预览改为「滚轮=移动、底部滑块=缩放（contain↔cover）」，横向拼接始终垂直居中、纵向始终水平居中
+- [x] 长图拼接：保存改为单图流程（点按钮后选目录，输出一张，`xxx_spliced.ext`）+ 输出格式/质量设置
+- [x] 大图加固：预览等比缩放（长边 ≤10000 且 ≤6MP，避免生成/传输 GB 级预览）；像素上限（268MP）中文提示 + 超限禁用保存；真实输出尺寸由主进程返回
+- [x] 「文字转图片」改为引导页：进入即弹窗告知已独立为「洋芋田富文本编辑器」，可跳转 https://potatofield.cn/richtexteditor ；首页/侧边栏文案统一为「富文本编辑器」
+- [x] 梳理并输出三份文档（一致性 / 老版本对比 / 开发规范）
+- [x] 压测：240MP 拼接 10.4s、RSS 145MB；276MP 触发上限快速失败（详见 `docs/LEGACY_COMPARISON.md` §6）
+
 
 ## 已完成
 - [x] 老项目完整分析（架构、12 工具、在线接口、更新兼容）
@@ -48,16 +67,22 @@
 ## 待做（按会话）
 > 状态注记：样式系统、Fluent token 化、logo 资源替换、水印参数（offsetX/offsetY）已在本轮完成；以下为原始规划，工具业务逻辑仍按此推进，未变更。
 
-- [ ] 基础模块补全 + resizer/compress/convert/exif
-- [ ] watermark/globalWatermark 业务逻辑（参数 UI 已就绪）
-- [ ] splicer + slicer + cropper
-- [ ] textToImage + fonts + settings 业务逻辑
+### 当前状态（2026-09-29 更新）
+- [x] 单图处理工具：水印、裁剪、尺寸调整、压缩、格式转换、分割、长图拼接 —— 功能均已完成
+- [x] 批量工具：水印 / 全屏水印 / 尺寸 / 压缩 / 转换 / 裁剪 —— 功能均已完成（导入与保存位置已统一）
+- [x] 字体管理、色彩提取、EXIF、设置页 —— 已完成
+- [x] textToImage —— 已外移为独立产品「洋芋田富文本编辑器」
+- [ ] **待你确认后处理**：见 `docs/TOOL_CONSISTENCY.md` §3（11 项，含 2 个已确认缺陷）
+- [ ] **待评估**：EXIF 方向自动校正（老版有、新版未做，见 `docs/LEGACY_COMPARISON.md` §5）
+- [ ] **待定**：模板码（templateCode）能力是否保留（老版水印/拼接有）
 - [ ] 主题/默认路径/参数接入全页面 + 自动更新联调 + win/mac 打包
 
 ## 未决问题
 - 后端 `/image_toolkit/usage` 接口是否存在？（见 PLANNING §4）
 - cropperjs 版本（v1 vs v2）
 - asar:false 是否必须
+- 单图/批量差异是否全部按建议统一（见 `docs/TOOL_CONSISTENCY.md` §3）
+- 是否在各 op 统一加 `.rotate()` 做 EXIF 方向校正
 
 ## 关键约束（勿忘）
 - appId = cn.potatofield.imagetoolkit
