@@ -68,7 +68,7 @@ async function refresh(): Promise<ArrayBuffer | undefined> {
   const res = await window.api.image.process({
     op: 'convert',
     inputPath: inputPath.value,
-    options: { format: opts.format, quality: outQuality(opts) }
+    options: { format: opts.format, quality: outQuality(opts.format, opts.quality) }
   });
   return res.buffer;
 }
@@ -85,7 +85,7 @@ async function onSave() {
         op: 'convert',
         inputPath: inputPath.value,
         outputPath,
-        options: { format: opts.format, quality: outQuality(opts) }
+        options: { format: opts.format, quality: outQuality(opts.format, opts.quality) }
       });
     }
   );

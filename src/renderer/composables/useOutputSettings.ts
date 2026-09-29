@@ -24,8 +24,8 @@ export function outFormat(o: OutputOpts): ImageFormat | undefined {
 }
 
 /** 传给主进程的质量：仅 JPG / WebP 有意义 */
-export function outQuality(o: OutputOpts): number | undefined {
-  return isLossy(o.format) ? o.quality : undefined;
+export function outQuality(format: string, quality: number): number | undefined {
+  return isLossy(format) ? quality : undefined;
 }
 
 /** 输出文件扩展名：保持原格式时沿用输入文件的扩展名 */
@@ -41,7 +41,7 @@ export function outExt(format: string, inputPath: string): string {
 /** 组装到 ImageProcessOptions 里 */
 export function withOutput(base: ImageProcessOptions, o: OutputOpts): ImageProcessOptions {
   const format = outFormat(o);
-  const quality = outQuality(o);
+  const quality = outQuality(o.format, o.quality);
   if (format) base.format = format;
   if (quality !== undefined) base.quality = quality;
   return base;

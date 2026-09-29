@@ -88,25 +88,65 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
       return { buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer };
     }
     case 'append': {
-      const images = (extra.images as string[]) ?? [];
-      const direction = (extra.direction as 'vertical' | 'horizontal') ?? 'vertical';
+      // 两种调用约定都支持：
+      // 1) extra.images + extra.direction
+      // 2) inputPath + extra.srcPaths + options.dir（旧写法）
+      const listed = (extra.images as string[]) ?? [];
+      const images = listed.length
+        ? listed
+        : [inputPath, ...((extra.srcPaths as string[]) ?? [])].filter((p): p is string => !!p);
+      const direction =
+        (extra.direction as 'vertical' | 'horizontal') ??
+        (options.dir as 'vertical' | 'horizontal') ??
+        'vertical';
       if (!images.length) throw new Error('append 需要 images 列表');
       const metas = await Promise.all(images.map((p) => sharp(p).metadata()));
-      const widths = metas.map((m) => m.width ?? 0);
-      const heights = metas.map((m) => m.height ?? 0);
-      const totalW = direction === 'horizontal' ? widths.reduce((a, b) => a + b, 0) : Math.max(...widths);
-      const totalH = direction === 'vertical' ? heights.reduce((a, b) => a + b, 0) : Math.max(...heights);
-      const composites = images.map((p, i) => ({
-        input: p,
-        left: direction === 'horizontal' ? widths.slice(0, i).reduce((a, b) => a + b, 0) : 0,
-        top: direction === 'vertical' ? heights.slice(0, i).reduce((a, b) => a + b, 0) : 0
+      const n = images.length;
+      const originW = metas.map((m) => m.width ?? 0);
+      const originH = metas.map((m) => m.height ?? 0);
+      const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
+      const bg = parseColor((extra.background as string) ?? (options.background as string));
+      // 边距：四周留 margin，图与图之间也留 margin；未指定底色时为透明底
+      const margin = Math.max(0, Math.round(Number(extra.margin ?? options.margin ?? 0)) || 0);
+      // 对齐：横向拼接统一高度、纵向拼接统一宽度（取各图最大值，只放大不缩小，不损失原图细节）
+      const targetH = Math.max(...originH);
+      const targetW = Math.max(...originW);
+      const parts = await Promise.all(
+        images.map(async (p, i): Promise<{ input: string | Buffer; width: number; height: number }> => {
+          const w = originW[i];
+          const h = originH[i];
+          if (direction === 'horizontal' && h > 0 && h !== targetH) {
+            const buf = await sharp(p).resize({ height: targetH }).png().toBuffer();
+            const m = await sharp(buf).metadata();
+            return { input: buf, width: m.width ?? Math.round((w * targetH) / h), height: m.height ?? targetH };
+          }
+          if (direction === 'vertical' && w > 0 && w !== targetW) {
+            const buf = await sharp(p).resize({ width: targetW }).png().toBuffer();
+            const m = await sharp(buf).metadata();
+            return { input: buf, width: m.width ?? targetW, height: m.height ?? Math.round((h * targetW) / w) };
+          }
+          return { input: p, width: w, height: h };
+        })
+      );
+      const widths = parts.map((p) => p.width);
+      const heights = parts.map((p) => p.height);
+      const maxW = Math.max(...widths);
+      const maxH = Math.max(...heights);
+      const totalW =
+        direction === 'horizontal' ? sum(widths) + margin * (n - 1) + margin * 2 : maxW + margin * 2;
+      const totalH =
+        direction === 'vertical' ? sum(heights) + margin * (n - 1) + margin * 2 : maxH + margin * 2;
+      const composites = parts.map((p, i) => ({
+        input: p.input,
+        left: direction === 'horizontal' ? margin + sum(widths.slice(0, i)) + margin * i : margin,
+        top: direction === 'vertical' ? margin + sum(heights.slice(0, i)) + margin * i : margin
       }));
       const pipeline = sharp({
         create: {
-          width: totalW,
-          height: totalH,
+          width: Math.max(1, totalW),
+          height: Math.max(1, totalH),
           channels: 4,
-          background: { r: 255, g: 255, b: 255, alpha: 0 }
+          background: bg ?? { r: 255, g: 255, b: 255, alpha: 0 }
         }
       }).composite(composites).png();
       if (outputPath) {
@@ -284,6 +324,26 @@ async function prepareImageWatermark(
   if (rotation) wm = wm.rotate(rotation, { background: { r: 0, g: 0, b: 0, alpha: 0 } });
   const out = await wm.png().toBuffer({ resolveWithObject: true });
   return { buf: out.data, width: out.info.width, height: out.info.height };
+}
+
+/** 解析 #rgb / #rrggbb / rgb(...) 颜色；不支持时返回 null（按透明处理） */
+function parseColor(input?: string): { r: number; g: number; b: number; alpha: number } | null {
+  if (!input) return null;
+  const s = String(input).trim();
+  if (s.startsWith('#')) {
+    let hex = s.slice(1);
+    if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('');
+    if (hex.length !== 6 || /[^0-9a-fA-F]/.test(hex)) return null;
+    return {
+      r: parseInt(hex.slice(0, 2), 16),
+      g: parseInt(hex.slice(2, 4), 16),
+      b: parseInt(hex.slice(4, 6), 16),
+      alpha: 1
+    };
+  }
+  const m = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (m) return { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]), alpha: 1 };
+  return null;
 }
 
 function escapeXml(s: string): string {
