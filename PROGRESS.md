@@ -1,10 +1,39 @@
 # 进度跟踪（跨会话）
 
-最后更新：**2026-09-29 · 会话 N（单图处理收尾 + 一致性梳理）**
+最后更新：**2026-09-30 · 会话 N（控件样式体系全量推广 + 禁用态/宽度修复）**
+
+## 换电脑续接：先读这些
+
+新会话（或另一台电脑）请先按顺序读：
+1. 本文件 `PROGRESS.md` —— 当前进度与未完成项
+2. `docs/DEVELOPMENT_GUIDE.md` —— **统一组件、样式规范、用户明确的统一性要求、新增工具检查清单**（动手前必读）
+3. `docs/TOOL_CONSISTENCY.md` —— 单图 vs 批量差异、待确认清单
+4. `docs/LEGACY_COMPARISON.md` —— 新老版本实现/性能对比
+5. `PLANNING.md` —— 总体架构与规划
+
+代码在 GitHub：`git@github.com:CNOliverZhang/potatofield-image-toolkit.git`（分支 `main`）。换机器后先 `git pull` 再开工。
+
 > 本轮产出三份文档，后续会话请先读 `PLANNING.md` + `PROGRESS.md` + `docs/` 下三份：
 > - `docs/TOOL_CONSISTENCY.md` —— 单图 vs 批量、批量导入导出的差异与待确认清单
 > - `docs/LEGACY_COMPARISON.md` —— 新老版本实现/表现/性能对比
 > - `docs/DEVELOPMENT_GUIDE.md` —— 统一组件、既有约定、开发维护规范
+
+## 本轮（2026-09-30 下午）已完成：设置组件全量推广 + 样式细节修复
+
+- [x] **设置组件已覆盖全部工具**：compress / convert / resizer / slicer / splicer / cropper(含共享 `CropControls`) / cropper-batch / `BatchTool`（批量尺寸·压缩·转换）/ palette（色彩提取）/ exif（数据卡片）/ settings（应用设置页）/ `SaveLocationSetting`（批量导出）
+- [x] 全局旧结构（`.group` / `.field` / `.field-label` / `.row` / `.label`）在控制区内已清零，实测各路由残留 0
+- [x] 控件宽度修复：Fluent 组件自带 `min-width`（`fluent-select` 250px）会顶掉 `ctl-*`，统一加 `min-width: 0` 后 select 恢复 160px
+- [x] `FontSelect` 宽度不再随字体名变化（组件内 `width:100%` 的 scoped 优先级高于外部 `ctl-lg`，已移除）
+- [x] 字体搜索面板：固定 280px + 窗口边界钳制（靠右时向左收，不再被截断）
+- [x] 禁用按钮：不透明化（原来 `opacity:0.3` 会透出下层）；accent 用 `accent-fill-rest` 淡化 45% + **白字**，其余用卡片色混主文字色；两主题自适应
+- [x] 补齐从未定义的主题令牌 `--neutral-foreground-secondary-rest`（此前全项目靠继承兜底）；`--accent-base-color` 实为 Fluent(fast) 运行时注入，静态值降级为兜底
+- [x] **拼图页高度溢出修复**：图片列表面板固定 340px（列表内部滚动），控制区恢复全局 `overflow-y:auto` 可滚动
+- [x] `SettingsGroup` 新增 `count` 数量徽标属性（当前无人使用，留作能力）
+
+### 边界约定（重要，别越界）
+- 设置组件适用于：**工具参数 + 应用设置页 + 批量导出（保存位置）**
+- **不适用**：`BatchImportPanel`（批量导入）与拼图图片列表这类「带边框容器 + 内部列表」的面板，保持自绘样式
+  （曾误改批量导入，已用 `git checkout` 回滚；拼图列表也已恢复自绘面板，仅保留固定高度）
 
 ## 本轮（2026-09-30）已完成：Windows 设置风格控件体系（进行中）
 - [x] 新建设置组件体系 `components/settings/`：`SettingsGroup`（分组标题 + 卡片容器）、`SettingsRow`（左 label 右控件）、`SettingsCollapse`（可折叠行，子行不限高）
@@ -114,6 +143,8 @@
 - asar:false 是否必须
 - 单图/批量差异是否全部按建议统一（见 `docs/TOOL_CONSISTENCY.md` §3）
 - 是否在各 op 统一加 `.rotate()` 做 EXIF 方向校正
+- `SettingsGroup` 的 `count` 徽标属性当前无人使用，是否保留
+- 拼图图片列表是否维持自绘面板样式（现为自绘 + 固定 340px），还是改回设置卡片样式
 
 ## 关键约束（勿忘）
 - appId = cn.potatofield.imagetoolkit
