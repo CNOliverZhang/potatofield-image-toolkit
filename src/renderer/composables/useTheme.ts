@@ -32,6 +32,11 @@ export function useTheme(): void {
 
   ready = true;
 
+  // 启动时同步一次给主进程：首帧的 watcher 是「不广播」的，
+  // 而主进程需要据此设置 nativeTheme（macOS 玻璃材质的外观跟随窗口 NSAppearance）。
+  // 少了这一步，持久化保存的深色模式在启动时玻璃仍是亮色。
+  window.api.theme.set(settings.darkMode, settings.themeColor);
+
   // 收到其它窗口的主题变更：更新本地状态（同步触发上面的 watcher 应用，但受 applyingRemote 保护不回环广播）
   window.api.theme.onChanged(({ darkMode, themeColor }) => {
     applyingRemote = true;

@@ -27,6 +27,8 @@
      深色：背景 #202020（近黑），卡片 #2b2b2b（浅一档灰）——Fluent 深色无对应实色令牌，自定义 */
   --app-bg: var(--colorNeutralBackground3); /* #f5f5f5 */
   --app-card: var(--colorNeutralBackground1); /* #ffffff */
+  /* 窗口外壳底色：无系统材质时与应用背景一致（不透明） */
+  --shell-bg: var(--app-bg);
 
   /* 次级文字色：Fluent 未提供该令牌，项目内大量引用，这里显式定义（此前一直靠继承兜底） */
   --app-fg-secondary: #5f5f5f;
@@ -56,6 +58,14 @@
   /* 经典滚动条宽度（::-webkit-scrollbar width），用于布局补偿 */
   --scrollbar-w: 10px;
 }
+/* 有系统窗口材质（macOS 玻璃 / Windows 亚克力）：
+   网页背景必须完全透明，让系统材质成为唯一的窗口背景（社区/官方的标准做法——
+   vibrancy 材质画在整窗之后，页面再叠任何底色都是在玻璃上盖毛玻璃）。
+   卡片仍为不透明，内容可读性不受影响；侧边栏与内容区同色（都直接显示材质） */
+html[data-material='on'] {
+  --shell-bg: transparent;
+}
+
 html[data-theme='dark'] {
   --checker-base: #2b2b2b;
   --checker-cell: #202020;

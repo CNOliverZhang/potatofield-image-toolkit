@@ -75,8 +75,13 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
     // Windows：无边框，窗口控制由右上角自绘按钮提供（见 WindowControls.vue）
     titleBarStyle: 'hidden',
     frame: false,
+    // transparent 是 vibrancy（macOS）与 acrylic（Windows）生效的前提
     transparent: true,
     backgroundColor: '#00000000',
+    // 系统窗口材质：macOS 玻璃质感 / Windows 11 亚克力（其余平台不支持，保持普通窗口）
+    // 注意：vibrancy 的 light/dark/appearance-based 等旧值已被 Apple 移除，只能用位置类取值
+    ...(process.platform === 'darwin' ? { vibrancy: 'under-window' as const } : {}),
+    ...(process.platform === 'win32' ? { backgroundMaterial: 'acrylic' as const } : {}),
     icon: resolveAppIcon(),
     show: false,
     webPreferences: {

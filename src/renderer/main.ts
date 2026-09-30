@@ -23,6 +23,12 @@ document.documentElement.setAttribute(
   platform.includes('mac') ? 'mac' : platform.includes('win') ? 'win' : 'other',
 );
 
+// 是否启用了系统窗口材质（macOS vibrancy / Windows acrylic）：
+// 有材质时窗口底色改为半透明，让毛玻璃/亚克力透出来；不支持的平台保持不透明，
+// 否则会直接透出桌面内容，既难看又影响文字可读性
+const hasWindowMaterial = /Mac|Win/.test(navigator.userAgent);
+document.documentElement.dataset.material = hasWindowMaterial ? 'on' : 'off';
+
 const app = createApp(App);
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);

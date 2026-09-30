@@ -113,7 +113,7 @@ function onNavChange(e: Event): void {
   overflow: hidden;
   /* Mica 风格背景（纯 CSS 渐变）—— 仅在卡片内部绘制，
      窗口边缘的透明余量由 body padding 提供 */
-  background: var(--app-bg);
+  background: var(--shell-bg);
   /* 对称柔和阴影：单侧最大延伸 = 6+20 = 26px < --window-pad(28px)，
      四向阴影均完整可见，不再被窗口边界裁切 */
   box-shadow: var(--shell-shadow);
@@ -131,8 +131,9 @@ function onNavChange(e: Event): void {
 .sidebar {
   width: 232px;
   flex-shrink: 0;
-  /* 与窗口背景同色（Windows 设置观感），不再用右侧边框做分隔 */
-  background: var(--app-bg);
+  /* 不再自绘底色：外壳已统一画一层半透明底，
+     这里再画一层会叠加变实，导致侧边栏与内容区不同色 */
+  background: transparent;
   display: flex;
   flex-direction: column;
   padding: calc(var(--design-unit) * 2 * 1px);

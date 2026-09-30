@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell, app, BrowserWindow } from 'electron';
+import { ipcMain, dialog, shell, app, BrowserWindow, nativeTheme } from 'electron';
 import { processImage } from './image';
 import { openWindow, getZoomFactor, setZoomFactor } from './windows';
 import { getOpenAtLogin, setOpenAtLogin } from './system';
@@ -84,6 +84,9 @@ export function registerIpc(): void {
     'theme:set',
     (e, payload: { darkMode: boolean; themeColor: string }) => {
       const sender = BrowserWindow.fromWebContents(e.sender);
+      // macOS 玻璃材质的外观跟随窗口的 NSAppearance：
+      // 应用切深色时必须同步系统外观，否则玻璃仍是亮色、与页面内容冲突
+      nativeTheme.themeSource = payload.darkMode ? 'dark' : 'light';
       for (const win of BrowserWindow.getAllWindows()) {
         if (win === sender || win.isDestroyed()) continue;
         win.webContents.send('theme:changed', payload);
