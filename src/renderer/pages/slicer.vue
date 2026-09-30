@@ -9,41 +9,40 @@
     />
     <aside class="controls-pane">
       <div class="controls-body">
-        <div class="group">
-          <span class="group-title">分割网格</span>
-          <div class="field row">
-            <span class="field-label">行数</span>
-            <fluent-number-field :value="rows" min="1" max="50" @input="rows = evNum($event)"><span slot="end">行</span></fluent-number-field>
-          </div>
-          <div class="field row">
-            <span class="field-label">列数</span>
-            <fluent-number-field :value="cols" min="1" max="50" @input="cols = evNum($event)"><span slot="end">列</span></fluent-number-field>
-          </div>
-          <p class="hint" v-if="meta">原图尺寸：{{ meta.width }} × {{ meta.height }}，将分为 {{ rows }} × {{ cols }} 块</p>
-        </div>
-        <div class="group">
-          <span class="group-title">输出设置</span>
-          <label class="field">
-            <span class="field-label">格式</span>
-            <fluent-select :value="out.format" @change="onFormat">
+        <SettingsGroup title="分割网格">
+          <SettingsRow label="行数">
+            <fluent-number-field class="ctl-num" :value="rows" min="1" max="50" @input="rows = evNum($event)"><span slot="end">行</span></fluent-number-field>
+          </SettingsRow>
+          <SettingsRow label="列数">
+            <fluent-number-field class="ctl-num" :value="cols" min="1" max="50" @input="cols = evNum($event)"><span slot="end">列</span></fluent-number-field>
+          </SettingsRow>
+          <SettingsRow
+            v-if="meta"
+            label="分割结果"
+            :desc="`原图 ${meta.width} × ${meta.height}，将分为 ${rows} × ${cols} 块`"
+          />
+        </SettingsGroup>
+        <SettingsGroup title="输出设置">
+          <SettingsRow label="格式">
+            <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
               <fluent-option value="original">保持原格式</fluent-option>
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
             </fluent-select>
-          </label>
-          <div v-if="lossy" class="field row">
-            <span class="field-label">质量</span>
+          </SettingsRow>
+          <SettingsRow v-if="lossy" label="质量">
             <fluent-slider
+              class="ctl-slider"
               :value="out.quality"
               :min="10"
               :max="100"
               :step="1"
               @change="out.quality = evNum($event)"
             ></fluent-slider>
-            <span class="q-val">{{ out.quality }}</span>
-          </div>
-        </div>
+            <span class="row-val">{{ out.quality }}</span>
+          </SettingsRow>
+        </SettingsGroup>
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
         <div class="controls-footer">
           <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
@@ -67,6 +66,8 @@ import {
 } from '@renderer/composables/useOutputSettings';
 import type { DefaultOutputFormat } from '@renderer/stores/settings';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 import { selectDirectory } from '@renderer/utils/filePicker';
 import { buildOutputPath } from '@renderer/utils/fileIO';
 import { useDialog } from '@renderer/composables/useDialog';

@@ -10,195 +10,115 @@
     </div>
 
     <!-- 文字水印 -->
-    <div v-if="params.type === 'text'" class="group">
-      <span class="group-title">基础设置</span>
-      <label class="field">
-        <span class="field-label">文本内容</span>
-        <fluent-text-field :value="params.text" @input="params.text = evVal($event)"></fluent-text-field>
-      </label>
-      <div class="field row">
-        <span class="field-label">颜色</span>
+    <SettingsGroup v-if="params.type === 'text'" title="基础设置">
+      <SettingsRow label="文本内容">
+        <fluent-text-field class="ctl-lg" :value="params.text" @input="params.text = evVal($event)"></fluent-text-field>
+      </SettingsRow>
+      <SettingsRow label="颜色">
         <input class="color" type="color" :value="params.color" @input="params.color = evVal($event)" />
-      </div>
-      <div class="field">
-        <span class="field-label">不透明度 <em>{{ Math.round(params.opacity * 100) }}%</em></span>
-        <fluent-slider
-          :value="params.opacity * 100"
-          :min="0"
-          :max="100"
-          :step="1"
-          @change="params.opacity = evNum($event) / 100"
-        ></fluent-slider>
-      </div>
-      <div class="field">
-        <span class="field-label">字体</span>
-        <FontSelect v-model="params.fontFamily" :options="fontOptions" placeholder="选择字体" />
-      </div>
-      <label class="field">
-        <span class="field-label">字重</span>
-        <fluent-select :value="weightValue" @change="onWeight">
+      </SettingsRow>
+      <SettingsRow label="不透明度">
+        <fluent-slider class="ctl-slider" :value="params.opacity * 100" :min="0" :max="100" :step="1" @change="params.opacity = evNum($event) / 100"></fluent-slider>
+        <span class="row-val">{{ Math.round(params.opacity * 100) }}%</span>
+      </SettingsRow>
+      <SettingsRow label="字体">
+        <FontSelect class="ctl-lg" v-model="params.fontFamily" :options="fontOptions" placeholder="选择字体" />
+      </SettingsRow>
+      <SettingsRow label="字重">
+        <fluent-select class="ctl-md" :value="weightValue" @change="onWeight">
           <fluent-option v-for="w in weightOptions" :key="w.value" :value="w.value">{{ w.label }}</fluent-option>
         </fluent-select>
-      </label>
-    </div>
+      </SettingsRow>
+    </SettingsGroup>
 
     <!-- 图片水印 -->
-    <div v-else class="group">
-      <span class="group-title">基础设置</span>
-      <div class="field">
-        <span class="field-label">水印图片</span>
+    <SettingsGroup v-else title="基础设置">
+      <SettingsRow label="水印图片">
         <div class="wm-pick">
           <button class="link-btn" @click="pickWatermarkImage">选择图片</button>
           <span v-if="params.watermarkPath" class="wm-name">{{ params.watermarkPath.split(/[\\/]/).pop() }}</span>
           <span v-else class="muted">未选择</span>
         </div>
-      </div>
-      <div class="field">
-        <span class="field-label">不透明度 <em>{{ Math.round(params.opacity * 100) }}%</em></span>
-        <fluent-slider
-          :value="params.opacity * 100"
-          :min="0"
-          :max="100"
-          :step="1"
-          @change="params.opacity = evNum($event) / 100"
-        ></fluent-slider>
-      </div>
-    </div>
+      </SettingsRow>
+      <SettingsRow label="不透明度">
+        <fluent-slider class="ctl-slider" :value="params.opacity * 100" :min="0" :max="100" :step="1" @change="params.opacity = evNum($event) / 100"></fluent-slider>
+        <span class="row-val">{{ Math.round(params.opacity * 100) }}%</span>
+      </SettingsRow>
+    </SettingsGroup>
 
     <!-- 样式和位置 -->
-    <div class="group">
-      <span class="group-title">样式和位置</span>
-      <label class="field" v-if="!lockTile">
-        <span class="field-label">水印模式</span>
-        <fluent-select
-          :value="params.tile ? 'tile' : 'single'"
-          @change="params.tile = evVal($event) === 'tile'"
-        >
+    <SettingsGroup title="样式和位置">
+      <SettingsRow v-if="!lockTile" label="水印模式">
+        <fluent-select class="ctl-md" :value="params.tile ? 'tile' : 'single'" @change="params.tile = evVal($event) === 'tile'">
           <fluent-option value="single">单个模式</fluent-option>
           <fluent-option value="tile">平铺模式</fluent-option>
         </fluent-select>
-      </label>
+      </SettingsRow>
 
-      <label class="field" v-if="!params.tile">
-        <span class="field-label">位置</span>
-        <fluent-select :value="positionUnit" @change="onUnit">
-          <fluent-option value="percent">百分比相对位置</fluent-option>
-          <fluent-option value="pixel">绝对像素位置</fluent-option>
-        </fluent-select>
-      </label>
-      <div class="field" v-if="!params.tile">
-        <span class="field-label">定位基准</span>
-        <div class="pos-grid">
-          <button
-            v-for="p in POSITIONS"
-            :key="p.g"
-            :class="['pos-cell', { active: params.gravity === p.g }]"
-            :title="p.label"
-            @click="params.gravity = p.g"
-          ></button>
-        </div>
-      </div>
+      <!-- 位置基准：位置单位 + 定位基准（相关设置折叠为一组） -->
+      <SettingsCollapse v-if="!params.tile" label="位置基准" desc="位置单位与定位方向">
+        <SettingsRow label="位置">
+          <fluent-select class="ctl-md" :value="positionUnit" @change="onUnit">
+            <fluent-option value="percent">百分比相对位置</fluent-option>
+            <fluent-option value="pixel">绝对像素位置</fluent-option>
+          </fluent-select>
+        </SettingsRow>
+        <SettingsRow label="定位基准">
+          <div class="pos-grid">
+            <button
+              v-for="p in POSITIONS"
+              :key="p.g"
+              :class="['pos-cell', { active: params.gravity === p.g }]"
+              :title="p.label"
+              @click="params.gravity = p.g"
+            ></button>
+          </div>
+        </SettingsRow>
+      </SettingsCollapse>
 
-      <!-- 大小：百分比模式为「占图片宽度的百分比」（滑块）；像素模式下字号为 px 输入框 -->
-      <div class="field" :class="{ row: sizeAsInput }">
-        <span class="field-label">{{ sizeLabel }}<em v-if="!sizeAsInput"> {{ sizeText }}</em></span>
-        <fluent-slider
-          v-if="!sizeAsInput"
-          :value="sizeValue"
-          :min="sizeMin"
-          :max="sizeMax"
-          :step="1"
-          @change="onSize"
-        ></fluent-slider>
-        <fluent-number-field
-          v-else
-          :value="params.fontSize"
-          :min="8"
-          :max="400"
-          :step="1"
-          @input="params.fontSize = evNum($event)"
-        ><span slot="end">px</span></fluent-number-field>
-      </div>
+      <!-- 大小 -->
+      <SettingsRow :label="sizeLabel">
+        <fluent-slider v-if="!sizeAsInput" class="ctl-slider" :value="sizeValue" :min="sizeMin" :max="sizeMax" :step="1" @change="onSize"></fluent-slider>
+        <fluent-number-field v-else class="ctl-num" :value="params.fontSize" :min="8" :max="400" :step="1" @input="params.fontSize = evNum($event)"><span slot="end">px</span></fluent-number-field>
+        <span v-if="!sizeAsInput" class="row-val">{{ sizeText }}</span>
+      </SettingsRow>
 
-      <!-- 边距：百分比模式用滑块，像素模式用输入框（可为负，表示溢出到图外） -->
-      <template v-if="!params.tile">
-        <div v-if="showHMargin" class="field row">
-          <span class="field-label">横向边距</span>
-          <fluent-slider
-            v-if="isPercent"
-            :value="params.offsetX"
-            :min="0"
-            :max="100"
-            :step="1"
-            @change="params.offsetX = evNum($event)"
-          ></fluent-slider>
-          <fluent-number-field
-            v-else
-            :value="params.offsetXPx ?? 0"
-            :step="1"
-            @input="params.offsetXPx = evNum($event)"
-          ><span slot="end">px</span></fluent-number-field>
-          <span class="unit-val">{{ isPercent ? params.offsetX + '%' : (params.offsetXPx ?? 0) + 'px' }}</span>
-        </div>
-        <div v-if="showVMargin" class="field row">
-          <span class="field-label">纵向边距</span>
-          <fluent-slider
-            v-if="isPercent"
-            :value="params.offsetY"
-            :min="0"
-            :max="100"
-            :step="1"
-            @change="params.offsetY = evNum($event)"
-          ></fluent-slider>
-          <fluent-number-field
-            v-else
-            :value="params.offsetYPx ?? 0"
-            :step="1"
-            @input="params.offsetYPx = evNum($event)"
-          ><span slot="end">px</span></fluent-number-field>
-          <span class="unit-val">{{ isPercent ? params.offsetY + '%' : (params.offsetYPx ?? 0) + 'px' }}</span>
-        </div>
-        <p v-if="!isPercent" class="hint">边距可为负值，让水印溢出到图片外；但不会整个都在图外。</p>
-      </template>
+      <!-- 边距设置 -->
+      <SettingsCollapse v-if="!params.tile" label="边距设置" desc="水印到定位边的距离">
+        <SettingsRow v-if="showHMargin" label="横向边距">
+          <fluent-slider v-if="isPercent" class="ctl-slider" :value="params.offsetX" :min="0" :max="100" :step="1" @change="params.offsetX = evNum($event)"></fluent-slider>
+          <fluent-number-field v-else class="ctl-num" :value="params.offsetXPx ?? 0" :step="1" @input="params.offsetXPx = evNum($event)"><span slot="end">px</span></fluent-number-field>
+          <span class="row-val">{{ isPercent ? params.offsetX + '%' : (params.offsetXPx ?? 0) + 'px' }}</span>
+        </SettingsRow>
+        <SettingsRow v-if="showVMargin" label="纵向边距">
+          <fluent-slider v-if="isPercent" class="ctl-slider" :value="params.offsetY" :min="0" :max="100" :step="1" @change="params.offsetY = evNum($event)"></fluent-slider>
+          <fluent-number-field v-else class="ctl-num" :value="params.offsetYPx ?? 0" :step="1" @input="params.offsetYPx = evNum($event)"><span slot="end">px</span></fluent-number-field>
+          <span class="row-val">{{ isPercent ? params.offsetY + '%' : (params.offsetYPx ?? 0) + 'px' }}</span>
+        </SettingsRow>
+        <SettingsRow v-if="!isPercent" label="提示" desc="边距可为负值，让水印溢出到图片外；但不会整个都在图外" />
+      </SettingsCollapse>
 
-      <div class="field">
-        <span class="field-label">旋转 <em>{{ params.rotation }}°</em></span>
-        <fluent-slider
-          :value="params.rotation"
-          :min="-180"
-          :max="180"
-          :step="1"
-          @change="params.rotation = evNum($event)"
-        ></fluent-slider>
-      </div>
-    </div>
+      <SettingsRow label="旋转">
+        <fluent-slider class="ctl-slider" :value="params.rotation" :min="-180" :max="180" :step="1" @change="params.rotation = evNum($event)"></fluent-slider>
+        <span class="row-val">{{ params.rotation }}°</span>
+      </SettingsRow>
+    </SettingsGroup>
 
-    <!-- 输出 -->
-    <div class="group">
-      <span class="group-title">输出设置</span>
-      <label class="field">
-        <span class="field-label">格式</span>
-        <fluent-select
-          :value="params.format"
-          @change="params.format = evVal($event) as 'original' | 'png' | 'jpeg' | 'webp'"
-        >
+    <!-- 输出设置 -->
+    <SettingsGroup title="输出设置">
+      <SettingsRow label="格式">
+        <fluent-select class="ctl-md" :value="params.format" @change="params.format = evVal($event) as 'original' | 'png' | 'jpeg' | 'webp'">
           <fluent-option value="original">保持原格式</fluent-option>
           <fluent-option value="png">PNG（无损）</fluent-option>
           <fluent-option value="jpeg">JPG（有损）</fluent-option>
           <fluent-option value="webp">WebP（有损）</fluent-option>
         </fluent-select>
-      </label>
-      <div v-if="params.format === 'jpeg' || params.format === 'webp'" class="field">
-        <span class="field-label">质量 <em>{{ params.quality }}%</em></span>
-        <fluent-slider
-          :value="params.quality"
-          :min="10"
-          :max="100"
-          :step="1"
-          @change="params.quality = evNum($event)"
-        ></fluent-slider>
-      </div>
-    </div>
+      </SettingsRow>
+      <SettingsRow v-if="params.format === 'jpeg' || params.format === 'webp'" label="质量">
+        <fluent-slider class="ctl-slider" :value="params.quality" :min="10" :max="100" :step="1" @change="params.quality = evNum($event)"></fluent-slider>
+        <span class="row-val">{{ params.quality }}%</span>
+      </SettingsRow>
+    </SettingsGroup>
   </div>
 </template>
 
@@ -209,6 +129,9 @@ import { selectImageFiles } from '@renderer/utils/filePicker';
 import { queryLocalFonts, groupLocalFonts, supportsLocalFonts } from '@renderer/composables/useLocalFonts';
 import { familyCandidates, canonicalStyle, styleWeight, styleLabel } from '@shared/fontStyle';
 import FontSelect from '@renderer/components/FontSelect.vue';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
+import SettingsCollapse from '@renderer/components/settings/SettingsCollapse.vue';
 
 const params = defineModel<WatermarkParams>({ required: true });
 defineProps<{ lockTile?: boolean }>();
@@ -305,13 +228,14 @@ function onUnit(e: Event) {
 /**
  * 大小控件：
  * - 百分比模式：文字/图片统一为「水印宽度占图片宽度的百分比」
- * - 像素模式：文字为字号 px，图片为相对原图短边的比例
+ * - 像素模式：文字为字号 px 输入框，图片为相对原图短边的比例滑块
  */
-/** 百分比模式下叫「水印宽度」（占图宽百分比），像素模式下文字叫「字号」、图片叫「大小」 */
 const sizeLabel = computed(() => {
   if (isPercent.value) return '水印宽度';
   return params.value.type === 'text' ? '字号' : '大小';
 });
+/** 像素模式的文字水印：字号用 px 输入框（图片水印仍用比例滑块） */
+const sizeAsInput = computed(() => !isPercent.value && params.value.type === 'text');
 const sizeValue = computed(() =>
   isPercent.value
     ? Math.round(params.value.sizePct ?? 20)
@@ -334,9 +258,6 @@ function onSize(e: Event) {
   if (isPercent.value) params.value.sizePct = v;
   else params.value.scale = v / 100;
 }
-
-/** 像素模式的文字水印：字号用 px 输入框（图片水印仍用比例滑块） */
-const sizeAsInput = computed(() => !isPercent.value && params.value.type === 'text');
 
 function evVal(e: Event): string {
   return (e.target as HTMLInputElement).value;
@@ -375,38 +296,6 @@ async function pickWatermarkImage() {
   color: #fff;
   box-shadow: 0 1px calc(var(--design-unit) * 1px) rgba(0, 0, 0, 0.18);
 }
-.group {
-  margin-bottom: calc(var(--design-unit) * 1px * 5.5);
-}
-.group-title {
-  display: block;
-  font-size: var(--type-ramp-minus-1-font-size);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--neutral-foreground-secondary-rest);
-  margin-bottom: calc(var(--design-unit) * 1px * 2.5);
-}
-.field {
-  display: block;
-  margin-bottom: calc(var(--design-unit) * 1px * 3.5);
-}
-.field.row {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--design-unit) * 1px * 3);
-}
-.field-label {
-  display: block;
-  font-size: var(--type-ramp-minus-1-font-size);
-  margin-bottom: calc(var(--design-unit) * 1px * 1.5);
-  color: var(--neutral-foreground-rest);
-}
-.field-label em {
-  font-style: normal;
-  color: var(--neutral-foreground-secondary-rest);
-  font-weight: 500;
-}
 .color {
   width: calc(var(--design-unit) * 1px * 11);
   height: calc(var(--design-unit) * 1px * 7.5);
@@ -416,18 +305,11 @@ async function pickWatermarkImage() {
   background: none;
   cursor: pointer;
 }
-.chk {
-  display: inline-flex;
-  align-items: center;
-  gap: calc(var(--design-unit) * 1px * 1.5);
-  font-size: var(--type-ramp-minus-1-font-size);
-}
 .pos-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: calc(var(--design-unit) * 1px * 1.5);
-  width: 132px;
-  margin-bottom: calc(var(--design-unit) * 1px * 2.5);
+  width: 120px;
 }
 .pos-cell {
   aspect-ratio: 1;
@@ -462,6 +344,7 @@ async function pickWatermarkImage() {
   display: flex;
   align-items: center;
   gap: calc(var(--design-unit) * 1px * 2.5);
+  max-width: 100%;
 }
 .link-btn {
   border: 1px solid var(--neutral-stroke-rest);
@@ -471,6 +354,7 @@ async function pickWatermarkImage() {
   border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
   cursor: pointer;
   font-size: var(--type-ramp-minus-1-font-size);
+  flex-shrink: 0;
 }
 .link-btn:hover {
   background: var(--neutral-fill-hover);
@@ -481,23 +365,10 @@ async function pickWatermarkImage() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 150px;
+  max-width: 110px;
 }
 .muted {
   color: var(--neutral-foreground-secondary-rest);
   font-size: var(--type-ramp-minus-1-font-size);
-}
-.unit-val {
-  width: 44px;
-  flex-shrink: 0;
-  text-align: right;
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
-}
-.hint {
-  margin: 0 0 calc(var(--design-unit) * 1px * 3);
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--neutral-foreground-secondary-rest);
 }
 </style>

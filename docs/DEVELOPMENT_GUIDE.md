@@ -12,13 +12,16 @@
 | 组件 | 用途 | 使用者 |
 |---|---|---|
 | `BatchImportPanel.vue` | 批量导入面板（选择文件 / 扫描文件夹 / 列表 / 清空） | 全部批量工具 |
-| `SaveLocationSetting.vue` | 保存位置 + 常用位置 + 保持相对目录 | 全部批量工具 |
+| `SaveLocationSetting.vue` | 保存位置 + 常用位置 + 保持相对目录（内部用 `SettingsGroup` / `SettingsRow`） | 全部批量工具 |
 | `BatchTool.vue` | 批量工具壳（resizer / compress / convert） | 3 个批量工具 |
 | `WatermarkControls.vue` | 水印参数面板（含 `lockTile`、输出设置） | 水印单图 + 批量 + 全屏水印 |
 | `CropControls.vue` | 裁剪参数面板（单位 px/比例、比例预设、九宫格定位、像素输入或百分比、使用整图） | 裁剪单图 + 批量 |
 | `AppDialog.vue` | 全局对话框，支持 alert / confirm / **多选一（actions）** | 全局 |
 | `ImagePicker.vue` | 单图工具的选图/预览占位 | 单图工具 |
 | `FontSelect.vue` | 字体选择器（搜索 + 按字体本身渲染 + 滚动不穿透） | 水印工具 |
+| `settings/SettingsGroup.vue` | 设置分组：标题 + 圆角卡片容器（`title`、`count` 数量徽标） | **全部工具的设置区 / 应用设置页 / 批量导出（保存位置）** |
+| `settings/SettingsRow.vue` | 设置行：左标签（可带 `desc`）+ 右控件 | 全部工具 |
+| `settings/SettingsCollapse.vue` | 可折叠设置行：标题行点击展开，内部放 `SettingsRow`（`defaultOpen`） | 水印工具（位置基准 / 边距设置） |
 | `AppDialog.vue` / `ToastHost.vue` | 全局对话框 / Toast | 全局 |
 | `Layout.vue` / `WindowControls.vue` | 外壳与无边框窗口控制 | 全局 |
 | `ToolStub.vue` | 未实现工具占位 | 临时 |
@@ -66,6 +69,13 @@
 - 字号用 `--type-ramp-*-font-size`。
 - 布局硬约束（面板宽高、图标尺寸）、`box-shadow`、`transform`、1px 边框可保留具体像素。
 - 覆盖全局样式（如 `.preview-stage` / `.preview-img`）时在本页 `<style scoped>` 内覆盖，不要改 `global.css` 影响其它工具。
+- **设置区一律用设置组件**：分组用 `SettingsGroup`，设置项用 `SettingsRow`，相关项折叠用 `SettingsCollapse`；**不要再写旧的 `.group` / `.field` / `.field-label` 结构**。
+  - 适用范围：**工具参数 + 应用设置页 + 批量导出（保存位置）**。
+  - **不适用**：批量导入面板（`BatchImportPanel`）与拼图图片列表这类「带边框容器 + 内部列表」的面板，保持自绘样式（标题 + 数量徽标 + 按钮行 + 滚动列表 + 底部栏），不要套设置组件。
+- 控件宽度用全局类：`ctl-lg`(200) / `ctl-md`(160) / `ctl-num`(110) / `ctl-slider`(flex:1)；滑块旁的数值用 `.row-val`。
+  - 注意：Fluent 组件自带 `min-width`（`fluent-select` 为 250px），`ctl-*` 已统一加了 `min-width: 0` 才能生效；**新增控件若宽度不生效，先查组件的 `min-width`**。
+  - 注意：组件内 `<style scoped>` 的 `width: 100%` 优先级高于全局类，会顶掉使用方传的 `ctl-*`（`FontSelect` 踩过，已修：组件内不再写宽度）。
+- 禁用按钮不要靠 `opacity`（会透出下层内容），统一由 `global.css` 的 `fluent-button[disabled]::part(control)` 处理：accent 用同源淡化色 + **白字**，其余用卡片色混主文字色。
 
 ---
 

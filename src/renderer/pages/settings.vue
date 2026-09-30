@@ -15,77 +15,73 @@
 
     <!-- ───────────────── 通用 ───────────────── -->
     <div v-show="tab === 'general'" class="tab-panel">
-      <div class="group-title">外观</div>
-      <div class="row">
-        <span class="label">主题色</span>
-        <input class="color-input" type="color" :value="settings.themeColor" @input="onColor" />
-        <span class="value">{{ settings.themeColor }}</span>
-      </div>
-      <div class="row">
-        <span class="label">深色模式</span>
-        <fluent-switch :checked="settings.darkMode" @change="onDark"></fluent-switch>
-      </div>
+      <SettingsGroup title="外观">
+        <SettingsRow label="主题色">
+          <input class="color-input" type="color" :value="settings.themeColor" @input="onColor" />
+          <span class="row-val">{{ settings.themeColor }}</span>
+        </SettingsRow>
+        <SettingsRow label="深色模式">
+          <fluent-switch :checked="settings.darkMode" @change="onDark"></fluent-switch>
+        </SettingsRow>
+      </SettingsGroup>
 
-      <div class="group-title">文件</div>
-      <div class="row">
-        <span class="label">文件默认保存地址</span>
-        <fluent-text-field
-          class="dir-field"
-          :value="settings.defaultSaveDirectory"
-          readonly
-        ></fluent-text-field>
-        <fluent-button appearance="neutral" @click="pickDir">选择</fluent-button>
-      </div>
+      <SettingsGroup title="文件">
+        <SettingsRow label="文件默认保存地址">
+          <fluent-text-field
+            class="dir-field"
+            :value="settings.defaultSaveDirectory"
+            readonly
+          ></fluent-text-field>
+          <fluent-button appearance="neutral" @click="pickDir">选择</fluent-button>
+        </SettingsRow>
+      </SettingsGroup>
 
-      <div class="group-title">默认输出</div>
-      <div class="row">
-        <span class="label">输出格式</span>
-        <fluent-select class="out-select" :value="settings.defaultOutput.format" @change="onFormat">
-          <fluent-option value="original">保持原格式</fluent-option>
-          <fluent-option value="png">PNG（无损）</fluent-option>
-          <fluent-option value="jpeg">JPG（有损）</fluent-option>
-          <fluent-option value="webp">WebP（有损）</fluent-option>
-        </fluent-select>
-      </div>
-      <!-- 默认质量是通用默认值（工具里选 JPG/WebP 时才会用到），因此始终显示 -->
-      <div class="row">
-        <span class="label">默认质量</span>
-        <fluent-slider
-          class="out-slider"
-          :value="settings.defaultOutput.quality"
-          :min="10"
-          :max="100"
-          :step="1"
-          @change="onQuality"
-        ></fluent-slider>
-        <span class="value">{{ settings.defaultOutput.quality }}%</span>
-      </div>
-      <p class="hint">作为「改尺寸 / 压缩 / 格式转换 / 切片」等工具新增图片时的初始设置，工具内可单独修改。</p>
+      <SettingsGroup title="默认输出">
+        <SettingsRow label="输出格式">
+          <fluent-select class="ctl-md" :value="settings.defaultOutput.format" @change="onFormat">
+            <fluent-option value="original">保持原格式</fluent-option>
+            <fluent-option value="png">PNG（无损）</fluent-option>
+            <fluent-option value="jpeg">JPG（有损）</fluent-option>
+            <fluent-option value="webp">WebP（有损）</fluent-option>
+          </fluent-select>
+        </SettingsRow>
+        <!-- 默认质量是通用默认值（工具里选 JPG/WebP 时才会用到），因此始终显示 -->
+        <SettingsRow label="默认质量">
+          <fluent-slider
+            class="ctl-slider"
+            :value="settings.defaultOutput.quality"
+            :min="10"
+            :max="100"
+            :step="1"
+            @change="onQuality"
+          ></fluent-slider>
+          <span class="row-val">{{ settings.defaultOutput.quality }}%</span>
+        </SettingsRow>
+        <SettingsRow label="适用范围" desc="作为「改尺寸 / 压缩 / 格式转换 / 切片」等工具新增图片时的初始设置，工具内可单独修改" />
+      </SettingsGroup>
 
-      <div class="group-title">系统</div>
-      <div class="row">
-        <span class="label">开机启动</span>
-        <fluent-switch :checked="openAtLogin" @change="onOpenAtLogin"></fluent-switch>
-      </div>
-      <div class="row">
-        <span class="label">界面缩放</span>
-        <fluent-select class="zoom-select" :value="String(zoomFactor)" @change="onZoom">
-          <fluent-option value="0.75">75%</fluent-option>
-          <fluent-option value="1">100%</fluent-option>
-          <fluent-option value="1.25">125%</fluent-option>
-          <fluent-option value="1.5">150%</fluent-option>
-          <fluent-option value="1.75">175%</fluent-option>
-          <fluent-option value="2">200%</fluent-option>
-        </fluent-select>
-      </div>
-      <p class="hint">界面缩放会作用到所有窗口，用于匹配显示器的尺寸和分辨率。</p>
+      <SettingsGroup title="系统">
+        <SettingsRow label="开机启动">
+          <fluent-switch :checked="openAtLogin" @change="onOpenAtLogin"></fluent-switch>
+        </SettingsRow>
+        <SettingsRow label="界面缩放">
+          <fluent-select class="ctl-md" :value="String(zoomFactor)" @change="onZoom">
+            <fluent-option value="0.75">75%</fluent-option>
+            <fluent-option value="1">100%</fluent-option>
+            <fluent-option value="1.25">125%</fluent-option>
+            <fluent-option value="1.5">150%</fluent-option>
+            <fluent-option value="1.75">175%</fluent-option>
+            <fluent-option value="2">200%</fluent-option>
+          </fluent-select>
+        </SettingsRow>
+        <SettingsRow label="说明" desc="界面缩放会作用到所有窗口，用于匹配显示器的尺寸和分辨率" />
+      </SettingsGroup>
 
-      <div class="group-title">关于</div>
-      <div class="row">
-        <span class="label">版本</span>
-        <span class="value">{{ version }}</span>
-        <button class="link-btn" @click="onUpdateClick">{{ updateLabel }}</button>
-      </div>
+      <SettingsGroup title="关于">
+        <SettingsRow label="版本" :desc="version">
+          <button class="link-btn" @click="onUpdateClick">{{ updateLabel }}</button>
+        </SettingsRow>
+      </SettingsGroup>
     </div>
 
     <!-- ───────────────── 版权信息 ───────────────── -->
@@ -99,31 +95,33 @@
         <button class="link-btn" @click="open(SITE_URL)">访问网站</button>
       </div>
 
-      <div class="group-title">开发者信息</div>
-      <div class="row">
-        <span class="label">Copyright © 2019–{{ currentYear }} 张志毅</span>
-        <button class="link-btn" @click="copyEmail">联系开发者</button>
-      </div>
+      <SettingsGroup title="开发者信息">
+        <SettingsRow :label="`Copyright © 2019–${currentYear} 张志毅`">
+          <button class="link-btn" @click="copyEmail">联系开发者</button>
+        </SettingsRow>
+      </SettingsGroup>
 
-      <div class="group-title">开源协议</div>
-      <div class="about-text">
-        本程序遵循
-        <button class="inline-link" @click="open(REPO_URL)">MIT</button>
-        开源许可协议发行，相关资源及源码已托管在 GitHub，您可以点此访问。
-      </div>
+      <SettingsGroup title="开源协议">
+        <div class="about-text">
+          本程序遵循
+          <button class="inline-link" @click="open(REPO_URL)">MIT</button>
+          开源许可协议发行，相关资源及源码已托管在 GitHub，您可以点此访问。
+        </div>
+      </SettingsGroup>
 
-      <div class="group-title">相关项目</div>
-      <div class="about-text">本程序的开发过程中使用了下列开源程序和组件：</div>
-      <div class="resources">
-        <button
-          v-for="item in resources"
-          :key="item.title"
-          class="resource-chip"
-          @click="open(item.url)"
-        >
-          {{ item.title }}
-        </button>
-      </div>
+      <SettingsGroup title="相关项目">
+        <div class="about-text">本程序的开发过程中使用了下列开源程序和组件：</div>
+        <div class="resources">
+          <button
+            v-for="item in resources"
+            :key="item.title"
+            class="resource-chip"
+            @click="open(item.url)"
+          >
+            {{ item.title }}
+          </button>
+        </div>
+      </SettingsGroup>
     </div>
   </div>
 </template>
@@ -133,6 +131,8 @@ import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useSettingsStore } from '@renderer/stores/settings';
 import { selectDirectory } from '@renderer/utils/filePicker';
 import { useDialog } from '@renderer/composables/useDialog';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 import type { DefaultOutputFormat } from '@renderer/stores/settings';
 
 const SITE_URL = 'https://potatofield.cn/imagetoolkit';
@@ -434,31 +434,9 @@ onBeforeUnmount(() => {
   padding-top: calc(var(--design-unit) * 1 * 1px);
 }
 
-.group-title {
-  margin: calc(var(--design-unit) * 5.5 * 1px) 0 calc(var(--design-unit) * 2 * 1px);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--neutral-foreground-secondary-rest);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-.group-title:first-of-type {
-  margin-top: calc(var(--design-unit) * 1 * 1px);
-}
-.row {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--design-unit) * 3 * 1px);
-  margin: calc(var(--design-unit) * 3 * 1px) 0;
-}
-.label {
-  width: 140px;
-  flex-shrink: 0;
-}
-.value {
-  color: var(--neutral-foreground-secondary-rest);
-  font-size: 13px;
-  word-break: break-all;
+/* 首个分组不需要额外上边距（SettingsGroup 自带组间距） */
+.tab-panel :deep(.settings-group:first-of-type) {
+  margin-top: 0;
 }
 .color-input {
   width: 40px;
@@ -471,19 +449,7 @@ onBeforeUnmount(() => {
 }
 .dir-field {
   flex: 1;
-}
-.out-select,
-.zoom-select {
-  width: 220px;
-}
-.out-slider {
-  flex: 1;
-}
-.hint {
-  margin: calc(var(--design-unit) * 1px * 1.5) 0 0;
-  font-size: 12px;
-  color: var(--neutral-foreground-secondary-rest);
-  opacity: 0.8;
+  min-width: 0;
 }
 /* 链接式入口（检查更新 / 访问网站 / 联系开发者） */
 .link-btn {

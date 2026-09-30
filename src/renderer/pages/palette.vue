@@ -16,12 +16,13 @@
       <div class="controls-body palette-body">
       <div class="side-head">
         <h2>色彩提取</h2>
-        <label class="field">
-          <span class="field-label">色彩数量</span>
-          <fluent-select :value="String(count)" @change="onCount">
-            <fluent-option v-for="n in 10" :key="n" :value="String(n)">{{ n }}</fluent-option>
-          </fluent-select>
-        </label>
+        <SettingsGroup title="提取设置">
+          <SettingsRow label="色彩数量" desc="点击色卡可复制色值">
+            <fluent-select class="ctl-md" :value="String(count)" @change="onCount">
+              <fluent-option v-for="n in 10" :key="n" :value="String(n)">{{ n }}</fluent-option>
+            </fluent-select>
+          </SettingsRow>
+        </SettingsGroup>
       </div>
 
       <!-- 色卡：按数量自适应网格，占满剩余高度，页面不产生滚动 -->
@@ -55,6 +56,8 @@ import ColorThief from 'colorthief';
 import { selectImageFiles } from '@renderer/utils/filePicker';
 import { useDialog } from '@renderer/composables/useDialog';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 
 const dialog = useDialog();
 const imgRef = ref<HTMLImageElement | null>(null);
@@ -137,14 +140,9 @@ function copy(color: string) {
 .side-head h2 {
   margin: 0;
 }
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--design-unit) * 1 * 1px);
-}
-.field-label {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+/* 分组下方色卡区域撑满剩余高度，故去掉 SettingsGroup 自带的外边距 */
+.side-head :deep(.settings-group) {
+  margin-bottom: 0;
 }
 .swatches {
   flex: 1;

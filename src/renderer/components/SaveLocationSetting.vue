@@ -1,54 +1,46 @@
 <template>
-  <div class="save-loc">
-    <div class="group-title">保存位置</div>
-    <div class="loc-current">
-      <span class="loc-path" :title="modelValue">{{ modelValue || '未设置' }}</span>
+  <SettingsGroup title="保存位置">
+    <SettingsRow label="当前位置" :desc="modelValue || '未设置'">
       <fluent-button appearance="neutral" @click="choose">选择文件夹</fluent-button>
-    </div>
+    </SettingsRow>
 
-    <div v-if="settings.recentSaveDirs.length" class="loc-recent">
-      <div class="loc-recent-title">常用位置</div>
-      <div class="loc-recent-row">
-        <fluent-select
-          ref="selectEl"
-          class="loc-select"
-          :title="pending"
-          @change="pending = evVal($event)"
-        >
-          <fluent-option v-for="d in settings.recentSaveDirs" :key="d" :value="d" :title="d">
-            {{ d }}
-          </fluent-option>
-        </fluent-select>
-        <fluent-button
-          appearance="neutral"
-          class="loc-apply"
-          :disabled="!canApply"
-          title="将所选常用位置设为当前保存位置"
-          @click="apply"
-        >
-          应用
-        </fluent-button>
-      </div>
-    </div>
+    <SettingsRow v-if="settings.recentSaveDirs.length" label="常用位置">
+      <fluent-select
+        ref="selectEl"
+        class="loc-select"
+        :title="pending"
+        @change="pending = evVal($event)"
+      >
+        <fluent-option v-for="d in settings.recentSaveDirs" :key="d" :value="d" :title="d">
+          {{ d }}
+        </fluent-option>
+      </fluent-select>
+      <fluent-button
+        appearance="neutral"
+        class="loc-apply"
+        :disabled="!canApply"
+        title="将所选常用位置设为当前保存位置"
+        @click="apply"
+      >
+        应用
+      </fluent-button>
+    </SettingsRow>
 
-    <div class="loc-keep">
-      <div class="loc-keep-text">
-        <span class="loc-keep-label">保持相对目录</span>
-        <span class="loc-keep-hint">按导入时的目录结构整体保存</span>
-      </div>
+    <SettingsRow label="保持相对目录" desc="按导入时的目录结构整体保存">
       <fluent-switch
-        class="loc-keep-switch"
         :checked="props.keepRelative ?? false"
         @change="emit('update:keepRelative', evChk($event))"
       ></fluent-switch>
-    </div>
-  </div>
+    </SettingsRow>
+  </SettingsGroup>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useSettingsStore } from '@renderer/stores/settings';
 import { selectDirectory } from '@renderer/utils/filePicker';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 
 const settings = useSettingsStore();
 const props = defineProps<{ modelValue: string; keepRelative?: boolean }>();
@@ -104,48 +96,6 @@ function apply() {
 </script>
 
 <style scoped>
-.save-loc {
-  margin-bottom: calc(var(--design-unit) * 1px * 5.5);
-}
-.group-title {
-  display: block;
-  font-size: var(--type-ramp-minus-1-font-size);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--neutral-foreground-secondary-rest);
-  margin-bottom: calc(var(--design-unit) * 1px * 2.5);
-}
-.loc-current {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--design-unit) * 1px * 2);
-  margin-bottom: calc(var(--design-unit) * 1px * 3);
-}
-.loc-path {
-  flex: 1;
-  min-width: 0;
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.loc-recent {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--design-unit) * 1px * 1.5);
-  margin-bottom: calc(var(--design-unit) * 1px * 3);
-}
-.loc-recent-title {
-  font-size: var(--type-ramp-minus-2-font-size);
-  color: var(--neutral-foreground-secondary-rest);
-}
-.loc-recent-row {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--design-unit) * 1px * 1.5);
-}
 .loc-select {
   flex: 1;
   min-width: 0;

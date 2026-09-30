@@ -33,23 +33,20 @@
         </p>
 
         <!-- 输出设置：与单图裁剪一致 -->
-        <div class="group">
-          <span class="group-title">输出设置</span>
-          <label class="field">
-            <span class="field-label">格式</span>
-            <fluent-select :value="out.format" @change="onFormat">
+        <SettingsGroup title="输出设置">
+          <SettingsRow label="格式">
+            <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
               <fluent-option value="original">保持原格式</fluent-option>
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
             </fluent-select>
-          </label>
-          <div v-if="lossy" class="field row">
-            <span class="field-label">质量</span>
-            <fluent-slider :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
-            <span class="q-val">{{ out.quality }}</span>
-          </div>
-        </div>
+          </SettingsRow>
+          <SettingsRow v-if="lossy" label="质量">
+            <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+            <span class="row-val">{{ out.quality }}</span>
+          </SettingsRow>
+        </SettingsGroup>
 
         <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
 
@@ -83,6 +80,8 @@ import { clampRegionToImage, scaleRegionToImage, type CropMeta } from '@renderer
 import { useBatchRunner } from '@renderer/composables/useBatchRunner';
 import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
 import CropControls from '@renderer/components/CropControls.vue';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 import SaveLocationSetting from '@renderer/components/SaveLocationSetting.vue';
 
 const { message } = useDialog();

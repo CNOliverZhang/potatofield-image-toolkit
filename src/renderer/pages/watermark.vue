@@ -19,7 +19,7 @@
         </div>
         <WatermarkControls v-model="params" />
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="save">
+          <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="save">
             {{ processing ? '处理中…' : '保存水印图片' }}
           </fluent-button>
         </div>

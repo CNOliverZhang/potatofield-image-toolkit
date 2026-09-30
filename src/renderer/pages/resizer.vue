@@ -14,19 +14,16 @@
             <font-awesome-icon icon="layer-group" /> 批量调整尺寸
           </fluent-button>
         </div>
-        <div class="group">
-          <span class="group-title">尺寸设置</span>
-          <div class="field row">
-            <span class="field-label">宽度</span>
-            <fluent-number-field :value="opts.width" min="1" @input="opts.width = evNum($event)"><span slot="end">px</span></fluent-number-field>
-          </div>
-          <div class="field row">
-            <span class="field-label">高度（0=按比例）</span>
-            <fluent-number-field :value="opts.height" min="0" @input="opts.height = evNum($event)"><span slot="end">px</span></fluent-number-field>
-          </div>
-          <label class="field">
-            <span class="field-label">适配方式</span>
+        <SettingsGroup title="尺寸设置">
+          <SettingsRow label="宽度">
+            <fluent-number-field class="ctl-num" :value="opts.width" min="1" @input="opts.width = evNum($event)"><span slot="end">px</span></fluent-number-field>
+          </SettingsRow>
+          <SettingsRow label="高度" desc="0 = 按宽度等比缩放">
+            <fluent-number-field class="ctl-num" :value="opts.height" min="0" @input="opts.height = evNum($event)"><span slot="end">px</span></fluent-number-field>
+          </SettingsRow>
+          <SettingsRow label="适配方式">
             <fluent-select
+              class="ctl-lg"
               :value="opts.fit"
               @change="opts.fit = evVal($event) as ImageProcessOptions['fit']"
             >
@@ -36,34 +33,32 @@
               <fluent-option value="contain">包含（contain）</fluent-option>
               <fluent-option value="outside">外部（outside）</fluent-option>
             </fluent-select>
-          </label>
-        </div>
-        <div class="group">
-          <span class="group-title">输出设置</span>
-          <label class="field">
-            <span class="field-label">格式</span>
-            <fluent-select :value="out.format" @change="onFormat">
+          </SettingsRow>
+        </SettingsGroup>
+        <SettingsGroup title="输出设置">
+          <SettingsRow label="格式">
+            <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
               <fluent-option value="original">保持原格式</fluent-option>
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
             </fluent-select>
-          </label>
-          <div v-if="lossy" class="field row">
-            <span class="field-label">质量</span>
+          </SettingsRow>
+          <SettingsRow v-if="lossy" label="质量">
             <fluent-slider
+              class="ctl-slider"
               :value="out.quality"
               :min="10"
               :max="100"
               :step="1"
               @change="out.quality = evNum($event)"
             ></fluent-slider>
-            <span class="q-val">{{ out.quality }}</span>
-          </div>
-        </div>
+            <span class="row-val">{{ out.quality }}</span>
+          </SettingsRow>
+        </SettingsGroup>
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="onSave">
+          <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
             {{ processing ? '处理中…' : '保存图片' }}
           </fluent-button>
         </div>
@@ -85,6 +80,8 @@ import {
 } from '@renderer/composables/useOutputSettings';
 import type { DefaultOutputFormat } from '@renderer/stores/settings';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 
 const { inputPath, inputName, previewUrl, processing, pickImage, schedulePreview, runSave } =
   useSingleTool();

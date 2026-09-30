@@ -9,31 +9,28 @@
     />
     <aside class="controls-pane">
       <div class="controls-body">
-        <!-- 读取到的元数据放在右栏，与左侧预览构成左右布局 -->
-        <div v-if="entries.length" class="group">
-          <span class="group-title">元数据</span>
+        <!-- 读取到的元数据放在右栏，与左侧预览构成左右布局（沿用设置分组的卡片外观） -->
+        <SettingsGroup v-if="entries.length" title="元数据">
           <div class="meta-table">
             <div class="meta-row" v-for="e in entries" :key="e.key">
               <span class="meta-key">{{ e.key }}</span>
               <span class="meta-val">{{ e.value }}</span>
             </div>
           </div>
-        </div>
-        <div v-if="exifEntries.length" class="group">
-          <span class="group-title">EXIF 原始字段</span>
+        </SettingsGroup>
+        <SettingsGroup v-if="exifEntries.length" title="EXIF 原始字段">
           <div class="meta-table">
             <div class="meta-row" v-for="e in exifEntries" :key="'exif-' + e.key">
               <span class="meta-key">{{ e.key }}</span>
               <span class="meta-val">{{ e.value }}</span>
             </div>
           </div>
-        </div>
-        <div class="group">
-          <span class="group-title">说明</span>
+        </SettingsGroup>
+        <SettingsGroup title="说明">
           <p class="hint">
             本工具读取图片的元数据（格式、尺寸、色彩空间等）以及嵌入的 EXIF 信息（如拍摄时间、相机型号、GPS 等）。
           </p>
-        </div>
+        </SettingsGroup>
       </div>
     </aside>
   </div>
@@ -43,6 +40,7 @@
 import { computed, ref } from 'vue';
 import { useSingleTool } from '@renderer/composables/useSingleTool';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 
 const { inputPath, inputName, previewUrl, pickImage, schedulePreview } = useSingleTool();
 

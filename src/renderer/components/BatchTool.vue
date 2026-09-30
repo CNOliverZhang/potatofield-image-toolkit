@@ -19,82 +19,70 @@
 
     <aside class="controls-pane">
       <div class="controls-body">
-        <div class="group">
-          <span class="group-title">{{ config[tool].title }}设置</span>
-
+        <SettingsGroup :title="`${config[tool].title}设置`">
           <template v-if="tool === 'resizer'">
-            <div class="field row">
-              <span class="field-label">宽度</span>
-              <fluent-number-field :value="opts.width" min="1" @input="opts.width = evNum($event)"><span slot="end">px</span></fluent-number-field>
-            </div>
-            <div class="field row">
-              <span class="field-label">高度（0=按比例）</span>
-              <fluent-number-field :value="opts.height" min="0" @input="opts.height = evNum($event)"><span slot="end">px</span></fluent-number-field>
-            </div>
-            <label class="field">
-              <span class="field-label">适配方式</span>
-              <fluent-select :value="opts.fit" @change="opts.fit = evVal($event) as ImageProcessOptions['fit']">
+            <SettingsRow label="宽度">
+              <fluent-number-field class="ctl-num" :value="opts.width" min="1" @input="opts.width = evNum($event)"><span slot="end">px</span></fluent-number-field>
+            </SettingsRow>
+            <SettingsRow label="高度" desc="0 = 按宽度等比缩放">
+              <fluent-number-field class="ctl-num" :value="opts.height" min="0" @input="opts.height = evNum($event)"><span slot="end">px</span></fluent-number-field>
+            </SettingsRow>
+            <SettingsRow label="适配方式">
+              <fluent-select class="ctl-lg" :value="opts.fit" @change="opts.fit = evVal($event) as ImageProcessOptions['fit']">
                 <fluent-option value="inside">等比缩放（inside）</fluent-option>
                 <fluent-option value="cover">裁剪填充（cover）</fluent-option>
                 <fluent-option value="fill">拉伸（fill）</fluent-option>
                 <fluent-option value="contain">包含（contain）</fluent-option>
                 <fluent-option value="outside">外延（outside）</fluent-option>
               </fluent-select>
-            </label>
+            </SettingsRow>
           </template>
 
           <template v-else-if="tool === 'compress'">
-            <label class="field">
-              <span class="field-label">格式</span>
-              <fluent-select :value="out.format" @change="onFormat">
+            <SettingsRow label="格式">
+              <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
                 <fluent-option value="original">保持原格式</fluent-option>
                 <fluent-option value="png">PNG（无损）</fluent-option>
                 <fluent-option value="jpeg">JPG（有损）</fluent-option>
                 <fluent-option value="webp">WebP（有损）</fluent-option>
               </fluent-select>
-            </label>
-            <div v-if="lossy" class="field row">
-              <span class="field-label">质量</span>
-              <fluent-slider :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
-              <span class="q-val">{{ out.quality }}</span>
-            </div>
+            </SettingsRow>
+            <SettingsRow v-if="lossy" label="质量">
+              <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+              <span class="row-val">{{ out.quality }}</span>
+            </SettingsRow>
           </template>
 
           <template v-else-if="tool === 'convert'">
-            <label class="field">
-              <span class="field-label">目标格式</span>
-              <fluent-select :value="out.format" @change="onFormat">
+            <SettingsRow label="目标格式">
+              <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
                 <fluent-option value="png">PNG（无损）</fluent-option>
                 <fluent-option value="jpeg">JPG（有损）</fluent-option>
                 <fluent-option value="webp">WebP（有损）</fluent-option>
               </fluent-select>
-            </label>
-            <div v-if="lossy" class="field row">
-              <span class="field-label">质量</span>
-              <fluent-slider :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
-              <span class="q-val">{{ out.quality }}</span>
-            </div>
+            </SettingsRow>
+            <SettingsRow v-if="lossy" label="质量">
+              <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+              <span class="row-val">{{ out.quality }}</span>
+            </SettingsRow>
           </template>
-        </div>
+        </SettingsGroup>
 
         <!-- 输出设置：与单图工具一致（压缩/转换的格式与质量本身就是输出设置，不再重复显示） -->
-        <div v-if="tool === 'resizer'" class="group">
-          <span class="group-title">输出设置</span>
-          <label class="field">
-            <span class="field-label">格式</span>
-            <fluent-select :value="out.format" @change="onFormat">
+        <SettingsGroup v-if="tool === 'resizer'" title="输出设置">
+          <SettingsRow label="格式">
+            <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
               <fluent-option value="original">保持原格式</fluent-option>
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
             </fluent-select>
-          </label>
-          <div v-if="lossy" class="field row">
-            <span class="field-label">质量</span>
-            <fluent-slider :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
-            <span class="q-val">{{ out.quality }}</span>
-          </div>
-        </div>
+          </SettingsRow>
+          <SettingsRow v-if="lossy" label="质量">
+            <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+            <span class="row-val">{{ out.quality }}</span>
+          </SettingsRow>
+        </SettingsGroup>
 
         <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
 
@@ -107,7 +95,7 @@
           >
             取消（已完成 {{ progress.done }}/{{ progress.total }}）
           </fluent-button>
-          <fluent-button v-else appearance="accent" class="save-btn" @click="run">
+          <fluent-button v-else appearance="accent" class="save-btn" :disabled="!files.length" @click="run">
             开始批量处理 ({{ files.length }})
           </fluent-button>
         </div>
@@ -132,6 +120,8 @@ import { useBatchRunner } from '@renderer/composables/useBatchRunner';
 import { useSettingsStore } from '@renderer/stores/settings';
 import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
 import SaveLocationSetting from '@renderer/components/SaveLocationSetting.vue';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 
 type ToolKey = 'resizer' | 'compress' | 'convert';
 

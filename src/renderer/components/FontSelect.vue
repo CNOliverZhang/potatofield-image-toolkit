@@ -67,6 +67,8 @@ const searchEl = ref<HTMLInputElement | null>(null);
 const panelStyle = ref<Record<string, string>>({});
 
 const PANEL_H = 300;
+/** 面板固定宽度：不随触发器/字体名长短变化 */
+const PANEL_W = 280;
 
 /** 常见中文字体别名：系统里的族名多为英文（Microsoft YaHei / SimSun），
  *  直接搜"雅黑""宋体"会搜不到，这里做一次别名扩展 */
@@ -122,10 +124,12 @@ async function toggle() {
   const below = window.innerHeight - r.bottom;
   // 下方空间不足时向上弹出
   const top = below > PANEL_H + 8 ? r.bottom + 4 : Math.max(8, r.top - PANEL_H - 4);
+  // 靠右时向左收，避免面板飘出窗口被截断
+  const left = Math.min(Math.max(8, r.left), window.innerWidth - PANEL_W - 8);
   panelStyle.value = {
-    left: `${r.left}px`,
+    left: `${left}px`,
     top: `${top}px`,
-    width: `${Math.max(Math.round(r.width), 240)}px`,
+    width: `${PANEL_W}px`,
     maxHeight: `${PANEL_H}px`
   };
   open.value = true;
@@ -170,7 +174,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .font-select {
   position: relative;
-  width: 100%;
+  /* 宽度由使用方的 ctl-* 类控制（此处 width:100% 会以更高优先级覆盖 ctl-lg，导致宽度随字体名变化） */
 }
 .fs-trigger {
   display: flex;

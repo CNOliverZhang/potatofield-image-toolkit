@@ -1,16 +1,13 @@
 <template>
-  <div class="group">
-    <span class="group-title">裁剪区域</span>
-    <div class="field row">
-      <span class="field-label">单位</span>
-      <fluent-select :value="unit" @change="onUnit">
+  <SettingsGroup title="裁剪区域">
+    <SettingsRow label="单位">
+      <fluent-select class="ctl-md" :value="unit" @change="onUnit">
         <fluent-option value="px">像素</fluent-option>
         <fluent-option value="ratio">比例</fluent-option>
       </fluent-select>
-    </div>
-    <div class="field row">
-      <span class="field-label">比例预设</span>
-      <fluent-select :value="ratio" @change="onRatio">
+    </SettingsRow>
+    <SettingsRow label="比例预设">
+      <fluent-select class="ctl-md" :value="ratio" @change="onRatio">
         <fluent-option value="free">自由</fluent-option>
         <fluent-option value="1:1">1:1</fluent-option>
         <fluent-option value="4:3">4:3</fluent-option>
@@ -18,10 +15,9 @@
         <fluent-option value="3:2">3:2</fluent-option>
         <fluent-option value="2:3">2:3</fluent-option>
       </fluent-select>
-    </div>
+    </SettingsRow>
     <!-- 定位基准：决定裁剪框可移动的方向，两种单位下都生效 -->
-    <div class="field">
-      <span class="field-label">定位基准</span>
+    <SettingsRow label="定位基准">
       <div class="pos-grid">
         <button
           v-for="p in CROP_POSITIONS"
@@ -31,99 +27,105 @@
           @click="onGravity(p.g)"
         ></button>
       </div>
-    </div>
+    </SettingsRow>
 
     <!-- 像素模式：直接输入像素值 -->
     <template v-if="unit === 'px'">
-      <div class="field row">
-        <span class="field-label">X（左）</span>
+      <SettingsRow label="X（左）">
         <fluent-number-field
+          class="ctl-num"
           :value="fieldValue('left')"
           min="0"
           :max="maxOf('left')"
           :step="1"
           @input="onField('left', $event)"
         ><span slot="end">px</span></fluent-number-field>
-      </div>
-      <div class="field row">
-        <span class="field-label">Y（上）</span>
+      </SettingsRow>
+      <SettingsRow label="Y（上）">
         <fluent-number-field
+          class="ctl-num"
           :value="fieldValue('top')"
           min="0"
           :max="maxOf('top')"
           :step="1"
           @input="onField('top', $event)"
         ><span slot="end">px</span></fluent-number-field>
-      </div>
-      <div class="field row">
-        <span class="field-label">宽度</span>
+      </SettingsRow>
+      <SettingsRow label="宽度">
         <fluent-number-field
+          class="ctl-num"
           :value="fieldValue('width')"
           min="1"
           :max="maxOf('width')"
           :step="1"
           @input="onField('width', $event)"
         ><span slot="end">px</span></fluent-number-field>
-      </div>
-      <div class="field row">
-        <span class="field-label">高度</span>
+      </SettingsRow>
+      <SettingsRow label="高度">
         <fluent-number-field
+          class="ctl-num"
           :value="fieldValue('height')"
           min="1"
           :max="maxOf('height')"
           :step="1"
           @input="onField('height', $event)"
         ><span slot="end">px</span></fluent-number-field>
-      </div>
+      </SettingsRow>
     </template>
 
     <!-- 比例模式：边距与尺寸百分比 -->
     <template v-else>
-      <div v-if="showHMargin" class="field">
-        <span class="field-label">横向边距 <em>{{ offsetXPct }}%</em></span>
+      <SettingsRow v-if="showHMargin" label="横向边距">
         <fluent-slider
+          class="ctl-slider"
           :value="offsetXPct"
           :min="0"
           :max="offsetXMaxPct"
           :step="1"
           @change="onOffsetX"
         ></fluent-slider>
-      </div>
-      <div v-if="showVMargin" class="field">
-        <span class="field-label">纵向边距 <em>{{ offsetYPct }}%</em></span>
+        <span class="row-val">{{ offsetXPct }}%</span>
+      </SettingsRow>
+      <SettingsRow v-if="showVMargin" label="纵向边距">
         <fluent-slider
+          class="ctl-slider"
           :value="offsetYPct"
           :min="0"
           :max="offsetYMaxPct"
           :step="1"
           @change="onOffsetY"
         ></fluent-slider>
-      </div>
-      <div class="field">
-        <span class="field-label">宽度 <em>{{ widthPct }}%</em></span>
+        <span class="row-val">{{ offsetYPct }}%</span>
+      </SettingsRow>
+      <SettingsRow label="宽度">
         <fluent-slider
+          class="ctl-slider"
           :value="widthPct"
           :min="1"
           :max="100"
           :step="1"
           @change="onSizePct('width', $event)"
         ></fluent-slider>
-      </div>
-      <div class="field">
-        <span class="field-label">高度 <em>{{ heightPct }}%</em></span>
+        <span class="row-val">{{ widthPct }}%</span>
+      </SettingsRow>
+      <SettingsRow label="高度">
         <fluent-slider
+          class="ctl-slider"
           :value="heightPct"
           :min="1"
           :max="100"
           :step="1"
           @change="onSizePct('height', $event)"
         ></fluent-slider>
-      </div>
+        <span class="row-val">{{ heightPct }}%</span>
+      </SettingsRow>
     </template>
 
-    <fluent-button appearance="neutral" @click="useFull">使用整图</fluent-button>
-    <p v-if="showCanvasHint" class="hint">提示：在预览区可直接拖拽、缩放裁剪框。</p>
-  </div>
+    <SettingsRow label="快捷操作">
+      <fluent-button appearance="neutral" @click="useFull">使用整图</fluent-button>
+    </SettingsRow>
+    <SettingsRow v-if="showCanvasHint" label="提示" desc="在预览区可直接拖拽、缩放裁剪框" />
+  </SettingsGroup>
 </template>
 
 <script setup lang="ts">
@@ -141,6 +143,8 @@ import {
   type VAlign
 } from '@renderer/composables/useCropGeometry';
 import { evNum, evVal } from '@renderer/composables/useSingleTool';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 
 type RegionKey = 'left' | 'top' | 'width' | 'height';
 
@@ -291,18 +295,13 @@ function useFull() {
 </script>
 
 <style scoped>
-.hint {
-  margin: calc(var(--design-unit) * 1px * 2) 0 0;
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
-}
-/* 定位基准九宫格（与水印工具一致） */
+/* 定位基准九宫格（与水印工具同尺寸） */
 .pos-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: calc(var(--design-unit) * 1px * 1.5);
-  width: 132px;
-  margin-bottom: calc(var(--design-unit) * 1px * 2.5);
+  width: calc(var(--design-unit) * 1px * 30); /* 120px */
+  flex-shrink: 0;
 }
 .pos-cell {
   aspect-ratio: 1;

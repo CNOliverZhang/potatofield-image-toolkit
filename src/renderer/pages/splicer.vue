@@ -46,7 +46,8 @@
     <!-- 右：图片列表（可调序）+ 拼接设置 -->
     <aside class="controls-pane">
       <div class="controls-body">
-        <!-- 图片列表：撑满剩余高度，条目过多时面板内部滚动 -->
+        <!-- 图片列表：与批量工具左侧导入面板同款容器；高度固定，条目过多时列表内部滚动
+             （控制区沿用全局可滚动布局，设置项多时不会被列表挤溢出） -->
         <div class="file-panel">
           <div class="panel-head">
             <span class="panel-title">拼接图片</span>
@@ -101,62 +102,55 @@
           </div>
         </div>
 
-        <div class="group">
-          <span class="group-title">拼接方式</span>
-          <label class="field">
-            <span class="field-label">排列方向</span>
-            <fluent-select :value="direction" @change="onDirection">
+        <SettingsGroup title="拼接方式">
+          <SettingsRow label="排列方向">
+            <fluent-select class="ctl-md" :value="direction" @change="onDirection">
               <fluent-option value="vertical">纵向（上下拼接）</fluent-option>
               <fluent-option value="horizontal">横向（左右拼接）</fluent-option>
             </fluent-select>
-          </label>
-          <div class="field row">
-            <span class="field-label">添加边距</span>
+          </SettingsRow>
+          <SettingsRow label="添加边距">
             <fluent-checkbox :checked="useMargin" @change="useMargin = evChk($event)"></fluent-checkbox>
-          </div>
-          <div v-if="useMargin" class="field row">
-            <span class="field-label">边距宽度</span>
+          </SettingsRow>
+          <SettingsRow v-if="useMargin" label="边距宽度">
             <fluent-number-field
+              class="ctl-num"
               :value="margin"
               min="0"
               max="500"
               @input="margin = evNum($event)"
             ><span slot="end">px</span></fluent-number-field>
-          </div>
-          <div class="field row">
-            <span class="field-label">添加底色</span>
+          </SettingsRow>
+          <SettingsRow label="添加底色">
             <fluent-checkbox :checked="useBg" @change="useBg = evChk($event)"></fluent-checkbox>
-          </div>
-          <div v-if="useBg" class="field row">
-            <span class="field-label">底色</span>
+          </SettingsRow>
+          <SettingsRow v-if="useBg" label="底色">
             <input class="color" type="color" :value="bgColor" @input="onColor" />
-            <span class="color-val">{{ bgColor }}</span>
-          </div>
-        </div>
+            <span class="row-val">{{ bgColor }}</span>
+          </SettingsRow>
+        </SettingsGroup>
 
-        <div class="group">
-          <span class="group-title">输出设置</span>
-          <label class="field">
-            <span class="field-label">格式</span>
-            <fluent-select :value="out.format" @change="onFormat">
+        <SettingsGroup title="输出设置">
+          <SettingsRow label="格式">
+            <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
             </fluent-select>
-          </label>
-          <div v-if="lossy" class="field row">
-            <span class="field-label">质量</span>
+          </SettingsRow>
+          <SettingsRow v-if="lossy" label="质量">
             <fluent-slider
+              class="ctl-slider"
               :value="out.quality"
               :min="10"
               :max="100"
               :step="1"
               @change="out.quality = evNum($event)"
             ></fluent-slider>
-            <span class="q-val">{{ out.quality }}</span>
-          </div>
-          <p class="hint" v-if="out.format === 'jpeg' && !useBg">JPG 不支持透明，未设置底色时按白色输出</p>
-        </div>
+            <span class="row-val">{{ out.quality }}</span>
+          </SettingsRow>
+          <SettingsRow v-if="out.format === 'jpeg' && !useBg" label="提示" desc="JPG 不支持透明，未设置底色时按白色输出" />
+        </SettingsGroup>
 
         <p v-if="overLimit" class="warn">{{ limitHint }}</p>
 
@@ -184,6 +178,8 @@ import { scanImageDirectory, type BatchItem } from '@renderer/utils/directorySca
 import { relativePath } from '@renderer/utils/fileIO';
 import { useDialog } from '@renderer/composables/useDialog';
 import { evChk, evNum, evVal, useSingleTool } from '@renderer/composables/useSingleTool';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 import {
   createOutputOpts,
   isLossy,
@@ -525,41 +521,13 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* 图片列表：可拖动调节顺序，因此每项带序号 + 上移/下移 */
-.import-actions {
-  display: flex;
-  gap: calc(var(--design-unit) * 2 * 1px);
-  margin-bottom: calc(var(--design-unit) * 2.5 * 1px);
-}
-.import-actions fluent-button {
-  flex: 1;
-}
-.file-list {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--design-unit) * 1.5 * 1px);
-  max-height: 320px;
-  overflow-y: auto;
-  padding-right: calc(var(--design-unit) * 1px);
-}
-.list-empty {
-  color: var(--neutral-foreground-secondary-rest);
-  font-size: var(--type-ramp-minus-1-font-size);
-  text-align: center;
-  padding: calc(var(--design-unit) * 4 * 1px) 0;
-}
-/* 控制区整体不滚动：列表面板撑起剩余高度，设置区固定 */
-.controls-body {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-/* 图片列表面板：与批量工具左侧导入面板同款容器 */
+/* 图片列表：可拖动调节顺序，因此每项带序号 + 上移/下移。
+   面板高度固定、列表内部滚动；控制区沿用全局的可滚动布局，设置项多时不会被挤出可视区 */
 .file-panel {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
+  height: 340px;
+  flex-shrink: 0;
   margin-bottom: calc(var(--design-unit) * 1px * 5.5);
   background: var(--neutral-layer-2);
   border: 1px solid var(--neutral-stroke-rest);

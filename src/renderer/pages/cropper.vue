@@ -39,31 +39,30 @@
           @change="onRegionChange"
         />
         <!-- 输出设置（与水印工具一致） -->
-        <div class="group">
-          <span class="group-title">输出设置</span>
-          <label class="field">
-            <span class="field-label">格式</span>
-            <fluent-select :value="format" @change="onFormat">
+        <SettingsGroup title="输出设置">
+          <SettingsRow label="格式">
+            <fluent-select class="ctl-md" :value="format" @change="onFormat">
               <fluent-option value="original">保持原格式</fluent-option>
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
             </fluent-select>
-          </label>
-          <div v-if="format === 'jpeg' || format === 'webp'" class="field">
-            <span class="field-label">质量 <em>{{ quality }}%</em></span>
+          </SettingsRow>
+          <SettingsRow v-if="format === 'jpeg' || format === 'webp'" label="质量">
             <fluent-slider
+              class="ctl-slider"
               :value="quality"
               :min="10"
               :max="100"
               :step="1"
               @change="onQuality"
             ></fluent-slider>
-          </div>
-        </div>
+            <span class="row-val">{{ quality }}%</span>
+          </SettingsRow>
+        </SettingsGroup>
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="onSave">
+          <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
             {{ processing ? '处理中…' : '保存图片' }}
           </fluent-button>
         </div>
@@ -80,6 +79,8 @@ import { useSingleTool, evNum, evVal, extOf } from '@renderer/composables/useSin
 import { clampRegion, hAlignOf, vAlignOf } from '@renderer/composables/useCropGeometry';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
 import CropControls from '@renderer/components/CropControls.vue';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 
 const { inputPath, inputName, processing, pickImage, runSave } = useSingleTool();
 

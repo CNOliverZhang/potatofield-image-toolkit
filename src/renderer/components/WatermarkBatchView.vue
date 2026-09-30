@@ -25,7 +25,7 @@
           <fluent-button v-if="processing" appearance="neutral" class="save-btn" @click="cancel">
             取消（已完成 {{ progress.done }}/{{ progress.total }}）
           </fluent-button>
-          <fluent-button v-else appearance="accent" class="save-btn" @click="run">
+          <fluent-button v-else appearance="accent" class="save-btn" :disabled="!files.length" @click="run">
             开始批量处理 ({{ files.length }})
           </fluent-button>
         </div>

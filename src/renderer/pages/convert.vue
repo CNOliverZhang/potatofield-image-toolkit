@@ -14,31 +14,29 @@
             <font-awesome-icon icon="layer-group" /> 批量转换
           </fluent-button>
         </div>
-        <div class="group">
-          <span class="group-title">转换设置</span>
-          <label class="field">
-            <span class="field-label">目标格式</span>
-            <fluent-select :value="opts.format" @change="onFormat">
+        <SettingsGroup title="转换设置">
+          <SettingsRow label="目标格式">
+            <fluent-select class="ctl-md" :value="opts.format" @change="onFormat">
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
             </fluent-select>
-          </label>
-          <div v-if="lossy" class="field row">
-            <span class="field-label">质量</span>
+          </SettingsRow>
+          <SettingsRow v-if="lossy" label="质量">
             <fluent-slider
+              class="ctl-slider"
               :value="opts.quality"
               :min="10"
               :max="100"
               :step="1"
               @change="opts.quality = evNum($event)"
             ></fluent-slider>
-            <span class="q-val">{{ opts.quality }}</span>
-          </div>
-        </div>
+            <span class="row-val">{{ opts.quality }}</span>
+          </SettingsRow>
+        </SettingsGroup>
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="onSave">
+          <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
             {{ processing ? '处理中…' : '保存图片' }}
           </fluent-button>
         </div>
@@ -53,6 +51,8 @@ import type { ImageFormat } from '@shared/types';
 import { useSingleTool, evVal, evNum, extOf } from '@renderer/composables/useSingleTool';
 import { createOutputOpts, isLossy, outExt, outQuality } from '@renderer/composables/useOutputSettings';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 
 const { inputPath, inputName, previewUrl, processing, pickImage, schedulePreview, runSave } =
   useSingleTool();
