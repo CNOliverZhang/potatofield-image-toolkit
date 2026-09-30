@@ -183,18 +183,18 @@ onBeforeUnmount(() => {
   width: 100%;
   min-height: calc(var(--design-unit) * 8 * 1px);
   padding: 0 calc(var(--design-unit) * 2.5 * 1px);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px);
-  background: var(--neutral-fill-input);
-  color: var(--neutral-foreground-rest);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1);
   font: inherit;
-  font-size: var(--type-ramp-base-font-size);
+  font-size: var(--fontSizeBase300);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.12s ease, background 0.12s ease;
 }
 .fs-trigger:hover {
-  background: var(--neutral-fill-input-hover, var(--neutral-fill-hover));
+  background: var(--neutral-fill-input-hover, var(--colorNeutralBackground1Hover));
 }
 .fs-value {
   flex: 1;
@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
 .fs-chev {
   flex-shrink: 0;
   font-size: 10px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   transition: transform 0.18s ease;
 }
 .fs-chev.open {
@@ -219,9 +219,9 @@ onBeforeUnmount(() => {
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px);
-  background: var(--neutral-layer-floating);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground1);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
   overflow: hidden;
 }
@@ -231,11 +231,11 @@ onBeforeUnmount(() => {
   gap: calc(var(--design-unit) * 1.5 * 1px);
   flex-shrink: 0;
   padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 2.5 * 1px);
-  border-bottom: 1px solid var(--neutral-stroke-divider-rest, var(--neutral-stroke-rest));
+  border-bottom: 1px solid var(--neutral-stroke-divider-rest, var(--colorNeutralStroke1));
 }
 .fs-search-icon {
   font-size: 11px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .fs-search-input {
   flex: 1;
@@ -243,7 +243,7 @@ onBeforeUnmount(() => {
   border: none;
   outline: none;
   background: transparent;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   font: inherit;
   font-size: 13px;
 }
@@ -264,7 +264,7 @@ onBeforeUnmount(() => {
   transition: background 0.1s ease;
 }
 .fs-option:hover {
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 .fs-option.active {
   background: color-mix(in srgb, var(--accent-base-color) 16%, transparent);
@@ -281,6 +281,6 @@ html[data-theme='dark'] .fs-option:hover {
   padding: calc(var(--design-unit) * 3 * 1px);
   text-align: center;
   font-size: 12px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 </style>

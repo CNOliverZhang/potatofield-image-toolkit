@@ -3,23 +3,23 @@
     <div class="toolbar">
       <!-- 组件自带的 activeIndicator 在本环境不生效，这里用共享指示条实现滑动动画 -->
       <div ref="tabsWrapEl" class="tabs-wrap">
-        <fluent-tabs ref="tabsEl" class="fs-tabs" :activeid="tab" @change="onTabsChange">
+        <fluent-tablist ref="tabsEl" class="fs-tabs" :activeid="tab" @change="onTabsChange">
           <fluent-tab id="online" :class="{ 'is-active': tab === 'online' }" @click="switchTab('online')">
             线上字体
           </fluent-tab>
           <fluent-tab id="local" :class="{ 'is-active': tab === 'local' }" @click="switchTab('local')">
             本地字体
           </fluent-tab>
-        </fluent-tabs>
+        </fluent-tablist>
         <span class="tab-indicator" :style="indicatorStyle"></span>
       </div>
       <div class="toolbar-actions">
-        <fluent-text-field
+        <fluent-text-input
           class="search"
           :value="keyword"
           :placeholder="tab === 'online' ? '搜索字体族' : '搜索本地字体'"
           @input="onSearch"
-        ></fluent-text-field>
+        ></fluent-text-input>
         <fluent-button
           v-if="tab === 'online'"
           appearance="neutral"
@@ -28,7 +28,7 @@
         >
           清理缓存
         </fluent-button>
-        <fluent-button appearance="accent" :disabled="loading" @click="refresh">
+        <fluent-button appearance="primary" :disabled="loading" @click="refresh">
           {{ loading ? '加载中…' : refreshLabel }}
         </fluent-button>
       </div>
@@ -71,7 +71,7 @@
                       :alt="font.name"
                     />
                     <fluent-button
-                      appearance="accent"
+                      appearance="primary"
                       :disabled="!!store.installed[font.id] || !!store.installing[font.id]"
                       @click="install(font)"
                     >
@@ -96,7 +96,7 @@
                   :alt="family.fonts[0].name"
                 />
                 <fluent-button
-                  appearance="accent"
+                  appearance="primary"
                   :disabled="!!store.installed[family.fonts[0].id] || !!store.installing[family.fonts[0].id]"
                   @click="install(family.fonts[0])"
                 >
@@ -287,7 +287,7 @@ function updateIndicator() {
   };
 }
 
-/** fluent-tabs 的 change 事件：不同版本 detail 可能是 id 字符串或对象，兼容读取 */
+/** fluent-tablist 的 change 事件：不同版本 detail 可能是 id 字符串或对象，兼容读取 */
 function onTabsChange(e: Event) {
   const target = e.target as (HTMLElement & { activeid?: string }) | null;
   const detail = (e as CustomEvent).detail as unknown;
@@ -479,8 +479,8 @@ watch(
 }
 /* SettingExpander 式卡片（PowerToys 设置页风格） */
 .family-card {
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px); /* WinUI 卡片圆角 4px */
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium); /* WinUI 卡片圆角 4px */
   /* 默认不透明（可展开项默认态、不可展开项、以及子项均不透明） */
   background: var(--app-card);
   overflow: hidden;
@@ -498,7 +498,7 @@ watch(
   width: 100%;
   border: none;
   background: transparent;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   /* 标题 20 + 副标题 16 + 间距 2 = 38，上下各 17px → 总高 72px（对应 PowerToys 两行卡） */
   padding: calc(var(--design-unit) * 4.25 * 1px) calc(var(--design-unit) * 3 * 1px);
   cursor: pointer;
@@ -507,11 +507,11 @@ watch(
   transition: background 0.12s ease;
 }
 .family-head:hover {
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 /* 按压态：轻微的透明度反馈 */
 .family-head:active {
-  background: color-mix(in srgb, var(--neutral-fill-hover) 60%, transparent);
+  background: color-mix(in srgb, var(--colorNeutralBackground1Hover) 60%, transparent);
 }
 /* 深色模式交互色：与 WinUI 一致用低亮度白叠加（hover 6% / 按压 4%） */
 html[data-theme='dark'] .family-head:hover {
@@ -533,7 +533,7 @@ html[data-theme='dark'] .font-row:hover {
 .family-icon {
   flex-shrink: 0;
   font-size: calc(var(--design-unit) * 2 * 1px);
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .head-text {
   display: flex;
@@ -553,13 +553,13 @@ html[data-theme='dark'] .font-row:hover {
 .family-sub {
   font-size: 12px;
   line-height: 16px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .chev {
   flex-shrink: 0;
   font-size: calc(var(--design-unit) * 3 * 1px); /* 12px，与 PowerToys 展开箭头一致 */
   transition: transform 0.18s ease;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .chev.open {
   transform: rotate(180deg);
@@ -583,13 +583,13 @@ html[data-theme='dark'] .font-row:hover {
   gap: calc(var(--design-unit) * 3 * 1px);
   min-height: calc(var(--design-unit) * 14 * 1px); /* 56px，对应 PowerToys 子项行 */
   padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 3 * 1px);
-  border-top: 1px solid var(--neutral-stroke-divider-rest, var(--neutral-stroke-rest));
+  border-top: 1px solid var(--neutral-stroke-divider-rest, var(--colorNeutralStroke1));
   /* 图标(2du) + 头部水平内边距(3du) + 间距(2.5du) = 7.5du，与标题文本对齐 */
   padding-left: calc(var(--design-unit) * 7.5 * 1px);
   transition: background 0.12s ease;
 }
 .font-row:hover {
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 /* 安装按钮统一宽度：否则「安装/已安装」宽度不同，预览图的右缘会随按钮浮动 */
 .font-row fluent-button,
@@ -612,8 +612,8 @@ html[data-theme='dark'] .preview {
   filter: invert(1);
 }
 .font-name {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -628,7 +628,7 @@ html[data-theme='dark'] .preview {
   min-width: 0;
   text-align: right; /* 预览统一靠右（单样式卡与多样式子行一致） */
   font-size: 18px;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -638,7 +638,7 @@ html[data-theme='dark'] .preview {
   max-width: 260px;
 }
 .empty {
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   padding: calc(var(--design-unit) * 6 * 1px) 0;
   font-size: 13px;
 }
@@ -649,11 +649,11 @@ html[data-theme='dark'] .preview {
   gap: calc(var(--design-unit) * 2 * 1px);
   flex-shrink: 0;
   padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 3 * 1px);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium);
   background: var(--app-card);
   font-size: 12px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .notice span {
   flex: 1;

@@ -128,19 +128,21 @@ const nav = [
   align-items: center;
   gap: calc(var(--design-unit) * 3 * 1px);
   padding: calc(var(--design-unit) * 2.25 * 1px) calc(var(--design-unit) * 3 * 1px);
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
-  color: var(--neutral-foreground-rest);
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
+  color: var(--colorNeutralForeground1);
   cursor: pointer;
   user-select: none;
   transition: background 0.12s ease;
 }
 .nav-item:hover {
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 /* Fluent 风格选中态：轻量背景 + 强调色文字 + 左侧细条指示，
    不再用整块强调色填充与加粗，避免“刻意、太重” */
 .nav-item.active {
-  background: var(--neutral-fill-stealth-active);
+  /* v2 的 neutral-fill-stealth-active 极淡（近透明叠加）；v3 的
+     colorNeutralBackground1Pressed 明显更重，这里按原观感用 5% 文字色混入 */
+  background: color-mix(in srgb, var(--colorNeutralForeground1) 5%, transparent);
   color: var(--accent-base-color);
   font-weight: 500;
 }

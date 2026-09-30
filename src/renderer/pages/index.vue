@@ -23,7 +23,9 @@
           <div class="card-desc">{{ tool.desc }}</div>
           <div v-if="tool.batchRoute" class="card-foot">
             <fluent-button
-              appearance="accent"
+              appearance="primary"
+              size="small"
+              shape="circular"
               class="card-batch"
               @click.stop="goBatch(tool)"
             >
@@ -99,11 +101,11 @@ function goBatch(tool: ToolEntry) {
   margin: 0;
   font-size: 13px;
   font-weight: 600;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .group-count {
   font-size: 12px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   opacity: 0.7;
 }
 
@@ -120,9 +122,9 @@ function goBatch(tool: ToolEntry) {
   height: 132px;
   overflow: hidden;
   background: var(--app-card);
-  border: 1px solid var(--neutral-stroke-rest);
+  border: 1px solid var(--colorNeutralStroke1);
   border-radius: calc(
-    var(--layer-corner-radius) * 1px + var(--design-unit) * 1px / 2
+    var(--borderRadiusXLarge) + var(--design-unit) * 1px / 2
   );
   padding: calc(var(--design-unit) * 2 * 1px)
     calc(var(--design-unit) * 2.5 * 1px);
@@ -137,7 +139,7 @@ function goBatch(tool: ToolEntry) {
   border-color: color-mix(
     in srgb,
     var(--accent-base-color) 55%,
-    var(--neutral-stroke-rest)
+    var(--colorNeutralStroke1)
   );
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.09);
 }
@@ -155,7 +157,7 @@ function goBatch(tool: ToolEntry) {
   align-items: center;
   justify-content: center;
   border-radius: calc(
-    var(--control-corner-radius) * 1px + var(--design-unit) * 1px
+    var(--borderRadiusMedium) + var(--design-unit) * 1px
   );
   background: color-mix(in srgb, var(--accent-base-color) 12%, transparent);
   color: var(--accent-base-color);
@@ -172,7 +174,7 @@ function goBatch(tool: ToolEntry) {
   margin: calc(var(--design-unit) * 4 * 1px) 0 0;
   font-size: 12px;
   line-height: 1.45;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   /* 描述最多两行，避免个别卡片被撑高导致整行参差 */
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -185,17 +187,7 @@ function goBatch(tool: ToolEntry) {
 }
 .card-batch {
   align-self: flex-start;
-}
-/*
- * Fluent v2 的 fluent-button 只有 appearance，没有 size / shape 属性
- * （v2 里 appearance="accent" 就是主按钮）。这里用 ::part(control) 覆盖
- * 内部控件，实现 v3 的 size="small" + shape="circular" 等价效果。
- */
-.card-batch::part(control) {
   min-width: auto;
-  height: 24px;
-  padding: 0 calc(var(--design-unit) * 1.5 * 1px);
-  border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--fontSizeBase200);
 }
 </style>

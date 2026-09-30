@@ -11,10 +11,10 @@
       <div class="controls-body">
         <SettingsGroup title="分割网格">
           <SettingsRow label="行数">
-            <fluent-number-field class="ctl-num" :value="rows" min="1" max="50" @input="rows = evNum($event)"><span slot="end">行</span></fluent-number-field>
+            <num-input class="ctl-num" :value="rows" min="1" max="50" @input="rows = evNum($event)"><span slot="end">行</span></num-input>
           </SettingsRow>
           <SettingsRow label="列数">
-            <fluent-number-field class="ctl-num" :value="cols" min="1" max="50" @input="cols = evNum($event)"><span slot="end">列</span></fluent-number-field>
+            <num-input class="ctl-num" :value="cols" min="1" max="50" @input="cols = evNum($event)"><span slot="end">列</span></num-input>
           </SettingsRow>
           <SettingsRow
             v-if="meta"
@@ -24,12 +24,12 @@
         </SettingsGroup>
         <SettingsGroup title="输出设置">
           <SettingsRow label="格式">
-            <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
+            <app-select class="ctl-md" :value="out.format" @change="onFormat">
               <fluent-option value="original">保持原格式</fluent-option>
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
-            </fluent-select>
+            </app-select>
           </SettingsRow>
           <SettingsRow v-if="lossy" label="质量">
             <fluent-slider
@@ -45,7 +45,7 @@
         </SettingsGroup>
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
+          <fluent-button appearance="primary" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
             {{ processing ? `处理中 ${progress}…` : '分割并保存' }}
           </fluent-button>
         </div>
@@ -71,6 +71,8 @@ import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 import { selectDirectory } from '@renderer/utils/filePicker';
 import { buildOutputPath } from '@renderer/utils/fileIO';
 import { useDialog } from '@renderer/composables/useDialog';
+import NumInput from '@renderer/components/NumInput.vue';
+import AppSelect from '@renderer/components/AppSelect.vue';
 
 const { message } = useDialog();
 const { inputPath, inputName, previewUrl, processing, pickImage, schedulePreview } = useSingleTool();

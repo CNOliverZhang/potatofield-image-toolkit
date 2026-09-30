@@ -12,7 +12,7 @@
     <!-- 文字水印 -->
     <SettingsGroup v-if="params.type === 'text'" title="基础设置">
       <SettingsRow label="文本内容">
-        <fluent-text-field class="ctl-lg" :value="params.text" @input="params.text = evVal($event)"></fluent-text-field>
+        <fluent-text-input class="ctl-lg" :value="params.text" @input="params.text = evVal($event)"></fluent-text-input>
       </SettingsRow>
       <SettingsRow label="颜色">
         <input class="color" type="color" :value="params.color" @input="params.color = evVal($event)" />
@@ -25,9 +25,9 @@
         <FontSelect class="ctl-lg" v-model="params.fontFamily" :options="fontOptions" placeholder="选择字体" />
       </SettingsRow>
       <SettingsRow label="字重">
-        <fluent-select class="ctl-md" :value="weightValue" @change="onWeight">
+        <app-select class="ctl-md" :value="weightValue" @change="onWeight">
           <fluent-option v-for="w in weightOptions" :key="w.value" :value="w.value">{{ w.label }}</fluent-option>
-        </fluent-select>
+        </app-select>
       </SettingsRow>
     </SettingsGroup>
 
@@ -49,19 +49,19 @@
     <!-- 样式和位置 -->
     <SettingsGroup title="样式和位置">
       <SettingsRow v-if="!lockTile" label="水印模式">
-        <fluent-select class="ctl-md" :value="params.tile ? 'tile' : 'single'" @change="params.tile = evVal($event) === 'tile'">
+        <app-select class="ctl-md" :value="params.tile ? 'tile' : 'single'" @change="params.tile = evVal($event) === 'tile'">
           <fluent-option value="single">单个模式</fluent-option>
           <fluent-option value="tile">平铺模式</fluent-option>
-        </fluent-select>
+        </app-select>
       </SettingsRow>
 
       <!-- 位置基准：位置单位 + 定位基准（相关设置折叠为一组） -->
       <SettingsCollapse v-if="!params.tile" label="位置基准" desc="位置单位与定位方向">
         <SettingsRow label="位置">
-          <fluent-select class="ctl-md" :value="positionUnit" @change="onUnit">
+          <app-select class="ctl-md" :value="positionUnit" @change="onUnit">
             <fluent-option value="percent">百分比相对位置</fluent-option>
             <fluent-option value="pixel">绝对像素位置</fluent-option>
-          </fluent-select>
+          </app-select>
         </SettingsRow>
         <SettingsRow label="定位基准">
           <div class="pos-grid">
@@ -79,7 +79,7 @@
       <!-- 大小 -->
       <SettingsRow :label="sizeLabel">
         <fluent-slider v-if="!sizeAsInput" class="ctl-slider" :value="sizeValue" :min="sizeMin" :max="sizeMax" :step="1" @change="onSize"></fluent-slider>
-        <fluent-number-field v-else class="ctl-num" :value="params.fontSize" :min="8" :max="400" :step="1" @input="params.fontSize = evNum($event)"><span slot="end">px</span></fluent-number-field>
+        <num-input v-else class="ctl-num" :value="params.fontSize" :min="8" :max="400" :step="1" @input="params.fontSize = evNum($event)"><span slot="end">px</span></num-input>
         <span v-if="!sizeAsInput" class="row-val">{{ sizeText }}</span>
       </SettingsRow>
 
@@ -87,12 +87,12 @@
       <SettingsCollapse v-if="!params.tile" label="边距设置" desc="水印到定位边的距离">
         <SettingsRow v-if="showHMargin" label="横向边距">
           <fluent-slider v-if="isPercent" class="ctl-slider" :value="params.offsetX" :min="0" :max="100" :step="1" @change="params.offsetX = evNum($event)"></fluent-slider>
-          <fluent-number-field v-else class="ctl-num" :value="params.offsetXPx ?? 0" :step="1" @input="params.offsetXPx = evNum($event)"><span slot="end">px</span></fluent-number-field>
+          <num-input v-else class="ctl-num" :value="params.offsetXPx ?? 0" :step="1" @input="params.offsetXPx = evNum($event)"><span slot="end">px</span></num-input>
           <span class="row-val">{{ isPercent ? params.offsetX + '%' : (params.offsetXPx ?? 0) + 'px' }}</span>
         </SettingsRow>
         <SettingsRow v-if="showVMargin" label="纵向边距">
           <fluent-slider v-if="isPercent" class="ctl-slider" :value="params.offsetY" :min="0" :max="100" :step="1" @change="params.offsetY = evNum($event)"></fluent-slider>
-          <fluent-number-field v-else class="ctl-num" :value="params.offsetYPx ?? 0" :step="1" @input="params.offsetYPx = evNum($event)"><span slot="end">px</span></fluent-number-field>
+          <num-input v-else class="ctl-num" :value="params.offsetYPx ?? 0" :step="1" @input="params.offsetYPx = evNum($event)"><span slot="end">px</span></num-input>
           <span class="row-val">{{ isPercent ? params.offsetY + '%' : (params.offsetYPx ?? 0) + 'px' }}</span>
         </SettingsRow>
         <SettingsRow v-if="!isPercent" label="提示" desc="边距可为负值，让水印溢出到图片外；但不会整个都在图外" />
@@ -107,12 +107,12 @@
     <!-- 输出设置 -->
     <SettingsGroup title="输出设置">
       <SettingsRow label="格式">
-        <fluent-select class="ctl-md" :value="params.format" @change="params.format = evVal($event) as 'original' | 'png' | 'jpeg' | 'webp'">
+        <app-select class="ctl-md" :value="params.format" @change="params.format = evVal($event) as 'original' | 'png' | 'jpeg' | 'webp'">
           <fluent-option value="original">保持原格式</fluent-option>
           <fluent-option value="png">PNG（无损）</fluent-option>
           <fluent-option value="jpeg">JPG（有损）</fluent-option>
           <fluent-option value="webp">WebP（有损）</fluent-option>
-        </fluent-select>
+        </app-select>
       </SettingsRow>
       <SettingsRow v-if="params.format === 'jpeg' || params.format === 'webp'" label="质量">
         <fluent-slider class="ctl-slider" :value="params.quality" :min="10" :max="100" :step="1" @change="params.quality = evNum($event)"></fluent-slider>
@@ -132,6 +132,8 @@ import FontSelect from '@renderer/components/FontSelect.vue';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 import SettingsCollapse from '@renderer/components/settings/SettingsCollapse.vue';
+import NumInput from '@renderer/components/NumInput.vue';
+import AppSelect from '@renderer/components/AppSelect.vue';
 
 const params = defineModel<WatermarkParams>({ required: true });
 defineProps<{ lockTile?: boolean }>();
@@ -275,8 +277,8 @@ async function pickWatermarkImage() {
 <style scoped>
 .seg {
   display: flex;
-  background: var(--neutral-fill-hover);
-  border-radius: calc(var(--layer-corner-radius) * 1px);
+  background: var(--colorNeutralBackground1Hover);
+  border-radius: var(--borderRadiusXLarge);
   padding: calc(var(--design-unit) * 1px * 0.75);
   margin-bottom: calc(var(--design-unit) * 1px * 4.5);
 }
@@ -284,11 +286,11 @@ async function pickWatermarkImage() {
   flex: 1;
   border: none;
   background: transparent;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   padding: calc(var(--design-unit) * 1px * 2) 0;
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
   cursor: pointer;
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
   transition: all 0.12s ease;
 }
 .seg-btn.active {
@@ -300,8 +302,8 @@ async function pickWatermarkImage() {
   width: calc(var(--design-unit) * 1px * 11);
   height: calc(var(--design-unit) * 1px * 7.5);
   padding: 0;
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium);
   background: none;
   cursor: pointer;
 }
@@ -313,8 +315,8 @@ async function pickWatermarkImage() {
 }
 .pos-cell {
   aspect-ratio: 1;
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
   background: transparent;
   cursor: pointer;
   position: relative;
@@ -326,7 +328,7 @@ async function pickWatermarkImage() {
   width: calc(var(--design-unit) * 1px * 1.75);
   height: calc(var(--design-unit) * 1px * 1.75);
   border-radius: 50%;
-  background: var(--neutral-foreground-secondary-rest);
+  background: var(--app-fg-secondary);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -347,28 +349,28 @@ async function pickWatermarkImage() {
   max-width: 100%;
 }
 .link-btn {
-  border: 1px solid var(--neutral-stroke-rest);
+  border: 1px solid var(--colorNeutralStroke1);
   background: transparent;
   color: var(--accent-base-color);
   padding: calc(var(--design-unit) * 1px * 1.5) calc(var(--design-unit) * 1px * 3);
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
   cursor: pointer;
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
   flex-shrink: 0;
 }
 .link-btn:hover {
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 .wm-name {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 110px;
 }
 .muted {
-  color: var(--neutral-foreground-secondary-rest);
-  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--app-fg-secondary);
+  font-size: var(--fontSizeBase200);
 }
 </style>

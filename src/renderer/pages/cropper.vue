@@ -41,12 +41,12 @@
         <!-- 输出设置（与水印工具一致） -->
         <SettingsGroup title="输出设置">
           <SettingsRow label="格式">
-            <fluent-select class="ctl-md" :value="format" @change="onFormat">
+            <app-select class="ctl-md" :value="format" @change="onFormat">
               <fluent-option value="original">保持原格式</fluent-option>
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
-            </fluent-select>
+            </app-select>
           </SettingsRow>
           <SettingsRow v-if="format === 'jpeg' || format === 'webp'" label="质量">
             <fluent-slider
@@ -62,7 +62,7 @@
         </SettingsGroup>
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
+          <fluent-button appearance="primary" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
             {{ processing ? '处理中…' : '保存图片' }}
           </fluent-button>
         </div>
@@ -81,6 +81,7 @@ import ImagePicker from '@renderer/components/ImagePicker.vue';
 import CropControls from '@renderer/components/CropControls.vue';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
+import AppSelect from '@renderer/components/AppSelect.vue';
 
 const { inputPath, inputName, processing, pickImage, runSave } = useSingleTool();
 
@@ -426,8 +427,8 @@ onBeforeUnmount(() => {
 }
 .hint {
   margin: calc(var(--design-unit) * 1px * 2) 0 0;
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
 }
 /* 定位基准九宫格（与水印工具一致） */
 .pos-grid {
@@ -439,8 +440,8 @@ onBeforeUnmount(() => {
 }
 .pos-cell {
   aspect-ratio: 1;
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
   background: transparent;
   cursor: pointer;
   position: relative;
@@ -452,7 +453,7 @@ onBeforeUnmount(() => {
   width: calc(var(--design-unit) * 1px * 1.75);
   height: calc(var(--design-unit) * 1px * 1.75);
   border-radius: 50%;
-  background: var(--neutral-foreground-secondary-rest);
+  background: var(--app-fg-secondary);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);

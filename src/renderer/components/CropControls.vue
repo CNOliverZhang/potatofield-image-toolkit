@@ -1,20 +1,20 @@
 <template>
   <SettingsGroup title="裁剪区域">
     <SettingsRow label="单位">
-      <fluent-select class="ctl-md" :value="unit" @change="onUnit">
+      <app-select class="ctl-md" :value="unit" @change="onUnit">
         <fluent-option value="px">像素</fluent-option>
         <fluent-option value="ratio">比例</fluent-option>
-      </fluent-select>
+      </app-select>
     </SettingsRow>
     <SettingsRow label="比例预设">
-      <fluent-select class="ctl-md" :value="ratio" @change="onRatio">
+      <app-select class="ctl-md" :value="ratio" @change="onRatio">
         <fluent-option value="free">自由</fluent-option>
         <fluent-option value="1:1">1:1</fluent-option>
         <fluent-option value="4:3">4:3</fluent-option>
         <fluent-option value="16:9">16:9</fluent-option>
         <fluent-option value="3:2">3:2</fluent-option>
         <fluent-option value="2:3">2:3</fluent-option>
-      </fluent-select>
+      </app-select>
     </SettingsRow>
     <!-- 定位基准：决定裁剪框可移动的方向，两种单位下都生效 -->
     <SettingsRow label="定位基准">
@@ -32,44 +32,44 @@
     <!-- 像素模式：直接输入像素值 -->
     <template v-if="unit === 'px'">
       <SettingsRow label="X（左）">
-        <fluent-number-field
+        <num-input
           class="ctl-num"
           :value="fieldValue('left')"
           min="0"
           :max="maxOf('left')"
           :step="1"
           @input="onField('left', $event)"
-        ><span slot="end">px</span></fluent-number-field>
+        ><span slot="end">px</span></num-input>
       </SettingsRow>
       <SettingsRow label="Y（上）">
-        <fluent-number-field
+        <num-input
           class="ctl-num"
           :value="fieldValue('top')"
           min="0"
           :max="maxOf('top')"
           :step="1"
           @input="onField('top', $event)"
-        ><span slot="end">px</span></fluent-number-field>
+        ><span slot="end">px</span></num-input>
       </SettingsRow>
       <SettingsRow label="宽度">
-        <fluent-number-field
+        <num-input
           class="ctl-num"
           :value="fieldValue('width')"
           min="1"
           :max="maxOf('width')"
           :step="1"
           @input="onField('width', $event)"
-        ><span slot="end">px</span></fluent-number-field>
+        ><span slot="end">px</span></num-input>
       </SettingsRow>
       <SettingsRow label="高度">
-        <fluent-number-field
+        <num-input
           class="ctl-num"
           :value="fieldValue('height')"
           min="1"
           :max="maxOf('height')"
           :step="1"
           @input="onField('height', $event)"
-        ><span slot="end">px</span></fluent-number-field>
+        ><span slot="end">px</span></num-input>
       </SettingsRow>
     </template>
 
@@ -145,6 +145,8 @@ import {
 import { evNum, evVal } from '@renderer/composables/useSingleTool';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
+import NumInput from '@renderer/components/NumInput.vue';
+import AppSelect from '@renderer/components/AppSelect.vue';
 
 type RegionKey = 'left' | 'top' | 'width' | 'height';
 
@@ -305,8 +307,8 @@ function useFull() {
 }
 .pos-cell {
   aspect-ratio: 1;
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
   background: transparent;
   cursor: pointer;
   position: relative;
@@ -318,7 +320,7 @@ function useFull() {
   width: calc(var(--design-unit) * 1px * 1.75);
   height: calc(var(--design-unit) * 1px * 1.75);
   border-radius: 50%;
-  background: var(--neutral-foreground-secondary-rest);
+  background: var(--app-fg-secondary);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);

@@ -1,6 +1,21 @@
 # 进度跟踪（跨会话）
 
-最后更新：**2026-09-30 · 会话 N（控件样式体系全量推广 + 禁用态/宽度修复）**
+最后更新：**2026-10-01 · 框架升级（Electron 44 + Fluent v3）**
+
+## 本轮（2026-10-01）已完成：Electron 28→44 + Fluent v2→v3 框架升级
+
+- [x] **Electron 链升级**：electron 28.3.3→44.5.1、electron-vite 2.3.0→5.0.0、electron-builder 24→26.15.3、electron-updater 6.8.9；Node 需 ≥22.12（本机用 v24.8.0，已写 `.nvmrc`）。electron 44 起 npm 包不再在 postinstall 下载二进制，新装环境需在 `node_modules/electron` 下手动 `node install.js`
+- [x] **Fluent v3 迁移**（@fluentui/web-components 2.6.1→3.1.3 + 新增 @fluentui/tokens）：
+  - 420 处设计令牌映射改名（如 `--neutral-foreground-rest`→`--colorNeutralForeground1`、`--control-corner-radius`→`--borderRadiusMedium`）；`--design-unit`(4)、`--accent-base-color`、`--accent-fill-rest`、`--app-fg-secondary` 保留为 global.css 应用级变量（v3 无对应物或取值与本项目调校不同）
+  - 组件迁移：select→`AppSelect`（v3 dropdown 必须内包 `<fluent-listbox>`，且 value 属性时序早于 options 连接会丢失，封装内延后赋值+重试）、text-field→text-input、number-field→`NumInput`（v3 无此组件，原生 input[type=number] 对齐 v3 text-input 外观）、tabs→tablist、appearance accent→primary（index.vue 首页按钮改用 v3 原生 `size="small" shape="circular"`）
+  - 主题重写（`fluent.ts`）：v2 的 baseLayerLuminance/accentBaseColor 全部移除，改为 `createLight/DarkTheme(brand)` + `setTheme()`；自定义主题色按 HSL 生成 16 阶 BrandVariants，**brand[80] 精确等于所选色**（亮色主按钮与所选色完全一致），暗色主色取 brand[100]
+  - ::part 覆盖适配：v3 无 `::part(control)`，禁用按钮改为宿主级覆盖组件消费的令牌（`--colorNeutralBackgroundDisabled` 等）；slider 的 positioning-region→track-container，且 v3 有分步刻度需 `::part(track-container)::after{display:none}` 隐藏；SaveLocationSetting 的 select 内部 part 覆盖已删（v3 dropdown 无 part，待实测）
+  - 注意：**不要用 define-all 注册**（会连 fluent-dialog 一起注册，而 AppDialog 依赖"未注册标签+自绘样式"的行为）；fluent.ts 按需 define
+- [x] **验证**：CDP 截图对比升级前基线（首页/设置/字体/水印/尺寸/压缩/转换/拼接/裁剪/色彩/EXIF/分割 12 页 + 批量独立窗口），视觉一致；运行时实测 sharp resize、界面缩放、开机启动、queryLocalFonts 均正常；暗色模式+自定义主题色（#8b5cf6）实测正常。vue-tsc 错误从迁移前 19 个降到 3 个（均为历史遗留：cropper/colorthief/compress 格式类型）
+- [x] **用户实测反馈的回归修复**（2026-10-01）：① 圆角全丢——v2 圆角令牌是无单位数字（`calc(var(--x) * 1px)`），v3 的 `--borderRadius*` 自带 px，乘 1px 后成非法值整条声明被丢弃；codemod 去掉 37 处多余 `* 1px` 并化简 `calc(圆角)`。② 卡片与背景同色——`--app-card` 原映射撞上了 `--app-bg` 的令牌，改为 bg=`colorNeutralBackground3`(#f5f5f5)/card=`colorNeutralBackground1`(#ffffff)，并让原先与 layer-2 同源的区域改跟 `--app-bg`
+- [x] **第二轮反馈修复**（2026-10-01）：① 下拉选择后出现黑色焦点环——v3 dropdown 的焦点环挂在 `:focus-within`（鼠标选择也触发）且外圈用 `--colorStrokeFocus2`(黑)，在 AppSelect 里覆盖这两个令牌去掉（保留展开时的主题色下划线作焦点指示）；② 下拉弹层被后面的卡片/按钮盖住——v3 展开时把光 DOM 的 `fluent-listbox` 变 `position:fixed` 但 z-index 为 auto，DOM 靠后的定位元素会画在其上，AppSelect 里给 `fluent-listbox` 设 `z-index:1000`；③ 禁用主按钮变灰——v3 对所有 appearance 的禁用态统一走 `--colorNeutralBackgroundDisabled/ForegroundDisabled`，主按钮的变体覆盖必须改这两个令牌（`accent-fill-rest 45% + app-card` 混底 + 白字），且必须排在通用禁用规则之后
+- [x] **第三轮：收起的 select 控件盖住吸底保存按钮**——v3 给每个 dropdown 的 `.control` 设 `position:relative; z-index:1`，而 `.controls-footer` 只有 `isolation:isolate`（z=auto 的层叠上下文），滚动时被反压。已给 5 处 `.controls-footer`（global.css/watermark/BatchTool/cropper-batch/WatermarkBatchView）统一加 `z-index:10`（>控件 1，<弹层 1000）；ToastHost 本有 9999 不用动
+- [ ] 待办：electron-builder 26 打包/公证未跑（`npm run package:mac`）；真实文件对话框与拖拽手感需人工实测；SaveLocationSetting 长路径截断在 v3 dropdown 下待实测
 
 ## 换电脑续接：先读这些
 

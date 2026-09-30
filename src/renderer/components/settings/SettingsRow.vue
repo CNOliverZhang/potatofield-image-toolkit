@@ -31,14 +31,14 @@ defineEmits<{ click: [] }>();
   min-height: calc(var(--design-unit) * 1px * 18); /* 72px */
   padding: calc(var(--design-unit) * 1px * 4.25) calc(var(--design-unit) * 1px * 3); /* 17px 12px */
   background: var(--app-card);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px); /* 4px */
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium); /* 4px */
 }
 .settings-row.clickable {
   cursor: pointer;
 }
 .settings-row.clickable:hover {
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 .sr-main {
   flex: 1;
@@ -48,15 +48,15 @@ defineEmits<{ click: [] }>();
   gap: calc(var(--design-unit) * 0.5 * 1px);
 }
 .sr-label {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .sr-desc {
   font-size: 11px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -15,7 +15,7 @@ defineProps<{ name: string }>();
 .stub {
   text-align: center;
   padding: calc(var(--design-unit) * 15 * 1px) calc(var(--design-unit) * 5 * 1px);
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .icon {
   font-size: 40px;

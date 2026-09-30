@@ -64,8 +64,14 @@
 
 ## 3. 样式规范
 
-- 颜色一律用 Fluent 设计令牌：`--neutral-foreground-rest`、`--neutral-layer-1/2`、`--neutral-stroke-rest`、`--accent-base-color` 等，禁止硬编码色值（取色器除外）。
-- 尺寸一律 token 化：`padding/margin/gap` 用 `calc(var(--design-unit) * N * 1px)`，圆角用 `--control-corner-radius` / `--layer-corner-radius`。
+> 2026-10-01 起 Fluent 已升级到 v3（@fluentui/web-components 3.x）。令牌命名随之变化：
+> - 颜色用 v3 令牌：`--colorNeutralForeground1`、`--colorNeutralBackground1/2/3`、`--colorNeutralStroke1/2`、`--borderRadiusMedium/XLarge`、`--fontSizeBase200/300` 等
+> - 保留的应用级变量（定义在 `global.css`）：`--design-unit`(4，配合 `calc(var(--design-unit) * N * 1px)`)、`--accent-base-color`（fluent.ts 按设置页主题色写入）、`--accent-fill-rest`、`--app-fg-secondary`（次级文字色，v3 的 Foreground2 与本项目调校值不同）
+> - v3 组件普遍无 `::part(control)`，要改组件内部样式就在宿主元素上覆盖它消费的设计令牌；v3 主题由 `fluent.ts` 的 `setTheme()` 驱动，自定义主题色经 `buildBrandVariants` 生成 16 阶品牌色（brand[80]=所选色）
+> - 下拉一律用 `AppSelect`（v3 dropdown 必须内包 fluent-listbox 且 value 时序特殊），数字输入一律用 `NumInput`（v3 无 number-field）；不要直接用 `<fluent-dropdown :value>`
+
+- 颜色一律用 Fluent 设计令牌，禁止硬编码色值（取色器除外）。
+- 尺寸一律 token 化：`padding/margin/gap` 用 `calc(var(--design-unit) * N * 1px)`，圆角用 `--borderRadiusMedium`（控件）/ `--borderRadiusXLarge`（面板）。
 - 字号用 `--type-ramp-*-font-size`。
 - 布局硬约束（面板宽高、图标尺寸）、`box-shadow`、`transform`、1px 边框可保留具体像素。
 - 覆盖全局样式（如 `.preview-stage` / `.preview-img`）时在本页 `<style scoped>` 内覆盖，不要改 `global.css` 影响其它工具。

@@ -3,7 +3,7 @@
     <font-awesome-icon icon="paragraph" class="icon" />
     <h2>洋芋田富文本编辑器</h2>
     <p>「文字转图片」已独立为「洋芋田富文本编辑器」，请前往网页版继续使用。</p>
-    <fluent-button appearance="accent" @click="openSite"
+    <fluent-button appearance="primary" @click="openSite"
       >打开富文本编辑器</fluent-button
     >
     <p class="hint">将在默认浏览器中打开 {{ SITE_URL }}</p>
@@ -44,7 +44,7 @@ onMounted(async () => {
   justify-content: center;
   text-align: center;
   padding: calc(var(--design-unit) * 5 * 1px);
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .icon {
   font-size: 40px;
@@ -53,12 +53,12 @@ onMounted(async () => {
 }
 h2 {
   margin: 0 0 calc(var(--design-unit) * 2 * 1px);
-  font-size: var(--type-ramp-plus-1-font-size);
-  color: var(--neutral-foreground-rest);
+  font-size: var(--fontSizeBase400);
+  color: var(--colorNeutralForeground1);
 }
 p {
   margin: 0 0 calc(var(--design-unit) * 3 * 1px);
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
 }
 .hint {
   margin-top: calc(var(--design-unit) * 3 * 1px);

@@ -54,7 +54,7 @@
             <span class="panel-count">{{ files.length }}</span>
           </div>
           <div class="panel-actions">
-            <fluent-button appearance="accent" @click="chooseFiles">选择文件</fluent-button>
+            <fluent-button appearance="primary" @click="chooseFiles">选择文件</fluent-button>
             <fluent-button appearance="neutral" @click="scanFolder">扫描文件夹</fluent-button>
           </div>
           <VueDraggable
@@ -104,22 +104,22 @@
 
         <SettingsGroup title="拼接方式">
           <SettingsRow label="排列方向">
-            <fluent-select class="ctl-md" :value="direction" @change="onDirection">
+            <app-select class="ctl-md" :value="direction" @change="onDirection">
               <fluent-option value="vertical">纵向（上下拼接）</fluent-option>
               <fluent-option value="horizontal">横向（左右拼接）</fluent-option>
-            </fluent-select>
+            </app-select>
           </SettingsRow>
           <SettingsRow label="添加边距">
             <fluent-checkbox :checked="useMargin" @change="useMargin = evChk($event)"></fluent-checkbox>
           </SettingsRow>
           <SettingsRow v-if="useMargin" label="边距宽度">
-            <fluent-number-field
+            <num-input
               class="ctl-num"
               :value="margin"
               min="0"
               max="500"
               @input="margin = evNum($event)"
-            ><span slot="end">px</span></fluent-number-field>
+            ><span slot="end">px</span></num-input>
           </SettingsRow>
           <SettingsRow label="添加底色">
             <fluent-checkbox :checked="useBg" @change="useBg = evChk($event)"></fluent-checkbox>
@@ -132,11 +132,11 @@
 
         <SettingsGroup title="输出设置">
           <SettingsRow label="格式">
-            <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
+            <app-select class="ctl-md" :value="out.format" @change="onFormat">
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
-            </fluent-select>
+            </app-select>
           </SettingsRow>
           <SettingsRow v-if="lossy" label="质量">
             <fluent-slider
@@ -157,7 +157,7 @@
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
         <div class="controls-footer">
           <fluent-button
-            appearance="accent"
+            appearance="primary"
             class="save-btn"
             :disabled="files.length < 2 || processing || overLimit"
             @click="run"
@@ -188,6 +188,8 @@ import {
   type OutputOpts
 } from '@renderer/composables/useOutputSettings';
 import type { DefaultOutputFormat } from '@renderer/stores/settings';
+import NumInput from '@renderer/components/NumInput.vue';
+import AppSelect from '@renderer/components/AppSelect.vue';
 
 const { message } = useDialog();
 /** 复用单图工具的保存流程：点击保存时选择目录，输出一张图片 */
@@ -529,9 +531,9 @@ onBeforeUnmount(() => {
   height: 340px;
   flex-shrink: 0;
   margin-bottom: calc(var(--design-unit) * 1px * 5.5);
-  background: var(--neutral-layer-2);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--layer-corner-radius) * 1px);
+  background: var(--colorNeutralBackground2);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusXLarge);
   padding: calc(var(--design-unit) * 1px * 3);
 }
 .panel-head {
@@ -541,14 +543,14 @@ onBeforeUnmount(() => {
   margin-bottom: calc(var(--design-unit) * 1px * 2.5);
 }
 .panel-title {
-  font-size: var(--type-ramp-base-font-size);
+  font-size: var(--fontSizeBase300);
   font-weight: 600;
 }
 .panel-count {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
-  background: var(--neutral-fill-hover);
-  border-radius: calc(var(--control-corner-radius) * 1px);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
+  background: var(--colorNeutralBackground1Hover);
+  border-radius: var(--borderRadiusMedium);
   padding: calc(var(--design-unit) * 1px * 0.5) calc(var(--design-unit) * 1px * 2);
 }
 .panel-actions {
@@ -569,8 +571,8 @@ onBeforeUnmount(() => {
   padding-right: calc(var(--design-unit) * 1px);
 }
 .list-empty {
-  color: var(--neutral-foreground-secondary-rest);
-  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--app-fg-secondary);
+  font-size: var(--fontSizeBase200);
   text-align: center;
   padding: calc(var(--design-unit) * 1px * 6) 0;
 }
@@ -581,23 +583,23 @@ onBeforeUnmount(() => {
   gap: calc(var(--design-unit) * 1px * 2);
   margin-top: calc(var(--design-unit) * 1px * 2.5);
   padding-top: calc(var(--design-unit) * 1px * 2.5);
-  border-top: 1px solid var(--neutral-stroke-rest);
+  border-top: 1px solid var(--colorNeutralStroke1);
 }
 .foot-text {
   font-size: 11px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .link-btn {
-  border: 1px solid var(--neutral-stroke-rest);
+  border: 1px solid var(--colorNeutralStroke1);
   background: transparent;
   color: var(--accent-base-color);
   padding: calc(var(--design-unit) * 1px * 1) calc(var(--design-unit) * 1px * 2.5);
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
   cursor: pointer;
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
 }
 .link-btn:hover {
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 
 .file-item {
@@ -606,9 +608,9 @@ onBeforeUnmount(() => {
   gap: calc(var(--design-unit) * 1.5 * 1px);
   min-height: calc(var(--design-unit) * 13 * 1px);
   padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 2 * 1px);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
-  background: var(--neutral-layer-1);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
+  background: var(--colorNeutralBackground1);
   transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 .file-item:hover {
@@ -619,7 +621,7 @@ onBeforeUnmount(() => {
 .file-item.is-ghost {
   opacity: 0.45;
   border-style: dashed;
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 .file-item.is-chosen {
   cursor: grabbing;
@@ -635,7 +637,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: 0 calc(var(--design-unit) * 0.5 * 1px);
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   cursor: grab;
 }
 .grip-icon {
@@ -646,7 +648,7 @@ onBeforeUnmount(() => {
   pointer-events: none; /* 保证拖拽事件落在手柄容器上 */
 }
 .grip:hover {
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
 }
 .grip:active {
   cursor: grabbing;
@@ -659,8 +661,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: calc(var(--control-corner-radius) * 1px);
-  background: var(--neutral-fill-hover);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground1Hover);
 }
 .thumb img {
   max-width: 100%;
@@ -669,21 +671,21 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 .thumb-ph {
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   opacity: 0.6;
 }
 .color {
   width: 40px;
   height: 28px;
   padding: 0;
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium);
   background: none;
   cursor: pointer;
 }
 .color-val {
   font-size: 11px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 /* 输出尺寸超限预警 */
 .warn {
@@ -691,7 +693,7 @@ onBeforeUnmount(() => {
   margin-bottom: calc(var(--design-unit) * 2 * 1px);
   padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 2 * 1px);
   border: 1px solid var(--accent-base-color);
-  border-radius: calc(var(--control-corner-radius) * 1px);
+  border-radius: var(--borderRadiusMedium);
   font-size: 11px;
   line-height: 1.5;
   color: var(--accent-base-color);
@@ -700,13 +702,13 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   width: calc(var(--design-unit) * 5 * 1px);
   font-size: 11px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   text-align: center;
 }
 .name {
   flex: 1;
   min-width: 0;
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -715,10 +717,10 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   width: calc(var(--design-unit) * 5 * 1px);
   height: calc(var(--design-unit) * 5 * 1px);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium);
   background: transparent;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
@@ -762,12 +764,12 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 .zoom-btn {
-  border: 1px solid var(--neutral-stroke-rest);
+  border: 1px solid var(--colorNeutralStroke1);
   background: transparent;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   font-size: 12px;
   padding: calc(var(--design-unit) * 0.75 * 1px) calc(var(--design-unit) * 2 * 1px);
-  border-radius: calc(var(--control-corner-radius) * 1px);
+  border-radius: var(--borderRadiusMedium);
   cursor: pointer;
 }
 .zoom-btn.sel {
@@ -776,7 +778,7 @@ onBeforeUnmount(() => {
 }
 .zoom-val {
   font-size: 11px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   min-width: 38px;
   text-align: right;
 }

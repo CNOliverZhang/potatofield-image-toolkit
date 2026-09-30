@@ -68,7 +68,7 @@ function close() {
   padding-left: 14px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   user-select: none;
   overflow: hidden;
   white-space: nowrap;
@@ -96,7 +96,7 @@ function close() {
   height: 32px;
   border: none;
   background: transparent;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -105,7 +105,7 @@ function close() {
   transition: background 0.1s ease;
 }
 .cap-btn:hover {
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 .cap-btn:active {
   background: rgba(0, 0, 0, 0.12);

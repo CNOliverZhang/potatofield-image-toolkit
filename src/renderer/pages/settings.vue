@@ -2,14 +2,14 @@
   <div class="settings">
     <!-- 标签页：与字体工具同一套用法（组件自带指示器不生效，共享指示条自行绘制） -->
     <div ref="tabsWrapEl" class="tabs-wrap">
-      <fluent-tabs ref="tabsEl" class="settings-tabs" :activeid="tab" @change="onTabsChange">
+      <fluent-tablist ref="tabsEl" class="settings-tabs" :activeid="tab" @change="onTabsChange">
         <fluent-tab id="general" :class="{ 'is-active': tab === 'general' }" @click="switchTab('general')">
           通用
         </fluent-tab>
         <fluent-tab id="about" :class="{ 'is-active': tab === 'about' }" @click="switchTab('about')">
           版权信息
         </fluent-tab>
-      </fluent-tabs>
+      </fluent-tablist>
       <span class="tab-indicator" :style="indicatorStyle"></span>
     </div>
 
@@ -27,23 +27,23 @@
 
       <SettingsGroup title="文件">
         <SettingsRow label="文件默认保存地址">
-          <fluent-text-field
+          <fluent-text-input
             class="dir-field"
             :value="settings.defaultSaveDirectory"
             readonly
-          ></fluent-text-field>
+          ></fluent-text-input>
           <fluent-button appearance="neutral" @click="pickDir">选择</fluent-button>
         </SettingsRow>
       </SettingsGroup>
 
       <SettingsGroup title="默认输出">
         <SettingsRow label="输出格式">
-          <fluent-select class="ctl-md" :value="settings.defaultOutput.format" @change="onFormat">
+          <app-select class="ctl-md" :value="settings.defaultOutput.format" @change="onFormat">
             <fluent-option value="original">保持原格式</fluent-option>
             <fluent-option value="png">PNG（无损）</fluent-option>
             <fluent-option value="jpeg">JPG（有损）</fluent-option>
             <fluent-option value="webp">WebP（有损）</fluent-option>
-          </fluent-select>
+          </app-select>
         </SettingsRow>
         <!-- 默认质量是通用默认值（工具里选 JPG/WebP 时才会用到），因此始终显示 -->
         <SettingsRow label="默认质量">
@@ -65,14 +65,14 @@
           <fluent-switch :checked="openAtLogin" @change="onOpenAtLogin"></fluent-switch>
         </SettingsRow>
         <SettingsRow label="界面缩放">
-          <fluent-select class="ctl-md" :value="String(zoomFactor)" @change="onZoom">
+          <app-select class="ctl-md" :value="String(zoomFactor)" @change="onZoom">
             <fluent-option value="0.75">75%</fluent-option>
             <fluent-option value="1">100%</fluent-option>
             <fluent-option value="1.25">125%</fluent-option>
             <fluent-option value="1.5">150%</fluent-option>
             <fluent-option value="1.75">175%</fluent-option>
             <fluent-option value="2">200%</fluent-option>
-          </fluent-select>
+          </app-select>
         </SettingsRow>
         <SettingsRow label="说明" desc="界面缩放会作用到所有窗口，用于匹配显示器的尺寸和分辨率" />
       </SettingsGroup>
@@ -134,6 +134,7 @@ import { useDialog } from '@renderer/composables/useDialog';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 import type { DefaultOutputFormat } from '@renderer/stores/settings';
+import AppSelect from '@renderer/components/AppSelect.vue';
 
 const SITE_URL = 'https://potatofield.cn/imagetoolkit';
 const REPO_URL = 'https://github.com/CNOliverZhang/potatofield-image-toolkit';
@@ -193,7 +194,7 @@ function updateIndicator(): void {
   };
 }
 
-/** fluent-tabs 的 change 事件：不同版本 detail 可能是 id 字符串或对象，兼容读取 */
+/** fluent-tablist 的 change 事件：不同版本 detail 可能是 id 字符串或对象，兼容读取 */
 function onTabsChange(e: Event): void {
   const target = e.target as (HTMLElement & { activeid?: string }) | null;
   const detail = (e as CustomEvent).detail as unknown;
@@ -442,8 +443,8 @@ onBeforeUnmount(() => {
   width: 40px;
   height: 28px;
   padding: 0;
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium);
   background: none;
   cursor: pointer;
 }
@@ -497,12 +498,12 @@ onBeforeUnmount(() => {
 .intro-sub {
   margin-top: calc(var(--design-unit) * 0.5 * 1px);
   font-size: 13px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .about-text {
   font-size: 13px;
   line-height: 1.7;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .resources {
   display: flex;
@@ -511,9 +512,9 @@ onBeforeUnmount(() => {
   margin-top: calc(var(--design-unit) * 2 * 1px);
 }
 .resource-chip {
-  border: 1px solid var(--neutral-stroke-rest);
+  border: 1px solid var(--colorNeutralStroke1);
   background: transparent;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   font-size: 12px;
   padding: calc(var(--design-unit) * 0.75 * 1px) calc(var(--design-unit) * 1.5 * 1px);
   border-radius: 999px;
@@ -522,6 +523,6 @@ onBeforeUnmount(() => {
 }
 .resource-chip:hover {
   background: color-mix(in srgb, var(--accent-base-color) 10%, transparent);
-  border-color: color-mix(in srgb, var(--accent-base-color) 45%, var(--neutral-stroke-rest));
+  border-color: color-mix(in srgb, var(--accent-base-color) 45%, var(--colorNeutralStroke1));
 }
 </style>

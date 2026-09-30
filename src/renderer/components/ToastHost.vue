@@ -46,11 +46,11 @@ function iconOf(type: ToastType) {
   min-width: 200px;
   max-width: 420px;
   padding: calc(var(--design-unit) * 3 * 1px) calc(var(--design-unit) * 4 * 1px);
-  border-radius: calc(var(--layer-corner-radius) * 1px);
-  background: var(--neutral-layer-1);
-  border: 1px solid var(--neutral-stroke-rest);
+  border-radius: var(--borderRadiusXLarge);
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralStroke1);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   font-size: 14px;
 }
 .toast-icon {

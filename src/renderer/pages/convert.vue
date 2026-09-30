@@ -16,11 +16,11 @@
         </div>
         <SettingsGroup title="转换设置">
           <SettingsRow label="目标格式">
-            <fluent-select class="ctl-md" :value="opts.format" @change="onFormat">
+            <app-select class="ctl-md" :value="opts.format" @change="onFormat">
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
-            </fluent-select>
+            </app-select>
           </SettingsRow>
           <SettingsRow v-if="lossy" label="质量">
             <fluent-slider
@@ -36,7 +36,7 @@
         </SettingsGroup>
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
+          <fluent-button appearance="primary" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
             {{ processing ? '处理中…' : '保存图片' }}
           </fluent-button>
         </div>
@@ -53,6 +53,7 @@ import { createOutputOpts, isLossy, outExt, outQuality } from '@renderer/composa
 import ImagePicker from '@renderer/components/ImagePicker.vue';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
+import AppSelect from '@renderer/components/AppSelect.vue';
 
 const { inputPath, inputName, previewUrl, processing, pickImage, schedulePreview, runSave } =
   useSingleTool();

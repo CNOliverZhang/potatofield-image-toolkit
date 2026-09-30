@@ -30,8 +30,8 @@ const open = ref(props.defaultOpen);
   display: flex;
   flex-direction: column;
   background: var(--app-card);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px); /* 4px */
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium); /* 4px */
   overflow: hidden;
 }
 .sc-head {
@@ -43,12 +43,12 @@ const open = ref(props.defaultOpen);
   padding: calc(var(--design-unit) * 1px * 4.25) calc(var(--design-unit) * 1px * 3); /* 17px 12px */
   border: none;
   background: transparent;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   cursor: pointer;
   text-align: left;
 }
 .sc-head:hover {
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 /* 子项：降级为卡内行（56px + 分隔线），不再各自成卡 */
 .sc-body :deep(.settings-row) {
@@ -57,7 +57,7 @@ const open = ref(props.defaultOpen);
   background: transparent;
   border: none;
   border-radius: 0;
-  border-top: 1px solid var(--neutral-stroke-divider-rest, var(--neutral-stroke-rest));
+  border-top: 1px solid var(--neutral-stroke-divider-rest, var(--colorNeutralStroke1));
 }
 .sr-main {
   flex: 1;
@@ -67,16 +67,16 @@ const open = ref(props.defaultOpen);
   gap: calc(var(--design-unit) * 0.5 * 1px);
 }
 .sr-label {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground1);
 }
 .sr-desc {
   font-size: 11px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .sc-chev {
   font-size: 12px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .sc-body {
   display: flex;

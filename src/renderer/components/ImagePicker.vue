@@ -7,7 +7,7 @@
     <div v-if="!src" class="dropzone" @click="emit('pick')">
       <font-awesome-icon :icon="icon" class="dz-icon" />
       <p>{{ hint }}</p>
-      <fluent-button appearance="accent" @click.stop="emit('pick')">选择图片</fluent-button>
+      <fluent-button appearance="primary" @click.stop="emit('pick')">选择图片</fluent-button>
     </div>
     <template v-else>
       <div class="preview-stage">

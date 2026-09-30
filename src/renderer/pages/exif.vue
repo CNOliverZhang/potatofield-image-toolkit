@@ -85,17 +85,17 @@ async function onPick() {
 /* 元数据表现在放在右栏（340px），按窄栏调整：字段名列宽收窄、表格不自带滚动 */
 .meta-table {
   width: 100%;
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--layer-corner-radius) * 1px);
-  background: var(--neutral-layer-2);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusXLarge);
+  background: var(--colorNeutralBackground2);
   overflow: hidden;
 }
 .meta-row {
   display: flex;
   gap: calc(var(--design-unit) * 2 * 1px);
   padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 2.5 * 1px);
-  border-bottom: 1px solid var(--neutral-stroke-rest);
-  font-size: var(--type-ramp-minus-1-font-size);
+  border-bottom: 1px solid var(--colorNeutralStroke1);
+  font-size: var(--fontSizeBase200);
 }
 .meta-row:last-child {
   border-bottom: none;
@@ -103,7 +103,7 @@ async function onPick() {
 .meta-key {
   flex: 0 0 45%;
   min-width: 0;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -111,7 +111,7 @@ async function onPick() {
 }
 .meta-val {
   flex: 1;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   word-break: break-all;
 }
 </style>

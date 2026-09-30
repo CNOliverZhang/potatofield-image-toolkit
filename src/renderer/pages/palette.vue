@@ -18,9 +18,9 @@
         <h2>色彩提取</h2>
         <SettingsGroup title="提取设置">
           <SettingsRow label="色彩数量" desc="点击色卡可复制色值">
-            <fluent-select class="ctl-md" :value="String(count)" @change="onCount">
+            <app-select class="ctl-md" :value="String(count)" @change="onCount">
               <fluent-option v-for="n in 10" :key="n" :value="String(n)">{{ n }}</fluent-option>
-            </fluent-select>
+            </app-select>
           </SettingsRow>
         </SettingsGroup>
       </div>
@@ -58,6 +58,7 @@ import { useDialog } from '@renderer/composables/useDialog';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
+import AppSelect from '@renderer/components/AppSelect.vue';
 
 const dialog = useDialog();
 const imgRef = ref<HTMLImageElement | null>(null);
@@ -154,8 +155,8 @@ function copy(color: string) {
 .swatch {
   min-height: 0;
   min-width: 0;
-  border-radius: calc(var(--layer-corner-radius) * 1px);
-  border: 1px solid var(--neutral-stroke-rest);
+  border-radius: var(--borderRadiusXLarge);
+  border: 1px solid var(--colorNeutralStroke1);
   cursor: pointer;
   display: flex;
   align-items: flex-end;
@@ -171,7 +172,7 @@ function copy(color: string) {
   font-size: 11px;
   background: rgba(255, 255, 255, 0.72);
   padding: 1px calc(var(--design-unit) * 1 * 1px);
-  border-radius: calc(var(--control-corner-radius) * 1px);
+  border-radius: var(--borderRadiusMedium);
   color: #333;
 }
 .placeholder {
@@ -181,8 +182,8 @@ function copy(color: string) {
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  color: var(--neutral-foreground-secondary-rest);
-  border: 1px dashed var(--neutral-stroke-rest);
-  border-radius: calc(var(--layer-corner-radius) * 1px);
+  color: var(--app-fg-secondary);
+  border: 1px dashed var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusXLarge);
 }
 </style>

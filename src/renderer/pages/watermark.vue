@@ -19,7 +19,7 @@
         </div>
         <WatermarkControls v-model="params" />
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing || !inputPath" @click="save">
+          <fluent-button appearance="primary" class="save-btn" :disabled="processing || !inputPath" @click="save">
             {{ processing ? '处理中…' : '保存水印图片' }}
           </fluent-button>
         </div>
@@ -172,9 +172,9 @@ onBeforeUnmount(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--neutral-fill-hover);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--layer-corner-radius) * 1px);
+  background: var(--colorNeutralBackground1Hover);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusXLarge);
   overflow: hidden;
 }
 .dropzone {
@@ -184,7 +184,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: calc(var(--design-unit) * 1px * 3.5);
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .dz-icon {
   font-size: calc(var(--design-unit) * 1px * 11.5);
@@ -197,11 +197,11 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: calc(var(--design-unit) * 1px);
-  background-color: var(--neutral-layer-1);
-  background-image: linear-gradient(45deg, var(--neutral-layer-3) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--neutral-layer-3) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--neutral-layer-3) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--neutral-layer-3) 75%);
+  background-color: var(--colorNeutralBackground1);
+  background-image: linear-gradient(45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--colorNeutralBackground3) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--colorNeutralBackground3) 75%);
   background-size: calc(var(--design-unit) * 1px * 5) calc(var(--design-unit) * 1px * 5);
   background-position: 0 0, 0 calc(var(--design-unit) * 1px * 2.5),
     calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * -2.5),
@@ -219,12 +219,12 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: calc(var(--design-unit) * 1px * 3);
   padding: calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * 3.5);
-  border-top: 1px solid var(--neutral-stroke-rest);
-  background: var(--neutral-layer-2);
+  border-top: 1px solid var(--colorNeutralStroke1);
+  background: var(--colorNeutralBackground2);
 }
 .fname {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -254,6 +254,8 @@ onBeforeUnmount(() => {
   position: sticky;
   bottom: 0;
   isolation: isolate;
+  /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高，否则滚动时控件会盖在按钮上 */
+  z-index: 10;
   padding: 0;
 }
 .save-btn {

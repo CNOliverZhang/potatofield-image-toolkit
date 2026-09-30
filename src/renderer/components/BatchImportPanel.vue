@@ -5,7 +5,7 @@
       <span class="import-count">{{ modelValue.length }}</span>
     </div>
     <div class="import-actions">
-      <fluent-button appearance="accent" @click="chooseFiles">选择文件</fluent-button>
+      <fluent-button appearance="primary" @click="chooseFiles">选择文件</fluent-button>
       <fluent-button appearance="neutral" @click="scanFolder">扫描文件夹</fluent-button>
     </div>
     <div class="import-list">
@@ -86,9 +86,9 @@ function select(p: string) {
   flex-direction: column;
   min-height: 0;
   height: 100%;
-  background: var(--neutral-layer-2);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--layer-corner-radius) * 1px);
+  background: var(--colorNeutralBackground2);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusXLarge);
   padding: calc(var(--design-unit) * 1px * 3);
 }
 .import-head {
@@ -98,14 +98,14 @@ function select(p: string) {
   margin-bottom: calc(var(--design-unit) * 1px * 2.5);
 }
 .import-title {
-  font-size: var(--type-ramp-base-font-size);
+  font-size: var(--fontSizeBase300);
   font-weight: 600;
 }
 .import-count {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
-  background: var(--neutral-fill-hover);
-  border-radius: calc(var(--control-corner-radius) * 1px);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
+  background: var(--colorNeutralBackground1Hover);
+  border-radius: var(--borderRadiusMedium);
   padding: calc(var(--design-unit) * 1px * 0.5) calc(var(--design-unit) * 1px * 2);
 }
 .import-actions {
@@ -126,8 +126,8 @@ function select(p: string) {
   padding-right: calc(var(--design-unit) * 1px);
 }
 .import-empty {
-  color: var(--neutral-foreground-secondary-rest);
-  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--app-fg-secondary);
+  font-size: var(--fontSizeBase200);
   text-align: center;
   padding: calc(var(--design-unit) * 1px * 6) 0;
 }
@@ -136,10 +136,10 @@ function select(p: string) {
   align-items: center;
   gap: calc(var(--design-unit) * 1px * 2);
   padding: calc(var(--design-unit) * 1px * 2) calc(var(--design-unit) * 1px * 2.5);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
   cursor: pointer;
-  background: var(--neutral-layer-1);
+  background: var(--colorNeutralBackground1);
   transition: border-color 0.12s ease;
 }
 .import-item:hover {
@@ -147,12 +147,12 @@ function select(p: string) {
 }
 .import-item.active {
   border-color: var(--accent-base-color);
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 .item-name {
   flex: 1;
   min-width: 0;
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -160,7 +160,7 @@ function select(p: string) {
 .item-remove {
   border: none;
   background: transparent;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
@@ -176,27 +176,27 @@ function select(p: string) {
   gap: calc(var(--design-unit) * 1px * 2);
   margin-top: calc(var(--design-unit) * 1px * 2.5);
   padding-top: calc(var(--design-unit) * 1px * 2.5);
-  border-top: 1px solid var(--neutral-stroke-rest);
+  border-top: 1px solid var(--colorNeutralStroke1);
 }
 .foot-text {
   flex: 1;
   min-width: 0;
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .link-btn {
-  border: 1px solid var(--neutral-stroke-rest);
+  border: 1px solid var(--colorNeutralStroke1);
   background: transparent;
   color: var(--accent-base-color);
   padding: calc(var(--design-unit) * 1px * 1) calc(var(--design-unit) * 1px * 2.5);
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
   cursor: pointer;
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
 }
 .link-btn:hover {
-  background: var(--neutral-fill-hover);
+  background: var(--colorNeutralBackground1Hover);
 }
 </style>

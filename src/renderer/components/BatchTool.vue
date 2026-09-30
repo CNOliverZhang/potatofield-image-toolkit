@@ -22,30 +22,30 @@
         <SettingsGroup :title="`${config[tool].title}设置`">
           <template v-if="tool === 'resizer'">
             <SettingsRow label="宽度">
-              <fluent-number-field class="ctl-num" :value="opts.width" min="1" @input="opts.width = evNum($event)"><span slot="end">px</span></fluent-number-field>
+              <num-input class="ctl-num" :value="opts.width" min="1" @input="opts.width = evNum($event)"><span slot="end">px</span></num-input>
             </SettingsRow>
             <SettingsRow label="高度" desc="0 = 按宽度等比缩放">
-              <fluent-number-field class="ctl-num" :value="opts.height" min="0" @input="opts.height = evNum($event)"><span slot="end">px</span></fluent-number-field>
+              <num-input class="ctl-num" :value="opts.height" min="0" @input="opts.height = evNum($event)"><span slot="end">px</span></num-input>
             </SettingsRow>
             <SettingsRow label="适配方式">
-              <fluent-select class="ctl-lg" :value="opts.fit" @change="opts.fit = evVal($event) as ImageProcessOptions['fit']">
+              <app-select class="ctl-lg" :value="opts.fit" @change="opts.fit = evVal($event) as ImageProcessOptions['fit']">
                 <fluent-option value="inside">等比缩放（inside）</fluent-option>
                 <fluent-option value="cover">裁剪填充（cover）</fluent-option>
                 <fluent-option value="fill">拉伸（fill）</fluent-option>
                 <fluent-option value="contain">包含（contain）</fluent-option>
                 <fluent-option value="outside">外延（outside）</fluent-option>
-              </fluent-select>
+              </app-select>
             </SettingsRow>
           </template>
 
           <template v-else-if="tool === 'compress'">
             <SettingsRow label="格式">
-              <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
+              <app-select class="ctl-md" :value="out.format" @change="onFormat">
                 <fluent-option value="original">保持原格式</fluent-option>
                 <fluent-option value="png">PNG（无损）</fluent-option>
                 <fluent-option value="jpeg">JPG（有损）</fluent-option>
                 <fluent-option value="webp">WebP（有损）</fluent-option>
-              </fluent-select>
+              </app-select>
             </SettingsRow>
             <SettingsRow v-if="lossy" label="质量">
               <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
@@ -55,11 +55,11 @@
 
           <template v-else-if="tool === 'convert'">
             <SettingsRow label="目标格式">
-              <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
+              <app-select class="ctl-md" :value="out.format" @change="onFormat">
                 <fluent-option value="png">PNG（无损）</fluent-option>
                 <fluent-option value="jpeg">JPG（有损）</fluent-option>
                 <fluent-option value="webp">WebP（有损）</fluent-option>
-              </fluent-select>
+              </app-select>
             </SettingsRow>
             <SettingsRow v-if="lossy" label="质量">
               <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
@@ -71,12 +71,12 @@
         <!-- 输出设置：与单图工具一致（压缩/转换的格式与质量本身就是输出设置，不再重复显示） -->
         <SettingsGroup v-if="tool === 'resizer'" title="输出设置">
           <SettingsRow label="格式">
-            <fluent-select class="ctl-md" :value="out.format" @change="onFormat">
+            <app-select class="ctl-md" :value="out.format" @change="onFormat">
               <fluent-option value="original">保持原格式</fluent-option>
               <fluent-option value="png">PNG（无损）</fluent-option>
               <fluent-option value="jpeg">JPG（有损）</fluent-option>
               <fluent-option value="webp">WebP（有损）</fluent-option>
-            </fluent-select>
+            </app-select>
           </SettingsRow>
           <SettingsRow v-if="lossy" label="质量">
             <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
@@ -95,7 +95,7 @@
           >
             取消（已完成 {{ progress.done }}/{{ progress.total }}）
           </fluent-button>
-          <fluent-button v-else appearance="accent" class="save-btn" :disabled="!files.length" @click="run">
+          <fluent-button v-else appearance="primary" class="save-btn" :disabled="!files.length" @click="run">
             开始批量处理 ({{ files.length }})
           </fluent-button>
         </div>
@@ -122,6 +122,8 @@ import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
 import SaveLocationSetting from '@renderer/components/SaveLocationSetting.vue';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
+import NumInput from '@renderer/components/NumInput.vue';
+import AppSelect from '@renderer/components/AppSelect.vue';
 
 type ToolKey = 'resizer' | 'compress' | 'convert';
 
@@ -250,9 +252,9 @@ onBeforeUnmount(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--neutral-fill-hover);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--layer-corner-radius) * 1px);
+  background: var(--colorNeutralBackground1Hover);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusXLarge);
   overflow: hidden;
 }
 .dropzone {
@@ -262,7 +264,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: calc(var(--design-unit) * 1px * 3.5);
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .dz-icon {
   font-size: calc(var(--design-unit) * 1px * 11.5);
@@ -275,11 +277,11 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: calc(var(--design-unit) * 1px);
-  background-color: var(--neutral-layer-1);
-  background-image: linear-gradient(45deg, var(--neutral-layer-3) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--neutral-layer-3) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--neutral-layer-3) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--neutral-layer-3) 75%);
+  background-color: var(--colorNeutralBackground1);
+  background-image: linear-gradient(45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--colorNeutralBackground3) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--colorNeutralBackground3) 75%);
   background-size: calc(var(--design-unit) * 1px * 5) calc(var(--design-unit) * 1px * 5);
   background-position: 0 0, 0 calc(var(--design-unit) * 1px * 2.5),
     calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * -2.5),
@@ -297,12 +299,12 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: calc(var(--design-unit) * 1px * 3);
   padding: calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * 3.5);
-  border-top: 1px solid var(--neutral-stroke-rest);
-  background: var(--neutral-layer-2);
+  border-top: 1px solid var(--colorNeutralStroke1);
+  background: var(--colorNeutralBackground2);
 }
 .fname {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -327,11 +329,11 @@ onBeforeUnmount(() => {
 }
 .group-title {
   display: block;
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   margin-bottom: calc(var(--design-unit) * 1px * 2.5);
 }
 .field {
@@ -345,19 +347,21 @@ onBeforeUnmount(() => {
 }
 .field-label {
   display: block;
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
   margin-bottom: calc(var(--design-unit) * 1px * 1.5);
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
 }
 .field-label em {
   font-style: normal;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   font-weight: 500;
 }
 .controls-footer {
   position: sticky;
   bottom: 0;
   isolation: isolate;
+  /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高，否则滚动时控件会盖在按钮上 */
+  z-index: 10;
 }
 .save-btn {
   width: 100%;
@@ -366,7 +370,7 @@ onBeforeUnmount(() => {
   width: 36px;
   flex-shrink: 0;
   text-align: right;
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
 }
 </style>

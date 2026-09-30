@@ -12,7 +12,7 @@
   --window-pad: 28px;
   /* 卡片自身的圆角与外阴影：Windows 下用来模拟 Win11 悬浮窗口，
      macOS 窗口本身已提供圆角和阴影，需要关掉（见下方 mac 覆盖） */
-  --shell-radius: calc(var(--layer-corner-radius) * 1px + var(--design-unit) * 1px);
+  --shell-radius: calc(var(--borderRadiusXLarge) + var(--design-unit) * 1px);
   --shell-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.2);
   /* 非 Windows 平台由系统提供窗口控制按钮（macOS 红绿灯），顶部需额外让位，
      避免侧边栏的 Logo 与标题和系统按钮重叠 */
@@ -22,15 +22,23 @@
   --content-pad-top: 40px;
 
   /* 应用主背景与卡片背景（Windows 设置 / PowerToys 非活跃态配色）：
-     浅色：背景 = layer-2（#f3f3f3 浅灰），卡片 = fill-layer-rest（白）
+     浅色：背景浅灰（v2 的 layer-2 ≈ #f3f3f3），卡片白（v2 的 fill-layer-rest ≈ #fbfbfb）
+     —— 两者必须取不同色阶，否则卡片与背景糊成一片
      深色：背景 #202020（近黑），卡片 #2b2b2b（浅一档灰）——Fluent 深色无对应实色令牌，自定义 */
-  --app-bg: var(--neutral-layer-2);
-  --app-card: var(--neutral-fill-layer-rest);
+  --app-bg: var(--colorNeutralBackground3); /* #f5f5f5 */
+  --app-card: var(--colorNeutralBackground1); /* #ffffff */
 
   /* 次级文字色：Fluent 未提供该令牌，项目内大量引用，这里显式定义（此前一直靠继承兜底） */
-  --neutral-foreground-secondary-rest: #5f5f5f;
+  --app-fg-secondary: #5f5f5f;
 
-  /* 主题强调色兜底：正常由 Fluent(fast) 运行时以内联样式注入，此处仅防未注入环境 */
+  /* v2 密度体系基准单位（v3 已移除 design-unit，这里保留原值 4 供全项目 calc 使用） */
+  --design-unit: 4;
+
+  /* v2 运行时注入的 accentFillRest（正常 accent 按钮底色，比主题色深一档）：
+     v3 改为按主题色就近推导，仅用于禁用主按钮的淡化底色 */
+  --accent-fill-rest: color-mix(in srgb, var(--accent-base-color) 80%, black);
+
+  /* 主题强调色兜底：正常由 fluent.ts 按设置页所选主题色写入 body 内联样式，此处仅防未注入环境 */
   --accent-base-color: #086cbf;
 
   /* 经典滚动条宽度（::-webkit-scrollbar width），用于布局补偿 */
@@ -39,7 +47,7 @@
 html[data-theme='dark'] {
   --app-bg: #202020;
   --app-card: #2b2b2b;
-  --neutral-foreground-secondary-rest: #a6a6a6;
+  --app-fg-secondary: #a6a6a6;
   --btn-disabled-bg: #3b3b3b;
   --btn-disabled-fg: #8f8f8f;
 }
@@ -59,7 +67,7 @@ body,
 body {
   font-family: var(--font-family);
   font-size: 14px;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
   /* 透明内边距：在悬浮卡片与窗口边缘之间留出透明余量，
      使卡片的边框与外阴影可见（桌面透过余量显示） */
   padding: var(--window-pad);
@@ -110,7 +118,7 @@ textarea,
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(128, 128, 128, 0.4);
-  border-radius: calc(var(--control-corner-radius) * 1px + var(--design-unit) * 1px / 2);
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -137,25 +145,27 @@ a {
 
 /* ── 通用卡片（Fluent 风格"设置"卡片） ── */
 .fluent-card {
-  background: var(--neutral-layer-1);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--layer-corner-radius) * 1px);
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusXLarge);
   padding: calc(var(--design-unit) * 4 * 1px);
 }
 
 /* ── Fluent 组件微调（浅色下更接近 Win11 默认观感） ── */
 fluent-card {
-  border-radius: calc(var(--layer-corner-radius) * 1px);
+  border-radius: var(--borderRadiusXLarge);
 }
 /* slider：
    1) 在 flex 行里不被拉伸（否则轨道区贴顶）
-   2) FAST 把轨道与滑块定位在「轨道区」顶部，导致控件视觉整体偏上，
-      这里把定位区下移，使轨道/滑块垂直居中（偏移量 = thumb-size/2 - 轨道宽/2） */
+   2) v2 时代 FAST 把轨道定位在「轨道区」顶部需要手动下移；
+      v3 的 slider 已自行垂直居中，无需再修正（实测若有偏移再按新结构补） */
 fluent-slider {
   align-self: center;
 }
-fluent-slider::part(positioning-region) {
-  transform: translateY(calc(var(--thumb-size) * 0.5px - 2px));
+/* v3 在设置 step 属性后会沿轨道绘制分步刻度（v2 无此行为），按原观感隐藏，
+   方向键的步进行为不受影响 */
+fluent-slider::part(track-container)::after {
+  display: none;
 }
 
 /* ===================== 工具页通用布局 ===================== */
@@ -171,9 +181,9 @@ fluent-slider::part(positioning-region) {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--neutral-fill-hover);
-  border: 1px solid var(--neutral-stroke-rest);
-  border-radius: calc(var(--layer-corner-radius) * 1px);
+  background: var(--colorNeutralBackground1Hover);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusXLarge);
   overflow: hidden;
 }
 .dropzone {
@@ -183,7 +193,7 @@ fluent-slider::part(positioning-region) {
   align-items: center;
   justify-content: center;
   gap: calc(var(--design-unit) * 1px * 3.5);
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
 }
 .dz-icon {
   font-size: calc(var(--design-unit) * 1px * 11.5);
@@ -196,11 +206,11 @@ fluent-slider::part(positioning-region) {
   align-items: center;
   justify-content: center;
   padding: calc(var(--design-unit) * 1px);
-  background-color: var(--neutral-layer-1);
-  background-image: linear-gradient(45deg, var(--neutral-layer-3) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--neutral-layer-3) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--neutral-layer-3) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--neutral-layer-3) 75%);
+  background-color: var(--colorNeutralBackground1);
+  background-image: linear-gradient(45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--colorNeutralBackground3) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--colorNeutralBackground3) 75%);
   background-size: calc(var(--design-unit) * 1px * 5) calc(var(--design-unit) * 1px * 5);
   background-position: 0 0, 0 calc(var(--design-unit) * 1px * 2.5),
     calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * -2.5),
@@ -218,12 +228,13 @@ fluent-slider::part(positioning-region) {
   justify-content: space-between;
   gap: calc(var(--design-unit) * 1px * 3);
   padding: calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * 3.5);
-  border-top: 1px solid var(--neutral-stroke-rest);
-  background: var(--neutral-layer-2);
+  border-top: 1px solid var(--colorNeutralStroke1);
+  /* 原为 v2 的 neutral-layer-2，与 --app-bg 同源，这里跟着应用层变量走 */
+  background: var(--app-bg);
 }
 .fname {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -252,11 +263,11 @@ fluent-slider::part(positioning-region) {
 }
 .group-title {
   display: block;
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   margin-bottom: calc(var(--design-unit) * 1px * 2.5);
 }
 .field {
@@ -272,27 +283,27 @@ fluent-slider::part(positioning-region) {
   margin-bottom: 0;
   flex-shrink: 0;
 }
-.field.row fluent-text-field,
-.field.row fluent-number-field,
-.field.row fluent-select,
+.field.row fluent-text-input,
+.field.row num-input,
+.field.row fluent-dropdown,
 .field.row fluent-slider {
   flex: 1;
   min-width: 0;
 }
 .field-label {
   display: block;
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
   margin-bottom: calc(var(--design-unit) * 1px * 1.5);
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
 }
 .field-label em {
   font-style: normal;
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   font-weight: 500;
 }
 .hint {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
   opacity: 0.7;
 }
 /* 滑块右侧的数值（质量等） */
@@ -300,11 +311,11 @@ fluent-slider::part(positioning-region) {
   width: 36px;
   flex-shrink: 0;
   text-align: right;
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
 }
 /* ==== Windows 设置风格：设置行内控件的统一宽度 ==== */
-/* Fluent 组件默认带 min-width（如 fluent-select 250px），统一放开让下面的固定宽度生效 */
+/* Fluent 组件默认带 min-width（如 fluent-dropdown 250px），统一放开让下面的固定宽度生效 */
 .ctl-lg,
 .ctl-md,
 .ctl-num {
@@ -319,25 +330,62 @@ fluent-slider::part(positioning-region) {
 .ctl-num {
   width: 110px;
 }
-/* 禁用按钮：不透明底色（半透明会让下层内容透出），保持原色系并淡化（等效叠加遮罩） */
-fluent-button[disabled]::part(control),
-fluent-button:disabled::part(control) {
-  opacity: 1 !important;
-  border-color: transparent !important;
+/* 禁用按钮：不透明底色（半透明会让下层内容透出），保持原色系并淡化（等效叠加遮罩）。
+   v3 组件不再暴露 ::part(control)，改为在宿主元素上覆盖其内部消费的设计令牌（v3 官方推荐做法） */
+fluent-button[disabled],
+fluent-button:disabled {
   cursor: default;
+  --colorNeutralBackgroundDisabled: color-mix(in srgb, var(--colorNeutralForeground1) 12%, var(--app-card));
+  --colorNeutralForegroundDisabled: color-mix(in srgb, var(--colorNeutralForeground1) 50%, var(--app-card));
+  --colorNeutralStrokeDisabled: transparent;
 }
-/* accent 按钮：淡化的主题蓝（accent-fill-rest 即正常 accent 按钮的底色，完全同源），
-   文字保持白色与正常态一致；底色取 45% 以保证白字仍可辨识 */
-fluent-button[appearance='accent'][disabled]::part(control),
-fluent-button[appearance='accent']:disabled::part(control) {
-  background: color-mix(in srgb, var(--accent-fill-rest) 45%, var(--app-card)) !important;
-  color: #ffffff !important;
+/* 主按钮（原 accent）：淡化的主题蓝（accent-fill-rest 即正常主按钮的底色，完全同源），
+   文字保持白色与正常态一致；底色取 45% 以保证白字仍可辨识。
+   v3 的禁用态对所有 appearance 统一走 --colorNeutralBackgroundDisabled/ForegroundDisabled
+   （在组件内覆盖了 background-color），所以这里要覆盖这两个令牌而不是 colorBrandBackground；
+   本规则必须排在上面通用禁用规则之后才能生效 */
+fluent-button[appearance='primary'][disabled],
+fluent-button[appearance='primary']:disabled {
+  --colorNeutralBackgroundDisabled: color-mix(in srgb, var(--accent-fill-rest) 45%, var(--app-card));
+  --colorNeutralForegroundDisabled: #ffffff;
 }
-/* 其余 appearance：卡片底色混入主文字色（比背景深一档，主题自适应） */
-fluent-button[disabled]:not([appearance='accent'])::part(control),
-fluent-button:disabled:not([appearance='accent'])::part(control) {
-  background: color-mix(in srgb, var(--neutral-foreground-rest) 12%, var(--app-card)) !important;
-  color: color-mix(in srgb, var(--neutral-foreground-rest) 50%, var(--app-card)) !important;
+/* num-input（原生 number 输入，替代 v2 fluent-number-field，外观对齐 v3 text-input） */
+.num-input-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+.num-input-wrap input {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1);
+  font-family: inherit;
+  font-size: var(--fontSizeBase300);
+  padding: 0 30px 0 calc(var(--design-unit) * 3px);
+  outline: none;
+}
+.num-input-wrap input:hover {
+  border-color: var(--colorNeutralStroke1Hover);
+}
+.num-input-wrap input:focus {
+  border-color: var(--colorCompoundBrandStroke);
+}
+.num-input-wrap input:disabled {
+  background: var(--colorNeutralBackgroundDisabled);
+  color: var(--colorNeutralForegroundDisabled);
+  border-color: var(--colorNeutralStrokeDisabled);
+}
+.num-input-wrap span[slot='end'] {
+  position: absolute;
+  right: 8px;
+  color: var(--app-fg-secondary);
+  font-size: var(--fontSizeBase200);
+  pointer-events: none;
 }
 .ctl-slider {
   flex: 1;
@@ -347,8 +395,8 @@ fluent-button:disabled:not([appearance='accent'])::part(control) {
   min-width: 40px;
   flex-shrink: 0;
   text-align: right;
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
 }
 .batch-entry {
   position: sticky;
@@ -368,6 +416,8 @@ fluent-button:disabled:not([appearance='accent'])::part(control) {
   position: sticky;
   bottom: 0;
   isolation: isolate;
+  /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高，否则滚动时控件会盖在按钮上 */
+  z-index: 10;
   padding: 0;
 }
 .controls-footer::before {
@@ -404,11 +454,11 @@ fluent-button:disabled:not([appearance='accent'])::part(control) {
 .batch-tool-head .title {
   font-size: 20px;
   font-weight: 600;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
 }
 .batch-tool-head .desc {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
 }
 .batch-tool-body {
   display: flex;
@@ -422,6 +472,6 @@ fluent-button:disabled:not([appearance='accent'])::part(control) {
   padding-top: calc(var(--design-unit) * 1px * 2);
 }
 .batch-tool-foot .progress-text {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
 }

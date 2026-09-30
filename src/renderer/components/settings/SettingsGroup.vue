@@ -30,17 +30,17 @@ withDefaults(defineProps<{ title?: string; count?: number | string }>(), {
   align-items: center;
   gap: calc(var(--design-unit) * 1px * 2);
   margin: 0 0 calc(var(--design-unit) * 1px * 2.5);
-  font-size: var(--type-ramp-base-font-size);
+  font-size: var(--fontSizeBase300);
   font-weight: 600;
-  color: var(--neutral-foreground-rest);
+  color: var(--colorNeutralForeground1);
 }
 /* 数量徽标（导入图片数等） */
 .sg-count {
-  font-size: var(--type-ramp-minus-1-font-size);
+  font-size: var(--fontSizeBase200);
   font-weight: 400;
-  color: var(--neutral-foreground-secondary-rest);
-  background: var(--neutral-fill-hover);
-  border-radius: calc(var(--control-corner-radius) * 1px);
+  color: var(--app-fg-secondary);
+  background: var(--colorNeutralBackground1Hover);
+  border-radius: var(--borderRadiusMedium);
   padding: calc(var(--design-unit) * 1px * 0.5) calc(var(--design-unit) * 1px * 2);
 }
 /* 组内是「卡片列表」：每个设置项/控件组各自是一张卡，卡间距 4px（与字体管理字体族卡一致） */

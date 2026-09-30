@@ -5,7 +5,7 @@
     </SettingsRow>
 
     <SettingsRow v-if="settings.recentSaveDirs.length" label="常用位置">
-      <fluent-select
+      <app-select
         ref="selectEl"
         class="loc-select"
         :title="pending"
@@ -14,7 +14,7 @@
         <fluent-option v-for="d in settings.recentSaveDirs" :key="d" :value="d" :title="d">
           {{ d }}
         </fluent-option>
-      </fluent-select>
+      </app-select>
       <fluent-button
         appearance="neutral"
         class="loc-apply"
@@ -41,6 +41,7 @@ import { useSettingsStore } from '@renderer/stores/settings';
 import { selectDirectory } from '@renderer/utils/filePicker';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
+import AppSelect from '@renderer/components/AppSelect.vue';
 
 const settings = useSettingsStore();
 const props = defineProps<{ modelValue: string; keepRelative?: boolean }>();
@@ -60,7 +61,7 @@ function evVal(e: Event): string {
   return (e.target as HTMLInputElement).value;
 }
 
-// fluent-select 的 value 需在 option 渲染完成后由 DOM 赋值，纯属性绑定会因时序丢失
+// fluent-dropdown 的 value 需在 option 渲染完成后由 DOM 赋值，纯属性绑定会因时序丢失
 async function syncSelect() {
   await nextTick();
   if (selectEl.value && selectEl.value.value !== pending.value) {
@@ -100,16 +101,11 @@ function apply() {
   flex: 1;
   min-width: 0;
 }
-/* 长路径在收起态与展开列表中均省略号截断，避免撑破面板 */
-.loc-select::part(control),
-.loc-select::part(selected-value) {
+/* v2 的 select 有 ::part(control/selected-value/listbox) 可覆盖内部结构；
+   v3 的 dropdown 未暴露这些 part，长路径截断改由容器限制宽度 +
+   下拉列表自身的弹出定位处理（若实测仍有撑破，再考虑回到自绘下拉） */
+.loc-select {
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.loc-select::part(listbox) {
-  max-height: 220px;
-  max-width: 420px;
 }
 .loc-apply {
   flex-shrink: 0;
@@ -129,11 +125,11 @@ function apply() {
   min-width: 0;
 }
 .loc-keep-label {
-  font-size: var(--type-ramp-minus-1-font-size);
-  color: var(--neutral-foreground-rest);
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground1);
 }
 .loc-keep-hint {
-  font-size: var(--type-ramp-minus-2-font-size);
-  color: var(--neutral-foreground-secondary-rest);
+  font-size: var(--fontSizeBase100);
+  color: var(--app-fg-secondary);
 }
 </style>

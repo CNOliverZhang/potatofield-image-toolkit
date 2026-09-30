@@ -23,7 +23,7 @@
           >
             取消
           </fluent-button>
-          <fluent-button appearance="accent" @click="closeDialog(true)">确定</fluent-button>
+          <fluent-button appearance="primary" @click="closeDialog(true)">确定</fluent-button>
         </template>
       </div>
     </div>
@@ -36,16 +36,16 @@ import { ui, closeDialog } from '@renderer/composables/ui';
 
 <style scoped>
 .app-dialog::part(control) {
-  border-radius: calc(var(--layer-corner-radius) * 1px);
-  border: 1px solid var(--neutral-stroke-rest);
+  border-radius: var(--borderRadiusXLarge);
+  border: 1px solid var(--colorNeutralStroke1);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
 }
 .dlg {
   min-width: 320px;
   max-width: 460px;
   padding: calc(var(--design-unit) * 6 * 1px);
-  background: var(--neutral-layer-1);
-  color: var(--neutral-foreground-rest);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1);
 }
 .dlg-title {
   margin: 0 0 calc(var(--design-unit) * 2 * 1px);
@@ -53,7 +53,7 @@ import { ui, closeDialog } from '@renderer/composables/ui';
 }
 .dlg-msg {
   margin: 0 0 calc(var(--design-unit) * 5 * 1px);
-  color: var(--neutral-foreground-secondary-rest);
+  color: var(--app-fg-secondary);
   line-height: 1.5;
   white-space: pre-wrap;
 }
