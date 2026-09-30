@@ -18,6 +18,8 @@ export interface ImageToolkitApi {
     /** 界面缩放比例（1 = 100%） */
     getZoomFactor: () => Promise<number>;
     setZoomFactor: (factor: number) => Promise<number>;
+    /** 当前系统是否启用了窗口材质（macOS 玻璃 / Windows 11 亚克力）：为 true 时页面背景应全透明 */
+    windowMaterial: boolean;
   };
   dialog: {
     selectFile: (options: SelectFileOptions) => Promise<string[] | null>;

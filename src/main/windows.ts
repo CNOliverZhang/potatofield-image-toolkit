@@ -81,7 +81,9 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
     // 系统窗口材质：macOS 玻璃质感 / Windows 11 亚克力（其余平台不支持，保持普通窗口）
     // 注意：vibrancy 的 light/dark/appearance-based 等旧值已被 Apple 移除，只能用位置类取值
     ...(process.platform === 'darwin' ? { vibrancy: 'under-window' as const } : {}),
-    ...(process.platform === 'win32' ? { backgroundMaterial: 'acrylic' as const } : {}),
+    // 材质始终活跃（默认跟随窗口焦点，失焦时会变淡）
+    ...(process.platform === 'darwin' ? { visualEffectState: 'active' as const } : {}),
+    ...(supportsAcrylic() ? { backgroundMaterial: 'acrylic' as const } : {}),
     icon: resolveAppIcon(),
     show: false,
     webPreferences: {
@@ -122,4 +124,20 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
 
 export function getWindows(): Map<string, BrowserWindow> {
   return windows;
+}
+
+/**
+ * 当前系统是否支持亚克力材质：
+ * acrylic 是 Windows 11 22H2（build 22621）才有的系统材质，Win10 上设置无效；
+ * 而窗口本身是 transparent 的，一旦页面又全透明就会变成完全透明（直接透出桌面）。
+ */
+export function supportsAcrylic(): boolean {
+  if (process.platform !== 'win32') return false;
+  const parts = process.getSystemVersion().split('.');
+  return Number(parts[2] ?? 0) >= 22621;
+}
+
+/** 当前窗口是否启用了系统材质（渲染进程据此决定是否让页面背景全透明） */
+export function hasWindowMaterial(): boolean {
+  return process.platform === 'darwin' || supportsAcrylic();
 }

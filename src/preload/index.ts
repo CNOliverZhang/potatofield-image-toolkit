@@ -11,7 +11,9 @@ const api: ImageToolkitApi = {
     getOpenAtLogin: () => ipcRenderer.invoke('app:openAtLogin'),
     setOpenAtLogin: (open: boolean) => ipcRenderer.invoke('app:setOpenAtLogin', open),
     getZoomFactor: () => ipcRenderer.invoke('app:zoomFactor'),
-    setZoomFactor: (factor: number) => ipcRenderer.invoke('app:setZoomFactor', factor)
+    setZoomFactor: (factor: number) => ipcRenderer.invoke('app:setZoomFactor', factor),
+    // 同步读取：首帧就要用它决定页面背景（避免先用不透明再切换导致闪烁）
+    windowMaterial: ipcRenderer.sendSync('app:windowMaterial') as boolean
   },
   dialog: {
     selectFile: (options) => ipcRenderer.invoke('dialog:selectFile', options),

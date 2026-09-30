@@ -1,6 +1,6 @@
 import { ipcMain, dialog, shell, app, BrowserWindow, nativeTheme } from 'electron';
 import { processImage } from './image';
-import { openWindow, getZoomFactor, setZoomFactor } from './windows';
+import { openWindow, getZoomFactor, setZoomFactor, hasWindowMaterial } from './windows';
 import { getOpenAtLogin, setOpenAtLogin } from './system';
 import {
   scanDirectory,
@@ -21,6 +21,10 @@ import type {
 
 export function registerIpc(): void {
   ipcMain.handle('app:version', () => app.getVersion());
+  // 同步通道：渲染进程首帧就需要知道是否启用系统材质（决定页面背景是否全透明）
+  ipcMain.on('app:windowMaterial', (e) => {
+    e.returnValue = hasWindowMaterial();
+  });
   ipcMain.handle('app:isPackaged', () => app.isPackaged);
   ipcMain.handle('app:openAtLogin', () => getOpenAtLogin());
   ipcMain.handle('app:setOpenAtLogin', (_e, open: boolean) => setOpenAtLogin(open));
