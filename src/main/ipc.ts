@@ -1,6 +1,6 @@
 import { ipcMain, dialog, shell, app, BrowserWindow, nativeTheme } from 'electron';
 import { processImage } from './image';
-import { openWindow, getZoomFactor, setZoomFactor, hasWindowMaterial } from './windows';
+import { openWindow, getZoomFactor, setZoomFactor, hasWindowMaterial, refreshAcrylicVibrancy } from './windows';
 import { getOpenAtLogin, setOpenAtLogin } from './system';
 import {
   scanDirectory,
@@ -91,6 +91,8 @@ export function registerIpc(): void {
       // macOS 玻璃材质的外观跟随窗口的 NSAppearance：
       // 应用切深色时必须同步系统外观，否则玻璃仍是亮色、与页面内容冲突
       nativeTheme.themeSource = payload.darkMode ? 'dark' : 'light';
+      // 旧系统（Win10）的第三方毛玻璃色调需要同步刷新
+      refreshAcrylicVibrancy();
       for (const win of BrowserWindow.getAllWindows()) {
         if (win === sender || win.isDestroyed()) continue;
         win.webContents.send('theme:changed', payload);

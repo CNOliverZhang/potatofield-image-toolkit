@@ -1,4 +1,37 @@
-import { app, BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
+import { app, BrowserWindow, nativeTheme, type BrowserWindowConstructorOptions } from 'electron';
+
+/**
+ * Windows 旧系统（不支持原生 acrylic，即 Win11 22H2 以下，含 Win10）
+ * 用 electron-acrylic-window 通过 SetWindowCompositionAttribute 实现毛玻璃。
+ * 该库是 Windows 专用原生模块，在其它平台或未编译成功时不可用 —— 因此用可选依赖 +
+ * 惰性 require，取不到就退回普通窗口（页面底色不透明，不会出现全透明窗口）。
+ */
+let AcrylicBrowserWindow: typeof BrowserWindow | null = null;
+if (process.platform === 'win32' && !supportsAcrylic()) {
+  try {
+    AcrylicBrowserWindow = require('electron-acrylic-window').BrowserWindow as typeof BrowserWindow;
+  } catch {
+    AcrylicBrowserWindow = null;
+  }
+}
+
+/** 是否启用了第三方毛玻璃（Win10 等旧系统） */
+export function hasAcrylicLib(): boolean {
+  return AcrylicBrowserWindow !== null;
+}
+
+/** 构建毛玻璃参数：Win10 1803(17134) 以上用亚克力，更早用经典模糊 */
+function buildVibrancyOptions(): Record<string, unknown> {
+  const build = process.platform === 'win32' ? Number(process.getSystemVersion().split('.')[2] ?? 0) : 0;
+  return {
+    theme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
+    effect: build >= 17134 ? 'acrylic' : 'blur',
+    // 窗口移动/缩放时由库自行刷新（Win10 亚克力必须，否则拖动后背景错位）
+    useCustomWindowRefreshMethod: true,
+    maximumRefreshRate: 30,
+    disableOnBlur: false
+  };
+}
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { loadZoomFactor, saveZoomFactor } from './system';
@@ -66,7 +99,8 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
     windows.delete(dedupKey);
   }
 
-  const win = new BrowserWindow({
+  const Ctor = AcrylicBrowserWindow ?? BrowserWindow;
+  const win = new Ctor({
     width: 1100,
     height: 720,
     minWidth: 900,
@@ -84,6 +118,8 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
     // 材质始终活跃（默认跟随窗口焦点，失焦时会变淡）
     ...(process.platform === 'darwin' ? { visualEffectState: 'active' as const } : {}),
     ...(supportsAcrylic() ? { backgroundMaterial: 'acrylic' as const } : {}),
+    // 旧系统（Win10 等）：交给第三方库做毛玻璃
+    ...(AcrylicBrowserWindow ? { vibrancy: buildVibrancyOptions() } : {}),
     icon: resolveAppIcon(),
     show: false,
     webPreferences: {
@@ -139,5 +175,18 @@ export function supportsAcrylic(): boolean {
 
 /** 当前窗口是否启用了系统材质（渲染进程据此决定是否让页面背景全透明） */
 export function hasWindowMaterial(): boolean {
-  return process.platform === 'darwin' || supportsAcrylic();
+  return process.platform === 'darwin' || supportsAcrylic() || hasAcrylicLib();
+}
+
+/** 主题切换后更新第三方毛玻璃的色调（Win10 等旧系统） */
+export function refreshAcrylicVibrancy(): void {
+  if (!AcrylicBrowserWindow) return;
+  try {
+    const { setVibrancy } = require('electron-acrylic-window');
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) setVibrancy(win, buildVibrancyOptions());
+    }
+  } catch {
+    /* 库不可用时忽略，窗口保持普通底色 */
+  }
 }
