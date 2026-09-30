@@ -31,22 +31,24 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch, onBeforeUnmount } from 'vue';
 import type { WatermarkParams } from '@shared/types';
-import { selectImageFiles, selectDirectory } from '@renderer/utils/filePicker';
+import { selectImageFiles } from '@renderer/utils/filePicker';
 import { useDialog } from '@renderer/composables/useDialog';
+import { createOutputOpts } from '@renderer/composables/useOutputSettings';
+import { useSingleTool } from '@renderer/composables/useSingleTool';
 import WatermarkControls from '@renderer/components/WatermarkControls.vue';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
 
 const { message } = useDialog();
+/** 与其它单图工具一致：保存时再选目录 */
+const { inputPath, inputName, previewUrl, processing, runSave } = useSingleTool();
 
-const inputPath = ref('');
-const inputName = ref('');
-const previewUrl = ref('');
 /** 原图地址：作为水印预览生成前的兜底显示，避免选图后出现空白 */
 const inputSrc = computed(() => (inputPath.value ? `file://${inputPath.value}` : ''));
-const processing = ref(false);
 let previewTimer: number | undefined;
 
 function defaultParams(): WatermarkParams {
+  // 输出格式/质量默认取设置页「默认输出」（与其它工具一致）
+  const out = createOutputOpts();
   return {
     type: 'text',
     text: '洋芋田',
@@ -57,14 +59,18 @@ function defaultParams(): WatermarkParams {
     fontFamily: 'sans-serif',
     rotation: 0,
     gravity: 'se',
+    positionUnit: 'percent',
+    sizePct: 20,
     offsetX: 5,
     offsetY: 5,
+    offsetXPx: 20,
+    offsetYPx: 20,
     tile: false,
     tileGap: 60,
     watermarkPath: '',
     scale: 0.25,
-    format: 'original',
-    quality: 90
+    format: out.format,
+    quality: out.quality
   };
 }
 
@@ -112,34 +118,26 @@ function extFor(fmt: WatermarkParams['format']): string {
 }
 
 async function save() {
-  if (!inputPath.value) return;
   if (params.type === 'image' && !params.watermarkPath) {
     message('请先选择水印图片', 'warning');
     return;
   }
-  const dir = await selectDirectory();
-  if (!dir) return;
-  const base = inputPath.value.split(/[\\/]/).pop() || 'image';
-  const dot = base.lastIndexOf('.');
-  const stem = dot > 0 ? base.slice(0, dot) : base;
-  const name = stem + '_watermarked' + extFor(params.format);
-  const outputPath = dir + (dir.endsWith('/') || dir.endsWith('\\') ? '' : '\\') + name;
-  processing.value = true;
-  try {
-    await window.api.image.process({
-      op: 'watermark',
-      inputPath: inputPath.value,
-      outputPath,
-      options: { format: params.format === 'original' ? undefined : params.format, quality: params.quality },
-      extra: { ...params } as unknown as Record<string, unknown>
-    });
-    message('已保存到：' + name, 'success');
-    window.api.shell.showItemInFolder(outputPath);
-  } catch (err) {
-    message('保存失败：' + (err as Error).message, 'error');
-  } finally {
-    processing.value = false;
-  }
+  // 与其它单图工具一致：走 runSave（先选目录再处理，提示与错误处理统一）
+  await runSave(
+    (stem) => stem + '_watermarked' + extFor(params.format),
+    async (outputPath) => {
+      await window.api.image.process({
+        op: 'watermark',
+        inputPath: inputPath.value,
+        outputPath,
+        options: {
+          format: params.format === 'original' ? undefined : params.format,
+          quality: params.quality
+        },
+        extra: { ...params } as unknown as Record<string, unknown>
+      });
+    }
+  );
 }
 
 function openBatch() {

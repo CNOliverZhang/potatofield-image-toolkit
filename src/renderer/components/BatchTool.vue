@@ -25,18 +25,20 @@
           <template v-if="tool === 'resizer'">
             <div class="field row">
               <span class="field-label">宽度</span>
-              <fluent-number-field :value="opts.width" @input="opts.width = evNum($event)"><span slot="end">px</span></fluent-number-field>
+              <fluent-number-field :value="opts.width" min="1" @input="opts.width = evNum($event)"><span slot="end">px</span></fluent-number-field>
             </div>
             <div class="field row">
               <span class="field-label">高度（0=按比例）</span>
-              <fluent-number-field :value="opts.height" @input="opts.height = evNum($event)"><span slot="end">px</span></fluent-number-field>
+              <fluent-number-field :value="opts.height" min="0" @input="opts.height = evNum($event)"><span slot="end">px</span></fluent-number-field>
             </div>
             <label class="field">
               <span class="field-label">适配方式</span>
               <fluent-select :value="opts.fit" @change="opts.fit = evVal($event) as ImageProcessOptions['fit']">
-                <fluent-option value="inside">等比缩放</fluent-option>
-                <fluent-option value="cover">裁剪填充</fluent-option>
-                <fluent-option value="fill">拉伸</fluent-option>
+                <fluent-option value="inside">等比缩放（inside）</fluent-option>
+                <fluent-option value="cover">裁剪填充（cover）</fluent-option>
+                <fluent-option value="fill">拉伸（fill）</fluent-option>
+                <fluent-option value="contain">包含（contain）</fluent-option>
+                <fluent-option value="outside">外延（outside）</fluent-option>
               </fluent-select>
             </label>
           </template>
@@ -44,36 +46,69 @@
           <template v-else-if="tool === 'compress'">
             <label class="field">
               <span class="field-label">格式</span>
-              <fluent-select :value="opts.format || 'original'" @change="opts.format = evVal($event) === 'original' ? undefined : (evVal($event) as ImageFormat)">
-                <fluent-option value="original">原格式</fluent-option>
-                <fluent-option value="jpeg">JPG</fluent-option>
-                <fluent-option value="png">PNG</fluent-option>
-                <fluent-option value="webp">WebP</fluent-option>
+              <fluent-select :value="out.format" @change="onFormat">
+                <fluent-option value="original">保持原格式</fluent-option>
+                <fluent-option value="png">PNG（无损）</fluent-option>
+                <fluent-option value="jpeg">JPG（有损）</fluent-option>
+                <fluent-option value="webp">WebP（有损）</fluent-option>
               </fluent-select>
             </label>
-            <div class="field">
-              <span class="field-label">质量 <em>{{ opts.quality }}%</em></span>
-              <fluent-slider :value="opts.quality" :min="10" :max="100" :step="1" @change="opts.quality = evNum($event)"></fluent-slider>
+            <div v-if="lossy" class="field row">
+              <span class="field-label">质量</span>
+              <fluent-slider :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+              <span class="q-val">{{ out.quality }}</span>
             </div>
           </template>
 
           <template v-else-if="tool === 'convert'">
             <label class="field">
               <span class="field-label">目标格式</span>
-              <fluent-select :value="opts.format || 'png'" @change="opts.format = evVal($event) as ImageFormat">
-                <fluent-option value="png">PNG</fluent-option>
-                <fluent-option value="jpeg">JPG</fluent-option>
-                <fluent-option value="webp">WebP</fluent-option>
+              <fluent-select :value="out.format" @change="onFormat">
+                <fluent-option value="png">PNG（无损）</fluent-option>
+                <fluent-option value="jpeg">JPG（有损）</fluent-option>
+                <fluent-option value="webp">WebP（有损）</fluent-option>
               </fluent-select>
             </label>
+            <div v-if="lossy" class="field row">
+              <span class="field-label">质量</span>
+              <fluent-slider :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+              <span class="q-val">{{ out.quality }}</span>
+            </div>
           </template>
+        </div>
+
+        <!-- 输出设置：与单图工具一致（压缩/转换的格式与质量本身就是输出设置，不再重复显示） -->
+        <div v-if="tool === 'resizer'" class="group">
+          <span class="group-title">输出设置</span>
+          <label class="field">
+            <span class="field-label">格式</span>
+            <fluent-select :value="out.format" @change="onFormat">
+              <fluent-option value="original">保持原格式</fluent-option>
+              <fluent-option value="png">PNG（无损）</fluent-option>
+              <fluent-option value="jpeg">JPG（有损）</fluent-option>
+              <fluent-option value="webp">WebP（有损）</fluent-option>
+            </fluent-select>
+          </label>
+          <div v-if="lossy" class="field row">
+            <span class="field-label">质量</span>
+            <fluent-slider :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+            <span class="q-val">{{ out.quality }}</span>
+          </div>
         </div>
 
         <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
 
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="run">
-            {{ processing ? `处理中 ${progress.done}/${progress.total}` : `开始批量处理 (${files.length})` }}
+          <fluent-button
+            v-if="processing"
+            appearance="neutral"
+            class="save-btn"
+            @click="cancel"
+          >
+            取消（已完成 {{ progress.done }}/{{ progress.total }}）
+          </fluent-button>
+          <fluent-button v-else appearance="accent" class="save-btn" @click="run">
+            开始批量处理 ({{ files.length }})
           </fluent-button>
         </div>
       </div>
@@ -84,15 +119,21 @@
 <script setup lang="ts">
 import { reactive, ref, watch, onBeforeUnmount, computed } from 'vue';
 import type { ImageProcessOptions } from '@shared/types';
-import { buildOutputPath, resolveBatchOutputPath, ensureDir } from '@renderer/utils/fileIO';
 import type { BatchItem } from '@renderer/utils/directoryScanner';
 import { useDialog } from '@renderer/composables/useDialog';
+import {
+  createOutputOpts,
+  isLossy,
+  outExt,
+  withOutput,
+  type OutputOpts
+} from '@renderer/composables/useOutputSettings';
+import { useBatchRunner } from '@renderer/composables/useBatchRunner';
 import { useSettingsStore } from '@renderer/stores/settings';
 import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
 import SaveLocationSetting from '@renderer/components/SaveLocationSetting.vue';
 
 type ToolKey = 'resizer' | 'compress' | 'convert';
-type ImageFormat = 'png' | 'jpeg' | 'webp';
 
 const props = defineProps<{ tool: ToolKey }>();
 
@@ -110,15 +151,19 @@ const keepRelative = ref(false);
 const selected = ref('');
 const saveDir = ref(settings.defaultSaveDirectory || settings.recentSaveDirs[0] || '');
 const previewUrl = ref('');
-const processing = ref(false);
-const progress = reactive({ done: 0, total: 0 });
 const opts = reactive({
   width: 800,
   height: 0,
-  fit: 'inside' as ImageProcessOptions['fit'],
-  format: undefined as ImageFormat | undefined,
-  quality: 80
+  fit: 'inside' as ImageProcessOptions['fit']
 });
+/** 输出格式/质量：默认取设置页「默认输出」（convert 无「保持原格式」，回退为 png） */
+const out: OutputOpts = createOutputOpts();
+if (props.tool === 'convert' && out.format === 'original') out.format = 'png';
+const lossy = computed(() => isLossy(out.format));
+
+function onFormat(e: Event) {
+  out.format = (e.target as HTMLInputElement).value as OutputOpts['format'];
+}
 
 let previewTimer: number | undefined;
 
@@ -137,13 +182,9 @@ function buildOptions(): ImageProcessOptions {
     if (opts.width) o.width = opts.width;
     if (opts.height) o.height = opts.height;
     o.fit = opts.fit;
-  } else if (props.tool === 'compress') {
-    if (opts.format) o.format = opts.format;
-    o.quality = opts.quality;
-  } else if (props.tool === 'convert') {
-    o.format = opts.format;
   }
-  return o;
+  // 压缩与转换的参数就是输出设置本身
+  return withOutput(o, out);
 }
 
 function clearPreview() {
@@ -181,60 +222,18 @@ function schedulePreview() {
   previewTimer = window.setTimeout(updatePreview, 220);
 }
 
-watch([opts, selected], schedulePreview, { deep: true });
+watch([opts, out, selected], schedulePreview, { deep: true });
 
-async function run() {
-  if (!files.value.length) {
-    message('请先导入图片', 'warning');
-    return;
-  }
-  if (!saveDir.value) {
-    message('请先设置保存位置', 'warning');
-    return;
-  }
-  if (props.tool === 'convert' && !opts.format) {
-    message('请选择目标格式', 'warning');
-    return;
-  }
-  processing.value = true;
-  progress.done = 0;
-  progress.total = files.value.length;
-  let ok = 0;
-  for (const item of files.value) {
-    const forcedExt =
-      (props.tool === 'convert' || props.tool === 'compress') && opts.format
-        ? '.' + opts.format
-        : undefined;
-    const out = resolveBatchOutputPath(saveDir.value, item, {
-      suffix: config[props.tool].suffix,
-      ext: forcedExt,
-      keepStructure: keepRelative.value
-    });
-    if (keepRelative.value && item.rel.includes('/')) {
-      await ensureDir(out.substring(0, out.lastIndexOf('/')));
-    }
-    try {
-      await window.api.image.process({
-        op: config[props.tool].op,
-        inputPath: item.path,
-        outputPath: out,
-        options: buildOptions()
-      });
-      ok++;
-    } catch (e) {
-      const base = item.path.split(/[\\/]/).pop() || 'image';
-      message('失败 ' + base + '：' + (e as Error).message, 'error');
-    }
-    progress.done++;
-  }
-  processing.value = false;
-  message(`批量处理完成：${ok}/${files.value.length} 张成功`, 'success');
-  if (ok > 0) {
-    window.api.shell.showItemInFolder(
-      buildOutputPath(saveDir.value, files.value[0].path.split(/[\\/]/).pop() || 'image')
-    );
-  }
-}
+/** 批量执行：统一走 useBatchRunner（覆盖策略 / 取消 / 进度 / 打开输出文件） */
+const { processing, progress, run, cancel } = useBatchRunner({
+  files,
+  saveDir,
+  keepRelative,
+  op: config[props.tool].op,
+  suffix: config[props.tool].suffix,
+  extOf: (item) => (out.format === 'original' ? undefined : outExt(out.format, item.path)),
+  prepare: () => ({ options: buildOptions() })
+});
 
 onBeforeUnmount(() => {
   clearPreview();
@@ -372,5 +371,12 @@ onBeforeUnmount(() => {
 }
 .save-btn {
   width: 100%;
+}
+.q-val {
+  width: 36px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--neutral-foreground-secondary-rest);
 }
 </style>

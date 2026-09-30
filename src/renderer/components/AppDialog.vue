@@ -4,14 +4,27 @@
       <h3 v-if="ui.dialog.title" class="dlg-title">{{ ui.dialog.title }}</h3>
       <p class="dlg-msg">{{ ui.dialog.message }}</p>
       <div class="dlg-actions">
-        <fluent-button
-          v-if="ui.dialog.type === 'confirm'"
-          appearance="neutral"
-          @click="closeDialog(false)"
-        >
-          取消
-        </fluent-button>
-        <fluent-button appearance="accent" @click="closeDialog(true)">确定</fluent-button>
+        <!-- 多选一：按传入动作渲染 -->
+        <template v-if="ui.dialog.type === 'choose'">
+          <fluent-button
+            v-for="a in ui.dialog.actions ?? []"
+            :key="a.value"
+            :appearance="a.appearance ?? 'neutral'"
+            @click="closeDialog(a.value)"
+          >
+            {{ a.label }}
+          </fluent-button>
+        </template>
+        <template v-else>
+          <fluent-button
+            v-if="ui.dialog.type === 'confirm'"
+            appearance="neutral"
+            @click="closeDialog(false)"
+          >
+            取消
+          </fluent-button>
+          <fluent-button appearance="accent" @click="closeDialog(true)">确定</fluent-button>
+        </template>
       </div>
     </div>
   </fluent-dialog>

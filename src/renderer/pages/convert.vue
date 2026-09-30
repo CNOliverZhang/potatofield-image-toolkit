@@ -18,10 +18,10 @@
           <span class="group-title">转换设置</span>
           <label class="field">
             <span class="field-label">目标格式</span>
-            <fluent-select :value="opts.format" @change="opts.format = evVal($event) as ImageFormat">
-              <fluent-option value="png">PNG</fluent-option>
-              <fluent-option value="jpeg">JPEG</fluent-option>
-              <fluent-option value="webp">WebP</fluent-option>
+            <fluent-select :value="opts.format" @change="onFormat">
+              <fluent-option value="png">PNG（无损）</fluent-option>
+              <fluent-option value="jpeg">JPG（有损）</fluent-option>
+              <fluent-option value="webp">WebP（有损）</fluent-option>
             </fluent-select>
           </label>
           <div v-if="lossy" class="field row">
@@ -51,25 +51,30 @@
 import { computed, reactive, watch } from 'vue';
 import type { ImageFormat } from '@shared/types';
 import { useSingleTool, evVal, evNum, extOf } from '@renderer/composables/useSingleTool';
-import { isLossy, outExt, outQuality } from '@renderer/composables/useOutputSettings';
+import { createOutputOpts, isLossy, outExt, outQuality } from '@renderer/composables/useOutputSettings';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
 
 const { inputPath, inputName, previewUrl, processing, pickImage, schedulePreview, runSave } =
   useSingleTool();
 
-const opts = reactive({
-  format: 'png' as ImageFormat,
-  quality: 90
-});
+/** 格式转换没有「保持原格式」，默认 png；质量沿用设置页「默认输出」 */
+const opts = createOutputOpts();
+if (opts.format === 'original') opts.format = 'png';
 
 const lossy = computed(() => isLossy(opts.format));
+/** 传给主进程的格式（DefaultOutputFormat → ImageFormat） */
+const format = computed(() => opts.format as ImageFormat);
+
+function onFormat(e: Event) {
+  opts.format = evVal(e) as typeof opts.format;
+}
 
 async function refresh(): Promise<ArrayBuffer | undefined> {
   if (!inputPath.value) return undefined;
   const res = await window.api.image.process({
     op: 'convert',
     inputPath: inputPath.value,
-    options: { format: opts.format, quality: outQuality(opts.format, opts.quality) }
+    options: { format: format.value, quality: outQuality(opts.format, opts.quality) }
   });
   return res.buffer;
 }
@@ -80,13 +85,13 @@ async function onPick() {
 
 async function onSave() {
   await runSave(
-    (stem) => `${stem}_converted${outExt(opts.format, inputPath.value)}`,
+    (stem) => `${stem}_converted${outExt(format.value, inputPath.value)}`,
     async (outputPath) => {
       await window.api.image.process({
         op: 'convert',
         inputPath: inputPath.value,
         outputPath,
-        options: { format: opts.format, quality: outQuality(opts.format, opts.quality) }
+        options: { format: format.value, quality: outQuality(opts.format, opts.quality) }
       });
     }
   );

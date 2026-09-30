@@ -77,10 +77,18 @@ export interface WatermarkParams {
   /** 旋转角度（度） */
   rotation: number;
   gravity: WatermarkGravity;
-  /** 水平内边距，占图片宽度百分比（0..100），仅非平铺且定位含左/右时生效 */
+  /** 位置单位：percent=相对（边距为百分比、大小为占图宽百分比）；pixel=绝对像素（边距为 px、字号为 px） */
+  positionUnit?: 'percent' | 'pixel';
+  /** 百分比模式下水印整体宽度占图片宽度的百分比（可 >100，表示水印比图片更宽） */
+  sizePct?: number;
+  /** 水平内边距，占图片宽度百分比（0..100），仅非平铺、百分比模式且定位含左/右时生效 */
   offsetX: number;
-  /** 垂直内边距，占图片高度百分比（0..100），仅非平铺且定位含上/下时生效 */
+  /** 垂直内边距，占图片高度百分比（0..100），仅非平铺、百分比模式且定位含上/下时生效 */
   offsetY: number;
+  /** 像素模式的水平内边距（px，可为负表示溢出到图外），仅非平铺且定位含左/右时生效 */
+  offsetXPx?: number;
+  /** 像素模式的垂直内边距（px，可为负表示溢出到图外），仅非平铺且定位含上/下时生效 */
+  offsetYPx?: number;
   /** 是否平铺铺满整图 */
   tile: boolean;
   /** 平铺间距（px） */

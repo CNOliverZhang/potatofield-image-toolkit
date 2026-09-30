@@ -16,19 +16,19 @@
         <span class="field-label">文本内容</span>
         <fluent-text-field :value="params.text" @input="params.text = evVal($event)"></fluent-text-field>
       </label>
-      <div class="field">
-        <span class="field-label">字号 <em>{{ params.fontSize }}px</em></span>
-        <fluent-slider
-          :value="params.fontSize"
-          :min="8"
-          :max="200"
-          :step="1"
-          @change="params.fontSize = evNum($event)"
-        ></fluent-slider>
-      </div>
       <div class="field row">
         <span class="field-label">颜色</span>
         <input class="color" type="color" :value="params.color" @input="params.color = evVal($event)" />
+      </div>
+      <div class="field">
+        <span class="field-label">不透明度 <em>{{ Math.round(params.opacity * 100) }}%</em></span>
+        <fluent-slider
+          :value="params.opacity * 100"
+          :min="0"
+          :max="100"
+          :step="1"
+          @change="params.opacity = evNum($event) / 100"
+        ></fluent-slider>
       </div>
       <div class="field">
         <span class="field-label">字体</span>
@@ -54,20 +54,20 @@
         </div>
       </div>
       <div class="field">
-        <span class="field-label">大小 <em>{{ Math.round(params.scale * 100) }}%</em></span>
+        <span class="field-label">不透明度 <em>{{ Math.round(params.opacity * 100) }}%</em></span>
         <fluent-slider
-          :value="params.scale * 100"
-          :min="5"
+          :value="params.opacity * 100"
+          :min="0"
           :max="100"
           :step="1"
-          @change="params.scale = evNum($event) / 100"
+          @change="params.opacity = evNum($event) / 100"
         ></fluent-slider>
       </div>
     </div>
 
-    <!-- 样式及内容 -->
+    <!-- 样式和位置 -->
     <div class="group">
-      <span class="group-title">样式及内容</span>
+      <span class="group-title">样式和位置</span>
       <label class="field" v-if="!lockTile">
         <span class="field-label">水印模式</span>
         <fluent-select
@@ -76,6 +76,14 @@
         >
           <fluent-option value="single">单个模式</fluent-option>
           <fluent-option value="tile">平铺模式</fluent-option>
+        </fluent-select>
+      </label>
+
+      <label class="field" v-if="!params.tile">
+        <span class="field-label">位置</span>
+        <fluent-select :value="positionUnit" @change="onUnit">
+          <fluent-option value="percent">百分比相对位置</fluent-option>
+          <fluent-option value="pixel">绝对像素位置</fluent-option>
         </fluent-select>
       </label>
       <div class="field" v-if="!params.tile">
@@ -90,26 +98,69 @@
           ></button>
         </div>
       </div>
-      <div v-if="!params.tile && showHMargin" class="field">
-        <span class="field-label">横向边距 <em>{{ params.offsetX }}%</em></span>
+
+      <!-- 大小：百分比模式为「占图片宽度的百分比」（滑块）；像素模式下字号为 px 输入框 -->
+      <div class="field" :class="{ row: sizeAsInput }">
+        <span class="field-label">{{ sizeLabel }}<em v-if="!sizeAsInput"> {{ sizeText }}</em></span>
         <fluent-slider
-          :value="params.offsetX"
-          :min="0"
-          :max="50"
+          v-if="!sizeAsInput"
+          :value="sizeValue"
+          :min="sizeMin"
+          :max="sizeMax"
           :step="1"
-          @change="params.offsetX = evNum($event)"
+          @change="onSize"
         ></fluent-slider>
-      </div>
-      <div v-if="!params.tile && showVMargin" class="field">
-        <span class="field-label">纵向边距 <em>{{ params.offsetY }}%</em></span>
-        <fluent-slider
-          :value="params.offsetY"
-          :min="0"
-          :max="50"
+        <fluent-number-field
+          v-else
+          :value="params.fontSize"
+          :min="8"
+          :max="400"
           :step="1"
-          @change="params.offsetY = evNum($event)"
-        ></fluent-slider>
+          @input="params.fontSize = evNum($event)"
+        ><span slot="end">px</span></fluent-number-field>
       </div>
+
+      <!-- 边距：百分比模式用滑块，像素模式用输入框（可为负，表示溢出到图外） -->
+      <template v-if="!params.tile">
+        <div v-if="showHMargin" class="field row">
+          <span class="field-label">横向边距</span>
+          <fluent-slider
+            v-if="isPercent"
+            :value="params.offsetX"
+            :min="0"
+            :max="100"
+            :step="1"
+            @change="params.offsetX = evNum($event)"
+          ></fluent-slider>
+          <fluent-number-field
+            v-else
+            :value="params.offsetXPx ?? 0"
+            :step="1"
+            @input="params.offsetXPx = evNum($event)"
+          ><span slot="end">px</span></fluent-number-field>
+          <span class="unit-val">{{ isPercent ? params.offsetX + '%' : (params.offsetXPx ?? 0) + 'px' }}</span>
+        </div>
+        <div v-if="showVMargin" class="field row">
+          <span class="field-label">纵向边距</span>
+          <fluent-slider
+            v-if="isPercent"
+            :value="params.offsetY"
+            :min="0"
+            :max="100"
+            :step="1"
+            @change="params.offsetY = evNum($event)"
+          ></fluent-slider>
+          <fluent-number-field
+            v-else
+            :value="params.offsetYPx ?? 0"
+            :step="1"
+            @input="params.offsetYPx = evNum($event)"
+          ><span slot="end">px</span></fluent-number-field>
+          <span class="unit-val">{{ isPercent ? params.offsetY + '%' : (params.offsetYPx ?? 0) + 'px' }}</span>
+        </div>
+        <p v-if="!isPercent" class="hint">边距可为负值，让水印溢出到图片外；但不会整个都在图外。</p>
+      </template>
+
       <div class="field">
         <span class="field-label">旋转 <em>{{ params.rotation }}°</em></span>
         <fluent-slider
@@ -118,16 +169,6 @@
           :max="180"
           :step="1"
           @change="params.rotation = evNum($event)"
-        ></fluent-slider>
-      </div>
-      <div class="field">
-        <span class="field-label">不透明度 <em>{{ Math.round(params.opacity * 100) }}%</em></span>
-        <fluent-slider
-          :value="params.opacity * 100"
-          :min="0"
-          :max="100"
-          :step="1"
-          @change="params.opacity = evNum($event) / 100"
         ></fluent-slider>
       </div>
     </div>
@@ -250,6 +291,52 @@ const POSITIONS: { g: WatermarkGravity; label: string }[] = [
 
 const showHMargin = computed(() => /[we]/.test(params.value.gravity));
 const showVMargin = computed(() => /[ns]/.test(params.value.gravity));
+
+/** 位置单位：percent=相对百分比，pixel=绝对像素 */
+const positionUnit = computed<'percent' | 'pixel'>(() =>
+  params.value.positionUnit === 'pixel' ? 'pixel' : 'percent'
+);
+const isPercent = computed(() => positionUnit.value === 'percent');
+
+function onUnit(e: Event) {
+  params.value.positionUnit = evVal(e) === 'pixel' ? 'pixel' : 'percent';
+}
+
+/**
+ * 大小控件：
+ * - 百分比模式：文字/图片统一为「水印宽度占图片宽度的百分比」
+ * - 像素模式：文字为字号 px，图片为相对原图短边的比例
+ */
+/** 百分比模式下叫「水印宽度」（占图宽百分比），像素模式下文字叫「字号」、图片叫「大小」 */
+const sizeLabel = computed(() => {
+  if (isPercent.value) return '水印宽度';
+  return params.value.type === 'text' ? '字号' : '大小';
+});
+const sizeValue = computed(() =>
+  isPercent.value
+    ? Math.round(params.value.sizePct ?? 20)
+    : params.value.type === 'text'
+      ? params.value.fontSize
+      : Math.round(params.value.scale * 100)
+);
+const sizeMin = computed(() => (isPercent.value ? 1 : params.value.type === 'text' ? 8 : 5));
+const sizeMax = computed(() => (isPercent.value ? 200 : params.value.type === 'text' ? 200 : 100));
+const sizeText = computed(() =>
+  isPercent.value
+    ? `${sizeValue.value}% 图宽`
+    : params.value.type === 'text'
+      ? `${params.value.fontSize}px`
+      : `${Math.round(params.value.scale * 100)}%`
+);
+
+function onSize(e: Event) {
+  const v = evNum(e);
+  if (isPercent.value) params.value.sizePct = v;
+  else params.value.scale = v / 100;
+}
+
+/** 像素模式的文字水印：字号用 px 输入框（图片水印仍用比例滑块） */
+const sizeAsInput = computed(() => !isPercent.value && params.value.type === 'text');
 
 function evVal(e: Event): string {
   return (e.target as HTMLInputElement).value;
@@ -399,5 +486,18 @@ async function pickWatermarkImage() {
 .muted {
   color: var(--neutral-foreground-secondary-rest);
   font-size: var(--type-ramp-minus-1-font-size);
+}
+.unit-val {
+  width: 44px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: var(--type-ramp-minus-1-font-size);
+  color: var(--neutral-foreground-secondary-rest);
+}
+.hint {
+  margin: 0 0 calc(var(--design-unit) * 1px * 3);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--neutral-foreground-secondary-rest);
 }
 </style>

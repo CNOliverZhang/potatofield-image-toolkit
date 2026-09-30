@@ -8,12 +8,23 @@ export interface ToastItem {
   type: ToastType;
 }
 
+/** 自定义动作按钮（多选一对话框用） */
+export interface DialogAction {
+  label: string;
+  /** 点击后 resolve 的值 */
+  value: string;
+  appearance?: 'accent' | 'neutral';
+}
+
+export type DialogType = 'alert' | 'confirm' | 'choose';
+
 export interface DialogState {
   visible: boolean;
   title: string;
   message: string;
-  type: 'alert' | 'confirm';
-  resolve: ((value: boolean) => void) | null;
+  type: DialogType;
+  actions?: DialogAction[];
+  resolve: ((value: boolean | string) => void) | null;
 }
 
 export const ui = reactive({
@@ -23,6 +34,7 @@ export const ui = reactive({
     title: '',
     message: '',
     type: 'alert',
+    actions: undefined,
     resolve: null
   } as DialogState
 });
@@ -38,17 +50,19 @@ export function pushToast(message: string, type: ToastType = 'info'): void {
   }, 2600);
 }
 
+/** 打开对话框：alert/confirm 返回 boolean，choose 返回所选动作的 value */
 export function openDialog(
-  type: 'alert' | 'confirm',
+  type: DialogType,
   message: string,
-  title: string
-): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    ui.dialog = { visible: true, title, message, type, resolve };
+  title: string,
+  actions?: DialogAction[]
+): Promise<boolean | string> {
+  return new Promise<boolean | string>((resolve) => {
+    ui.dialog = { visible: true, title, message, type, actions, resolve };
   });
 }
 
-export function closeDialog(result: boolean): void {
+export function closeDialog(result: boolean | string): void {
   const { resolve } = ui.dialog;
   ui.dialog.visible = false;
   ui.dialog.resolve = null;

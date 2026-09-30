@@ -22,8 +22,11 @@
         <WatermarkControls v-model="params" :lock-tile="lockTile" />
         <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
         <div class="controls-footer">
-          <fluent-button appearance="accent" class="save-btn" :disabled="processing" @click="run">
-            {{ processing ? `处理中 ${progress.done}/${progress.total}` : `开始批量处理 (${files.length})` }}
+          <fluent-button v-if="processing" appearance="neutral" class="save-btn" @click="cancel">
+            取消（已完成 {{ progress.done }}/{{ progress.total }}）
+          </fluent-button>
+          <fluent-button v-else appearance="accent" class="save-btn" @click="run">
+            开始批量处理 ({{ files.length }})
           </fluent-button>
         </div>
       </div>
@@ -34,9 +37,10 @@
 <script setup lang="ts">
 import { reactive, ref, watch, onBeforeUnmount, computed } from 'vue';
 import type { WatermarkParams } from '@shared/types';
-import { buildOutputPath, resolveBatchOutputPath, ensureDir } from '@renderer/utils/fileIO';
 import type { BatchItem } from '@renderer/utils/directoryScanner';
 import { useDialog } from '@renderer/composables/useDialog';
+import { outExt } from '@renderer/composables/useOutputSettings';
+import { useBatchRunner } from '@renderer/composables/useBatchRunner';
 import { useSettingsStore } from '@renderer/stores/settings';
 import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
 import WatermarkControls from '@renderer/components/WatermarkControls.vue';
@@ -53,8 +57,6 @@ const selected = ref('');
 const params = reactive<WatermarkParams>(defaultParams());
 const saveDir = ref(settings.defaultSaveDirectory || settings.recentSaveDirs[0] || '');
 const previewUrl = ref('');
-const processing = ref(false);
-const progress = reactive({ done: 0, total: 0 });
 
 let previewTimer: number | undefined;
 
@@ -71,8 +73,12 @@ function defaultParams(): WatermarkParams {
     fontFamily: 'sans-serif',
     rotation: 0,
     gravity: 'se',
+    positionUnit: 'percent',
+    sizePct: 20,
     offsetX: 5,
     offsetY: 5,
+    offsetXPx: 20,
+    offsetYPx: 20,
     tile: false,
     tileGap: 60,
     watermarkPath: '',
@@ -127,59 +133,25 @@ function schedulePreview() {
 
 watch([params, selected], schedulePreview, { deep: true });
 
-async function run() {
-  if (!files.value.length) {
-    message('请先导入图片', 'warning');
-    return;
-  }
-  if (params.type === 'image' && !params.watermarkPath) {
-    message('请先选择水印图片', 'warning');
-    return;
-  }
-  if (!saveDir.value) {
-    message('请先设置保存位置', 'warning');
-    return;
-  }
-  processing.value = true;
-  progress.done = 0;
-  progress.total = files.value.length;
-  let ok = 0;
-  for (const item of files.value) {
-    const base = item.path.split(/[\\/]/).pop() || 'image';
-    const dot = base.lastIndexOf('.');
-    const stem = dot > 0 ? base.slice(0, dot) : base;
-    // 保持原格式时，每张输出扩展名与对应输入图一致
-    const srcExt = base.includes('.') ? '.' + base.split('.').pop()! : '.png';
-    const out = resolveBatchOutputPath(saveDir.value, item, {
-      suffix: '_watermarked',
-      ext: params.format === 'original' ? srcExt : extFor(params.format),
-      keepStructure: keepRelative.value
-    });
-    // 保持相对目录且文件存在子目录时，需先创建目标子目录（sharp 不会自动建目录）
-    if (keepRelative.value && item.rel.includes('/')) {
-      await ensureDir(out.substring(0, out.lastIndexOf('/')));
-    }
-    try {
-      await window.api.image.process({
-        op: 'watermark',
-        inputPath: item.path,
-        outputPath: out,
-        // original 转为 undefined，主进程水印 op 在 format 未指定时保持原图格式
-        options: { format: params.format === 'original' ? undefined : params.format, quality: params.quality },
-        extra: { ...params } as unknown as Record<string, unknown>
-      });
-      ok++;
-    } catch (e) {
-      message('失败 ' + base + '：' + (e as Error).message, 'error');
-    }
-    progress.done++;
-  }
-  processing.value = false;
-  message(`批量处理完成：${ok}/${files.value.length} 张成功`, 'success');
-  if (ok > 0) {
-    window.api.shell.showItemInFolder(buildOutputPath(saveDir.value, files.value[0].path.split(/[\\/]/).pop() || 'image'));
-  }
-}
+/** 批量执行：统一走 useBatchRunner（覆盖策略 / 取消 / 进度 / 打开输出文件） */
+const { processing, progress, run, cancel } = useBatchRunner({
+  files,
+  saveDir,
+  keepRelative,
+  op: 'watermark',
+  suffix: '_watermarked',
+  // 保持原格式时沿用各自输入图的扩展名
+  extOf: (item) => (params.format === 'original' ? undefined : outExt(params.format, item.path)),
+  validate: () =>
+    params.type === 'image' && !params.watermarkPath ? '请先选择水印图片' : null,
+  prepare: () => ({
+    options: {
+      format: params.format === 'original' ? undefined : params.format,
+      quality: params.quality
+    },
+    extra: { ...params } as unknown as Record<string, unknown>
+  })
+});
 
 onBeforeUnmount(() => {
   clearPreview();

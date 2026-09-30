@@ -15,6 +15,8 @@
 | `SaveLocationSetting.vue` | 保存位置 + 常用位置 + 保持相对目录 | 全部批量工具 |
 | `BatchTool.vue` | 批量工具壳（resizer / compress / convert） | 3 个批量工具 |
 | `WatermarkControls.vue` | 水印参数面板（含 `lockTile`、输出设置） | 水印单图 + 批量 + 全屏水印 |
+| `CropControls.vue` | 裁剪参数面板（单位 px/比例、比例预设、九宫格定位、像素输入或百分比、使用整图） | 裁剪单图 + 批量 |
+| `AppDialog.vue` | 全局对话框，支持 alert / confirm / **多选一（actions）** | 全局 |
 | `ImagePicker.vue` | 单图工具的选图/预览占位 | 单图工具 |
 | `FontSelect.vue` | 字体选择器（搜索 + 按字体本身渲染 + 滚动不穿透） | 水印工具 |
 | `AppDialog.vue` / `ToastHost.vue` | 全局对话框 / Toast | 全局 |
@@ -27,6 +29,8 @@
 |---|---|
 | `useSingleTool.ts` | 单图工具通用逻辑：选图、防抖预览、`runSave(buildName, runFn)`（**先选目录再处理**）、`evVal/evNum/evChk/extOf` |
 | `useOutputSettings.ts` | 输出格式 + 质量：`createOutputOpts()` / `isLossy` / `outExt` / `withOutput` |
+| `useBatchRunner.ts` | **批量执行器**：输出路径计算、同名覆盖策略（重命名/覆盖/取消）、串行执行、中途取消、进度、失败继续、结束后打开输出文件 |
+| `useCropGeometry.ts` | 裁剪几何换算：定位基准→对齐方式、区域钳制、比例预设计算、区域适配到目标图 |
 | `useDialog.ts` | `message` / `alert` / `confirm` |
 | `useLocalFonts.ts` | 系统字体枚举、按族聚合、已安装判定 |
 | `useOnlineApi.ts` | 在线接口（字体库、公告、版本、客户端注册） |
@@ -96,6 +100,16 @@
 - JPG 不支持透明：任何 op 输出 jpeg 时，透明底必须兜底为白色，否则透明区变黑。
 - 拼接对齐时的 resize 用 `fit:'fill'`（尺寸已按比例算好，避免 1px 舍入误差导致缝隙）。
 
+### 5.1.1 水印的位置与大小
+
+- 两种位置单位（`positionUnit`）：
+  - `percent`：边距为占图宽/高的百分比（滑块）；大小为「水印整体宽度占图片宽度的百分比」（`sizePct`）
+  - `pixel`：边距为绝对像素（输入框，**可为负**表示溢出）；字号为 px、图片水印沿用相对短边比例
+- **允许溢出**（水印比图片大、或部分在图外）：sharp 要求 overlay 不得大于底图，因此合成前统一走 `clipComposite()` 按可见区域裁剪，**不要**再用水印超出底图就等比缩小的老逻辑。
+- **不允许全部在图外**：`clipComposite` 会把位置钳到「至少保留水印自身 40%（不少于 4px）」可见。
+- 水印渲染后统一 `trim()` 掉透明留白，否则「占图宽百分比」会把留白算进去（实测会偏差 30% 以上），极端边距也容易落在透明边上。
+- 文字水印按百分比反算字号的做法：先用当前字号渲染一次量出实际宽度，再按比例换算字号重新渲染（librsvg 渲染结果为准，比按字符数估算准确）。
+
 ### 5.2 字体
 
 - 导出侧：文本水印走 SVG `font-family` → librsvg **能直接命中系统字体**（中英文均已实测），**不需要传字体文件路径**。
@@ -113,15 +127,23 @@
 ### 5.4 批量
 
 - 批量导入一律用 `BatchImportPanel`，保存位置一律用 `SaveLocationSetting`。
-- 循环串行 `for...of`，单张失败要 toast 提示并继续，进度显示在按钮文案。
+- **批量执行一律用 `useBatchRunner`**，不要再写自己的 `for` 循环；各工具只提供 `op`、`suffix`、`extOf`、`prepare(item)` 与可选的 `validate`。
+- 覆盖策略：开始前用 `fileExists` 预检，有冲突才弹窗三选一（自动重命名 / 覆盖 / 取消），无冲突不打扰用户。
+- 取消：`processing` 期间按钮切换为「取消」，调用 `cancel()`；已完成的文件保留、不回滚。
 - 「保持相对目录」输出用 `resolveBatchOutputPath`，结束后打开的文件也必须用同一函数算（否则指向不存在的路径）。
+- 参数控件与对应单图工具保持一致（同一套组件 / 同一套默认值来源）；新增参数时**两边一起改**。
+
+### 5.5 对话框
+
+- `message()` 走 Toast；`alert()` / `confirm()` 走全局对话框。
+- 需要三个及以上选项时用 `choose(message, title, actions)`（返回被点击动作的 `value`），不要连套两个 confirm。
 
 ---
 
 ## 6. 新增工具的检查清单
 
 1. 页面放在 `src/renderer/pages/`，路由加到 `router/index.ts`（独立窗口加 `meta: { standalone: true, title }`）。
-2. 入口加到 `pages/index.vue` 卡片与 `components/Layout.vue` 侧边栏（**两边文案必须一致**）。
+2. **入口一律加到 `consts/tools.ts`**（工具清单单一数据源，首页卡片与侧边栏都从这里取，避免两处叫法/图标不一致）。
 3. 单图工具：用 `useSingleTool` + `ImagePicker`；批量工具：用 `BatchImportPanel` + `SaveLocationSetting`。
 4. 需要输出设置就用 `createOutputOpts()`，并用 `outExt` / `withOutput`。
 5. 涉及大图：预览传 `maxDimension`，并处理像素超限提示。

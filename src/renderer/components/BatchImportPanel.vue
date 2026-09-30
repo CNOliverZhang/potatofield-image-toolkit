@@ -31,9 +31,12 @@
 import { selectImageFiles, selectDirectory } from '@renderer/utils/filePicker';
 import { scanImageDirectory, type BatchItem } from '@renderer/utils/directoryScanner';
 import { relativePath } from '@renderer/utils/fileIO';
+import { useDialog } from '@renderer/composables/useDialog';
 
 const props = defineProps<{ modelValue: BatchItem[]; selected: string }>();
 const emit = defineEmits<{ 'update:modelValue': [BatchItem[]]; 'update:selected': [string] }>();
+
+const { message } = useDialog();
 
 function dedupe(list: BatchItem[]): BatchItem[] {
   const seen = new Set<string>();
@@ -52,10 +55,13 @@ async function scanFolder() {
   const dir = await selectDirectory();
   if (!dir) return;
   const r = await scanImageDirectory(dir);
-  const paths = [...r.fileList, ...r.errorList.map((e) => e.path)];
-  if (!paths.length) return;
+  // 无法读取的文件直接跳过并提示，避免混入列表后到处理阶段才逐张报错
+  if (r.errorList.length) {
+    message(`已跳过 ${r.errorList.length} 个无法读取的文件`, 'warning');
+  }
+  if (!r.fileList.length) return;
   // 扫描文件夹：记录每个文件相对源根目录的位置，供「保持相对目录」使用
-  const items: BatchItem[] = paths.map((p) => ({ path: p, rel: relativePath(dir, p) }));
+  const items: BatchItem[] = r.fileList.map((p) => ({ path: p, rel: relativePath(dir, p) }));
   emit('update:modelValue', dedupe([...props.modelValue, ...items]));
 }
 

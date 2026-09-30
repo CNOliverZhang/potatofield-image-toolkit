@@ -28,129 +28,16 @@
             <font-awesome-icon icon="layer-group" /> 批量裁剪
           </fluent-button>
         </div>
-        <div class="group">
-          <span class="group-title">裁剪区域</span>
-          <div class="field row">
-            <span class="field-label">单位</span>
-            <fluent-select :value="unit" @change="onUnit">
-              <fluent-option value="px">像素</fluent-option>
-              <fluent-option value="ratio">比例</fluent-option>
-            </fluent-select>
-          </div>
-          <div class="field row">
-            <span class="field-label">比例预设</span>
-            <fluent-select :value="ratio" @change="onRatio">
-              <fluent-option value="free">自由</fluent-option>
-              <fluent-option value="1:1">1:1</fluent-option>
-              <fluent-option value="4:3">4:3</fluent-option>
-              <fluent-option value="16:9">16:9</fluent-option>
-              <fluent-option value="3:2">3:2</fluent-option>
-              <fluent-option value="2:3">2:3</fluent-option>
-            </fluent-select>
-          </div>
-          <!-- 定位基准：像素/比例两种模式下都可用，决定裁剪框可移动的方向 -->
-          <div class="field">
-            <span class="field-label">定位基准</span>
-            <div class="pos-grid">
-              <button
-                v-for="p in POSITIONS"
-                :key="p.g"
-                :class="['pos-cell', { active: position === p.g }]"
-                :title="p.label"
-                @click="onGravity(p.g)"
-              ></button>
-            </div>
-          </div>
-          <!-- 像素模式：直接输入像素值 -->
-          <template v-if="unit === 'px'">
-            <div class="field row">
-              <span class="field-label">X（左）</span>
-              <fluent-number-field
-                :value="fieldValue('left')"
-                min="0"
-                :max="maxOf('left')"
-                :step="1"
-                @input="onField('left', $event)"
-              ><span slot="end">px</span></fluent-number-field>
-            </div>
-            <div class="field row">
-              <span class="field-label">Y（上）</span>
-              <fluent-number-field
-                :value="fieldValue('top')"
-                min="0"
-                :max="maxOf('top')"
-                :step="1"
-                @input="onField('top', $event)"
-              ><span slot="end">px</span></fluent-number-field>
-            </div>
-            <div class="field row">
-              <span class="field-label">宽度</span>
-              <fluent-number-field
-                :value="fieldValue('width')"
-                min="1"
-                :max="maxOf('width')"
-                :step="1"
-                @input="onField('width', $event)"
-              ><span slot="end">px</span></fluent-number-field>
-            </div>
-            <div class="field row">
-              <span class="field-label">高度</span>
-              <fluent-number-field
-                :value="fieldValue('height')"
-                min="1"
-                :max="maxOf('height')"
-                :step="1"
-                @input="onField('height', $event)"
-              ><span slot="end">px</span></fluent-number-field>
-            </div>
-          </template>
-
-          <!-- 比例模式：定位基准 + 边距/尺寸百分比进度条（与水印工具一致） -->
-          <template v-else>
-            <div v-if="showHMargin" class="field">
-              <span class="field-label">横向边距 <em>{{ offsetXPct }}%</em></span>
-              <fluent-slider
-                :value="offsetXPct"
-                :min="0"
-                :max="offsetXMaxPct"
-                :step="1"
-                @change="onOffsetX"
-              ></fluent-slider>
-            </div>
-            <div v-if="showVMargin" class="field">
-              <span class="field-label">纵向边距 <em>{{ offsetYPct }}%</em></span>
-              <fluent-slider
-                :value="offsetYPct"
-                :min="0"
-                :max="offsetYMaxPct"
-                :step="1"
-                @change="onOffsetY"
-              ></fluent-slider>
-            </div>
-            <div class="field">
-              <span class="field-label">宽度 <em>{{ widthPct }}%</em></span>
-              <fluent-slider
-                :value="widthPct"
-                :min="1"
-                :max="100"
-                :step="1"
-                @change="onSizePct('width', $event)"
-              ></fluent-slider>
-            </div>
-            <div class="field">
-              <span class="field-label">高度 <em>{{ heightPct }}%</em></span>
-              <fluent-slider
-                :value="heightPct"
-                :min="1"
-                :max="100"
-                :step="1"
-                @change="onSizePct('height', $event)"
-              ></fluent-slider>
-            </div>
-          </template>
-          <fluent-button appearance="neutral" @click="useFull">使用整图</fluent-button>
-          <p class="hint">提示：在预览区可直接拖拽、缩放裁剪框。</p>
-        </div>
+        <!-- 裁剪参数：与批量裁剪共用同一组件（单图额外带 cropper.js 画布） -->
+        <CropControls
+          :region="region"
+          :meta="meta"
+          use-canvas
+          v-model:unit="unit"
+          v-model:ratio="ratio"
+          v-model:position="position"
+          @change="onRegionChange"
+        />
         <!-- 输出设置（与水印工具一致） -->
         <div class="group">
           <span class="group-title">输出设置</span>
@@ -190,7 +77,9 @@ import { computed, reactive, ref, watch, onBeforeUnmount } from 'vue';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import { useSingleTool, evNum, evVal, extOf } from '@renderer/composables/useSingleTool';
+import { clampRegion, hAlignOf, vAlignOf } from '@renderer/composables/useCropGeometry';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
+import CropControls from '@renderer/components/CropControls.vue';
 
 const { inputPath, inputName, processing, pickImage, runSave } = useSingleTool();
 
@@ -208,55 +97,9 @@ const region = reactive({ left: 0, top: 0, width: 0, height: 0 });
 const format = ref<'original' | 'png' | 'jpeg' | 'webp'>('original');
 const quality = ref(90);
 
-/** 定位基准（九宫格），与水印工具保持一致 */
-const POSITIONS: { g: string; label: string }[] = [
-  { g: 'nw', label: '左上' },
-  { g: 'n', label: '上' },
-  { g: 'ne', label: '右上' },
-  { g: 'w', label: '左' },
-  { g: 'center', label: '居中' },
-  { g: 'e', label: '右' },
-  { g: 'sw', label: '左下' },
-  { g: 's', label: '下' },
-  { g: 'se', label: '右下' }
-];
-
-const hAlign = computed(() => {
-  const g = position.value;
-  if (g === 'nw' || g === 'w' || g === 'sw') return 'left';
-  if (g === 'ne' || g === 'e' || g === 'se') return 'right';
-  return 'center';
-});
-const vAlign = computed(() => {
-  const g = position.value;
-  if (g === 'nw' || g === 'n' || g === 'ne') return 'top';
-  if (g === 'sw' || g === 's' || g === 'se') return 'bottom';
-  return 'middle';
-});
-const showHMargin = computed(() => hAlign.value !== 'center');
-const showVMargin = computed(() => vAlign.value !== 'middle');
-
-/** 比例模式的百分比显示值 */
-const widthPct = computed(() =>
-  meta.value && meta.value.width ? Math.round((region.width / meta.value.width) * 100) : 0
-);
-const heightPct = computed(() =>
-  meta.value && meta.value.height ? Math.round((region.height / meta.value.height) * 100) : 0
-);
-const offsetXPct = computed(() => {
-  if (!meta.value || !meta.value.width) return 0;
-  const m = meta.value.width;
-  const raw = hAlign.value === 'right' ? m - region.left - region.width : region.left;
-  return Math.max(0, Math.round((raw / m) * 100));
-});
-const offsetYPct = computed(() => {
-  if (!meta.value || !meta.value.height) return 0;
-  const m = meta.value.height;
-  const raw = vAlign.value === 'bottom' ? m - region.top - region.height : region.top;
-  return Math.max(0, Math.round((raw / m) * 100));
-});
-const offsetXMaxPct = computed(() => Math.max(0, 100 - widthPct.value));
-const offsetYMaxPct = computed(() => Math.max(0, 100 - heightPct.value));
+/** 定位基准对应的对齐方式（与批量裁剪共用换算） */
+const hAlign = computed(() => hAlignOf(position.value));
+const vAlign = computed(() => vAlignOf(position.value));
 
 const imgEl = ref<HTMLImageElement | null>(null);
 const cropperBoxEl = ref<HTMLElement | null>(null);
@@ -358,43 +201,9 @@ async function fetchMeta(): Promise<void> {
   meta.value = { width: m.width || 0, height: m.height || 0 };
 }
 
-/** 钳制裁剪区域，确保不越界、不溢出（像素模式的核心边界保护，比例模式同样适用） */
-function clampRegion() {
-  if (!meta.value) return;
-  const iw = meta.value.width;
-  const ih = meta.value.height;
-  region.width = Math.min(Math.max(1, Math.round(region.width)), Math.max(1, iw));
-  region.height = Math.min(Math.max(1, Math.round(region.height)), Math.max(1, ih));
-  region.left = Math.min(Math.max(0, Math.round(region.left)), Math.max(0, iw - region.width));
-  region.top = Math.min(Math.max(0, Math.round(region.top)), Math.max(0, ih - region.height));
-}
-
-/** 给定字段对应的原图基准尺寸（left/width 用宽，top/height 用高） */
-function dimOf(key: RegionKey): number {
-  if (!meta.value) return 1;
-  return key === 'left' || key === 'width' ? meta.value.width : meta.value.height;
-}
-function maxOf(key: RegionKey): number {
-  return dimOf(key);
-}
-
-/** 控件显示值：像素模式显示整数像素，比例模式显示 0~1 的小数 */
-function fieldValue(key: RegionKey): number {
-  const v = region[key];
-  if (unit.value === 'px') return Math.round(v);
-  return Math.round((v / dimOf(key)) * 1000) / 1000;
-}
-
-/** 控件输入：像素模式直接存像素；比例模式按基准尺寸换算成像素 */
-function onField(key: RegionKey, e: Event) {
-  const raw = evNum(e);
-  region[key] = unit.value === 'px' ? raw : raw * dimOf(key);
-  clampRegion();
+/** 裁剪参数变化（来自共享控件）：同步到 cropper 画布 */
+function onRegionChange() {
   applyRegionToCropper();
-}
-
-function onUnit(e: Event) {
-  unit.value = evVal(e) === 'ratio' ? 'ratio' : 'px';
 }
 
 function onFormat(e: Event) {
@@ -440,71 +249,6 @@ function updateMovable() {
   cropper.options.cropBoxMovable = !fixed;
 }
 
-/** 按定位基准重新计算裁剪框位置（保持当前尺寸；居中基准时移到中心） */
-function applyGravity() {
-  if (!meta.value) return;
-  const m = meta.value;
-  if (hAlign.value === 'center') region.left = Math.round((m.width - region.width) / 2);
-  if (vAlign.value === 'middle') region.top = Math.round((m.height - region.height) / 2);
-  clampRegion();
-  applyRegionToCropper();
-}
-
-/** 切换定位基准 */
-function onGravity(g: string) {
-  position.value = g;
-  updateMovable();
-  applyGravity();
-}
-
-/** 横向边距（百分比，相对定位基准所在边） */
-function onOffsetX(e: Event) {
-  if (!meta.value) return;
-  const m = meta.value.width;
-  const off = Math.round((m * evNum(e)) / 100);
-  region.left = hAlign.value === 'right' ? m - region.width - off : off;
-  clampRegion();
-  applyRegionToCropper();
-}
-
-/** 纵向边距（百分比，相对定位基准所在边） */
-function onOffsetY(e: Event) {
-  if (!meta.value) return;
-  const m = meta.value.height;
-  const off = Math.round((m * evNum(e)) / 100);
-  region.top = vAlign.value === 'bottom' ? m - region.height - off : off;
-  clampRegion();
-  applyRegionToCropper();
-}
-
-/** 宽/高百分比：按定位基准保持对应边不动 */
-function onSizePct(key: 'width' | 'height', e: Event) {
-  if (!meta.value) return;
-  const pct = evNum(e);
-  if (key === 'width') {
-    const m = meta.value.width;
-    const newW = Math.max(1, Math.round((m * pct) / 100));
-    const right = region.left + region.width; // 原右边界
-    if (hAlign.value === 'right') region.left = right - newW; // 保持右边界
-    else if (hAlign.value === 'center') region.left = Math.round(region.left + (region.width - newW) / 2);
-    region.width = newW;
-  } else {
-    const m = meta.value.height;
-    const newH = Math.max(1, Math.round((m * pct) / 100));
-    const bottom = region.top + region.height; // 原下边界
-    if (vAlign.value === 'bottom') region.top = bottom - newH; // 保持下边界
-    else if (vAlign.value === 'middle') region.top = Math.round(region.top + (region.height - newH) / 2);
-    region.height = newH;
-  }
-  clampRegion();
-  applyRegionToCropper();
-}
-
-function onRatio(e: Event) {
-  ratio.value = evVal(e);
-  // 仅锁定宽高比，由 cropper 自行按当前裁剪框调整为该比例，保持可拖动
-  applyAspect();
-}
 /** 初始裁剪区域：居中、约为原图的 60%，避免锚点贴边难以拖动 */
 function initRegion() {
   if (!meta.value) return;
@@ -516,17 +260,6 @@ function initRegion() {
   region.top = Math.round((ih - h) / 2);
   region.width = w;
   region.height = h;
-  applyRegionToCropper();
-}
-
-function useFull() {
-  if (!meta.value) return;
-  ratio.value = 'free';
-  applyAspect(); // 先取消宽高比锁定，否则整图会被旧比例约束掉
-  region.left = 0;
-  region.top = 0;
-  region.width = meta.value.width;
-  region.height = meta.value.height;
   applyRegionToCropper();
 }
 
@@ -552,7 +285,7 @@ async function onPick() {
 }
 
 async function onSave() {
-  clampRegion();
+  clampRegion(region, meta.value);
   await runSave(
     (stem) => `${stem}_cropped${outExt()}`,
     async (outputPath) => {

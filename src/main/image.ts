@@ -231,54 +231,85 @@ interface PreparedWatermark {
   height: number;
 }
 
+/**
+ * 把水印合成到指定位置，并裁剪到底图可见范围内。
+ * 允许「溢出」（水印比图片大、或部分在图外），但 sharp 要求 overlay 不得大于底图，
+ * 因此这里先按可见区域裁剪再合成；完全不可见时返回 null。
+ */
+async function clipComposite(
+  buf: Buffer,
+  wmW: number,
+  wmH: number,
+  leftRaw: number,
+  topRaw: number,
+  baseW: number,
+  baseH: number
+): Promise<sharp.OverlayOptions | null> {
+  // 钳制：不允许整个水印都在图外。保留至少「水印自身 40%（不少于 4px）」，
+  // 只留边缘几像素会正好落在透明边上，看起来仍像没加上水印。
+  const keepW = Math.min(wmW, Math.max(4, Math.round(wmW * 0.4)));
+  const keepH = Math.min(wmH, Math.max(4, Math.round(wmH * 0.4)));
+  const left = clamp(Math.round(leftRaw), -(wmW - keepW), baseW - keepW);
+  const top = clamp(Math.round(topRaw), -(wmH - keepH), baseH - keepH);
+  const visLeft = Math.max(0, left);
+  const visTop = Math.max(0, top);
+  const visRight = Math.min(baseW, left + wmW);
+  const visBottom = Math.min(baseH, top + wmH);
+  const w = visRight - visLeft;
+  const h = visBottom - visTop;
+  if (w < 1 || h < 1) return null;
+  // 完全在图内时无需裁剪
+  if (w === wmW && h === wmH) {
+    return { input: buf, left, top, blend: 'over' };
+  }
+  const part = await sharp(buf)
+    .extract({ left: visLeft - left, top: visTop - top, width: w, height: h })
+    .png()
+    .toBuffer();
+  return { input: part, left: visLeft, top: visTop, blend: 'over' };
+}
+
 async function buildWatermarkComposites(
   inputPath: string,
   extra: Record<string, unknown>
 ): Promise<sharp.OverlayOptions[]> {
   const baseMeta = await sharp(inputPath).metadata();
+  const baseW = baseMeta.width ?? 0;
+  const baseH = baseMeta.height ?? 0;
   const type = extra.type === 'image' ? 'image' : 'text';
+  const unit: 'percent' | 'pixel' = extra.positionUnit === 'pixel' ? 'pixel' : 'percent';
+
+  // 水印本体：百分比模式下大小按「占图片宽度的百分比」计算，像素模式沿用 px 字号 / 相对短边比例
   const prepared: PreparedWatermark =
     type === 'text'
-      ? await prepareTextWatermark(extra)
-      : await prepareImageWatermark(extra, baseMeta);
+      ? await prepareTextWatermark(extra, unit === 'percent' ? baseW : 0)
+      : await prepareImageWatermark(extra, baseMeta, unit === 'percent' ? baseW : 0);
 
-  const rotation = Number(extra.rotation ?? 0);
-  const rad = (Math.abs(rotation) * Math.PI) / 180;
-  const fitRad = (w: number, h: number) => ({
-    w: Math.round(Math.abs(w * Math.cos(rad)) + Math.abs(h * Math.sin(rad))) || w,
-    h: Math.round(Math.abs(w * Math.sin(rad)) + Math.abs(h * Math.cos(rad))) || h
-  });
-
-  // 水印（旋转后的外接框）不得超过底图，否则 sharp 合成为报错；超出时等比缩小
-  const baseW0 = baseMeta.width ?? 0;
-  const baseH0 = baseMeta.height ?? 0;
-  let box = fitRad(prepared.width, prepared.height);
-  if (baseW0 && baseH0 && (box.w > baseW0 || box.h > baseH0)) {
-    const fit = Math.min(baseW0 / box.w, baseH0 / box.h);
-    const resized = await sharp(prepared.buf)
-      .resize(Math.max(1, Math.round(prepared.width * fit)), Math.max(1, Math.round(prepared.height * fit)))
-      .png()
-      .toBuffer({ resolveWithObject: true });
-    prepared.buf = resized.data;
-    prepared.width = resized.info.width;
-    prepared.height = resized.info.height;
-    box = fitRad(prepared.width, prepared.height);
+  // 去掉水印周围的透明留白：边距与「不允许全部在图外」的判定都因此更贴合实际内容
+  try {
+    const t = await sharp(prepared.buf).trim().png().toBuffer({ resolveWithObject: true });
+    if (t.info.width > 0 && t.info.height > 0) {
+      prepared.buf = t.data;
+      prepared.width = t.info.width;
+      prepared.height = t.info.height;
+    }
+  } catch {
+    /* 整图透明时 trim 会失败，忽略并沿用原图 */
   }
-  const wmW = box.w;
-  const wmH = box.h;
 
-  const blend: sharp.OverlayOptions['blend'] = 'over';
+  const wmW = prepared.width;
+  const wmH = prepared.height;
 
   if (extra.tile) {
+    // 平铺：逐块裁剪，超出的部分由 clipComposite 处理
     const gap = Number(extra.tileGap ?? 40);
     const stepX = wmW + gap;
     const stepY = wmH + gap;
-    const baseW = baseMeta.width ?? 0;
-    const baseH = baseMeta.height ?? 0;
     const list: sharp.OverlayOptions[] = [];
     for (let y = -wmH; y < baseH + wmH; y += stepY) {
       for (let x = -wmW; x < baseW + wmW; x += stepX) {
-        list.push({ input: prepared.buf, left: Math.round(x), top: Math.round(y), blend });
+        const c = await clipComposite(prepared.buf, wmW, wmH, x, y, baseW, baseH);
+        if (c) list.push(c);
       }
     }
     return list;
@@ -287,8 +318,21 @@ async function buildWatermarkComposites(
   const gravity = String(extra.gravity ?? 'se') as WatermarkGravity;
   const offsetX = Number(extra.offsetX ?? 3);
   const offsetY = Number(extra.offsetY ?? 3);
-  const { left, top } = resolvePosition(gravity, baseMeta.width ?? 0, baseMeta.height ?? 0, wmW, wmH, offsetX, offsetY);
-  return [{ input: prepared.buf, left, top, blend }];
+  const offsetXPx = Number(extra.offsetXPx ?? 0);
+  const offsetYPx = Number(extra.offsetYPx ?? 0);
+  const { left, top } = resolvePosition(gravity, baseW, baseH, wmW, wmH, {
+    unit,
+    percent: { x: offsetX, y: offsetY },
+    pixel: { x: offsetXPx, y: offsetYPx }
+  });
+  const c = await clipComposite(prepared.buf, wmW, wmH, left, top, baseW, baseH);
+  return c ? [c] : [];
+}
+
+interface WatermarkOffset {
+  unit: 'percent' | 'pixel';
+  percent: { x: number; y: number };
+  pixel: { x: number; y: number };
 }
 
 function resolvePosition(
@@ -297,12 +341,13 @@ function resolvePosition(
   baseH: number,
   wmW: number,
   wmH: number,
-  offsetX: number,
-  offsetY: number
+  offset: WatermarkOffset
 ): { left: number; top: number } {
-  // 边距以「占图片宽/高的百分比」换算成像素，避免不同尺寸图片水印相对大小不一
-  const hPx = (offsetX / 100) * baseW;
-  const vPx = (offsetY / 100) * baseH;
+  // 百分比模式：边距 = 占图片宽/高的百分比；像素模式：边距即绝对像素（可为负，表示溢出到图外）
+  const hPx =
+    offset.unit === 'percent' ? (offset.percent.x / 100) * baseW : offset.pixel.x;
+  const vPx =
+    offset.unit === 'percent' ? (offset.percent.y / 100) * baseH : offset.pixel.y;
   let left: number;
   let top: number;
   if (gravity === 'center') {
@@ -316,12 +361,38 @@ function resolvePosition(
     else if (gravity.includes('s')) top = Math.round(baseH - wmH - vPx);
     else top = Math.round((baseH - wmH) / 2);
   }
-  return { left: Math.max(0, left), top: Math.max(0, top) };
+  // 不再钳到 [0, ...]：允许溢出，最终由 clipComposite 保证至少 1px 可见
+  return { left, top };
 }
 
-async function prepareTextWatermark(extra: Record<string, unknown>): Promise<PreparedWatermark> {
+/**
+ * 文字水印。
+ * targetWidth > 0 时按「水印整体宽度占图片宽度的百分比」反算字号：
+ * 先按当前字号渲染一次量出实际宽度，再按比例缩放字号重新渲染（librsvg 渲染结果为准，比估算准确）。
+ */
+async function prepareTextWatermark(
+  extra: Record<string, unknown>,
+  targetWidth = 0
+): Promise<PreparedWatermark> {
   const text = String(extra.text ?? '');
-  const fontSize = Number(extra.fontSize ?? 32);
+  let fontSize = Number(extra.fontSize ?? 32);
+  if (targetWidth > 0) {
+    const sizePct = clamp(Number(extra.sizePct ?? 20), 1, 500);
+    const want = Math.max(1, (targetWidth * sizePct) / 100);
+    const probe = await renderTextWatermark(extra, fontSize);
+    if (probe.width > 0) {
+      fontSize = Math.max(8, Math.round((fontSize * want) / probe.width));
+    }
+  }
+  const rendered = await renderTextWatermark(extra, fontSize);
+  return rendered;
+}
+
+async function renderTextWatermark(
+  extra: Record<string, unknown>,
+  fontSize: number
+): Promise<PreparedWatermark> {
+  const text = String(extra.text ?? '');
   const color = String(extra.color ?? '#000000');
   const opacity = clamp(Number(extra.opacity ?? 0.5), 0, 1);
   const bold = Boolean(extra.bold);
@@ -345,13 +416,16 @@ async function prepareTextWatermark(extra: Record<string, unknown>): Promise<Pre
 
   let img = sharp(svg);
   if (rotation) img = img.rotate(rotation, { background: { r: 0, g: 0, b: 0, alpha: 0 } });
+  // 裁掉 SVG 画布与旋转产生的透明留白：让「占图片宽度百分比」按实际内容计算
+  img = img.trim();
   const { data, info } = await img.png().toBuffer({ resolveWithObject: true });
   return { buf: data, width: info.width, height: info.height };
 }
 
 async function prepareImageWatermark(
   extra: Record<string, unknown>,
-  baseMeta: sharp.Metadata
+  baseMeta: sharp.Metadata,
+  targetWidth = 0
 ): Promise<PreparedWatermark> {
   const wmPath = String(extra.watermarkPath ?? '');
   if (!wmPath || !existsSync(wmPath)) throw new Error('未选择水印图片');
@@ -359,14 +433,18 @@ async function prepareImageWatermark(
   const rotation = Number(extra.rotation ?? 0);
   const scale = clamp(Number(extra.scale ?? 0.2), 0.01, 1);
 
-  const baseMin = Math.min(baseMeta.width ?? 0, baseMeta.height ?? 0) || 1000;
-  const targetW = Math.max(8, Math.round(baseMin * scale));
+  // 百分比模式：宽度 = 图片宽度 × sizePct%；像素模式：沿用「相对原图短边比例」
+  const targetW =
+    targetWidth > 0
+      ? Math.max(8, Math.round((targetWidth * clamp(Number(extra.sizePct ?? 20), 1, 500)) / 100))
+      : Math.max(8, Math.round((Math.min(baseMeta.width ?? 0, baseMeta.height ?? 0) || 1000) * scale));
 
   const resized = sharp(wmPath).ensureAlpha().resize(targetW, null, { withoutEnlargement: false });
   const { data, info } = await resized.raw().toBuffer({ resolveWithObject: true });
   for (let i = 3; i < data.length; i += 4) data[i] = Math.round(data[i] * opacity);
   let wm = sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } });
   if (rotation) wm = wm.rotate(rotation, { background: { r: 0, g: 0, b: 0, alpha: 0 } });
+  wm = wm.trim();
   const out = await wm.png().toBuffer({ resolveWithObject: true });
   return { buf: out.data, width: out.info.width, height: out.info.height };
 }

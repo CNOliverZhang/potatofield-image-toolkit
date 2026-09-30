@@ -20,22 +20,22 @@
             <span class="field-label">输出格式</span>
             <fluent-select :value="opts.format" @change="opts.format = evVal($event) as ImageFormat | 'original'">
               <fluent-option value="original">保持原格式</fluent-option>
-              <fluent-option value="jpeg">JPEG</fluent-option>
-              <fluent-option value="png">PNG</fluent-option>
-              <fluent-option value="webp">WebP</fluent-option>
+              <fluent-option value="png">PNG（无损）</fluent-option>
+              <fluent-option value="jpeg">JPG（有损）</fluent-option>
+              <fluent-option value="webp">WebP（有损）</fluent-option>
             </fluent-select>
           </label>
-          <div class="field row">
+          <div v-if="lossy" class="field row">
             <span class="field-label">质量</span>
             <fluent-slider
               style="flex: 1"
               :value="opts.quality"
-              min="1"
-              max="100"
-              step="1"
+              :min="10"
+              :max="100"
+              :step="1"
               @change="opts.quality = evNum($event)"
             ></fluent-slider>
-            <span style="width: 36px; text-align: right">{{ opts.quality }}</span>
+            <span class="q-val">{{ opts.quality }}</span>
           </div>
         </div>
         <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
@@ -50,24 +50,22 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue';
+import { computed, reactive, watch } from 'vue';
 import type { ImageFormat, ImageProcessOptions } from '@shared/types';
 import { useSingleTool, evVal, evNum, extOf } from '@renderer/composables/useSingleTool';
+import { createOutputOpts, isLossy, outExt, withOutput } from '@renderer/composables/useOutputSettings';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
 
 const { inputPath, inputName, previewUrl, processing, pickImage, schedulePreview, runSave } =
   useSingleTool();
 
-const opts = reactive({
-  format: 'original' as ImageFormat | 'original',
-  quality: 80
-});
+/** 输出格式/质量：默认取设置页「默认输出」（与其它工具一致） */
+const opts = createOutputOpts();
+const lossy = computed(() => isLossy(opts.format));
 
 function buildOptions(): ImageProcessOptions {
-  const o: ImageProcessOptions = {};
-  if (opts.format !== 'original') o.format = opts.format;
-  o.quality = opts.quality;
-  return o;
+  // 压缩参数即输出设置；PNG 无损时质量不生效，由 withOutput 处理
+  return withOutput({}, opts);
 }
 
 async function refresh(): Promise<ArrayBuffer | undefined> {
@@ -87,7 +85,7 @@ async function onPick() {
 async function onSave() {
   await runSave(
     (stem) =>
-      opts.format === 'original' ? `${stem}${extOf(inputPath.value)}` : `${stem}_compressed.${opts.format}`,
+      opts.format === 'original' ? `${stem}${extOf(inputPath.value)}` : `${stem}_compressed${outExt(opts.format, inputPath.value)}`,
     async (outputPath) => {
       await window.api.image.process({
         op: 'compress',
