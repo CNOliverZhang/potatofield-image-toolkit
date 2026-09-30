@@ -583,7 +583,7 @@ html[data-theme='dark'] .font-row:hover {
   gap: calc(var(--design-unit) * 3 * 1px);
   min-height: calc(var(--design-unit) * 14 * 1px); /* 56px，对应 PowerToys 子项行 */
   padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 3 * 1px);
-  border-top: 1px solid var(--neutral-stroke-divider-rest, var(--colorNeutralStroke1));
+  border-top: 1px solid var(--colorNeutralStroke2);
   /* 图标(2du) + 头部水平内边距(3du) + 间距(2.5du) = 7.5du，与标题文本对齐 */
   padding-left: calc(var(--design-unit) * 7.5 * 1px);
   transition: background 0.12s ease;

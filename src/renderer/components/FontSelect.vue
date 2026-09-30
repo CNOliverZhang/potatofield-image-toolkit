@@ -194,7 +194,7 @@ onBeforeUnmount(() => {
   transition: border-color 0.12s ease, background 0.12s ease;
 }
 .fs-trigger:hover {
-  background: var(--neutral-fill-input-hover, var(--colorNeutralBackground1Hover));
+  background: var(--colorNeutralBackground1Hover);
 }
 .fs-value {
   flex: 1;
@@ -231,7 +231,7 @@ onBeforeUnmount(() => {
   gap: calc(var(--design-unit) * 1.5 * 1px);
   flex-shrink: 0;
   padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 2.5 * 1px);
-  border-bottom: 1px solid var(--neutral-stroke-divider-rest, var(--colorNeutralStroke1));
+  border-bottom: 1px solid var(--colorNeutralStroke2);
 }
 .fs-search-icon {
   font-size: 11px;

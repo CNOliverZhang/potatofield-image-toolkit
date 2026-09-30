@@ -8,24 +8,49 @@
           <span class="brand-name">洋芋田图像工具箱</span>
         </div>
 
+        <!-- 侧边导航改用 Fluent v3 的纵向 tablist：
+             hover / 选中（含方向键切换）由组件自身提供，不再自绘，
+             避免之前 hover 底色与 --app-bg 撞色导致浅色下看不出来的问题 -->
         <nav class="nav">
-          <router-link
-            v-for="item in nav"
-            :key="item.to"
-            :to="item.to"
-            class="nav-item"
-            exact-active-class="active"
+          <fluent-tablist
+            class="nav-list"
+            orientation="vertical"
+            :activeid="activeId"
+            @change="onNavChange"
           >
-            <font-awesome-icon :icon="item.icon" class="nav-icon" />
-            <span class="nav-label">{{ item.label }}</span>
-          </router-link>
+            <fluent-tab
+              v-for="item in nav"
+              :id="item.to"
+              :key="item.to"
+              class="nav-tab"
+              @click="go(item.to)"
+            >
+              <!-- v3 的 tab 插槽容器是纵向排列，图标与文字必须包进同一个行容器 -->
+              <span class="nav-tab-inner">
+                <font-awesome-icon :icon="item.icon" class="nav-icon" />
+                <span class="nav-label">{{ item.label }}</span>
+              </span>
+            </fluent-tab>
+          </fluent-tablist>
         </nav>
 
         <div class="sidebar-footer">
-          <router-link to="/settings" class="nav-item" exact-active-class="active">
-            <font-awesome-icon :icon="['fas', 'gear']" class="nav-icon" />
-            <span class="nav-label">设置</span>
-          </router-link>
+          <!-- v3 的 tablist 始终保留一个选中项（给无效 id 也不例外），
+               因此在非设置页时用 is-inactive 中和掉强调色，避免出现两个选中态 -->
+          <fluent-tablist
+            class="nav-list"
+            :class="{ 'is-inactive': route.path !== '/settings' }"
+            orientation="vertical"
+            activeid="/settings"
+            @change="onNavChange"
+          >
+            <fluent-tab id="/settings" class="nav-tab" @click="go('/settings')">
+              <span class="nav-tab-inner">
+                <font-awesome-icon :icon="['fas', 'gear']" class="nav-icon" />
+                <span class="nav-label">设置</span>
+              </span>
+            </fluent-tab>
+          </fluent-tablist>
         </div>
       </aside>
 
@@ -38,11 +63,12 @@
 
 <script setup lang="ts">
 import { computed, watchEffect } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import WindowControls from './WindowControls.vue';
 import { tools } from '@renderer/consts/tools';
 
 const route = useRoute();
+const router = useRouter();
 
 // 批量处理等以独立窗口打开的页面（route.meta.standalone）不显示左侧功能导航
 const standalone = computed(() => route.meta.standalone === true);
@@ -61,6 +87,19 @@ const nav = [
     icon: ['fas', tool.icon] as [string, string]
   }))
 ];
+
+/** 当前路由对应的 tab id（不匹配的分组传空串，避免出现两个选中态） */
+const activeId = computed(() => (nav.some((item) => item.to === route.path) ? route.path : ''));
+
+function go(to: string): void {
+  if (route.path !== to) router.push(to);
+}
+
+/** tablist 的 change（键盘方向键切换也会触发）：按 id 跳转 */
+function onNavChange(e: Event): void {
+  const id = (e as CustomEvent).detail?.id ?? (e.target as HTMLElement)?.id;
+  if (id && nav.some((item) => item.to === id)) go(id);
+}
 </script>
 
 <style scoped>
@@ -122,31 +161,40 @@ const nav = [
   gap: calc(var(--design-unit) * 0.5 * 1px);
   overflow-y: auto;
 }
-.nav-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: calc(var(--design-unit) * 3 * 1px);
+/* 纵向 tablist：撑满侧边栏宽度，项之间留出细间隙 */
+.nav-list {
+  width: 100%;
+}
+/* hover 与选中态由 fluent-tablist 自身提供（组件内的悬浮底色与选中指示），
+   这里只负责内容排版：图标 + 文字左对齐、整行可点 */
+.nav-tab {
+  width: 100%;
+  display: block;
   padding: calc(var(--design-unit) * 2.25 * 1px) calc(var(--design-unit) * 3 * 1px);
   border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
   color: var(--colorNeutralForeground1);
   cursor: pointer;
   user-select: none;
+  position: relative;
   transition: background 0.12s ease;
 }
-.nav-item:hover {
-  background: var(--colorNeutralBackground1Hover);
+.nav-tab-inner {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--design-unit) * 3 * 1px);
 }
-/* Fluent 风格选中态：轻量背景 + 强调色文字 + 左侧细条指示，
-   不再用整块强调色填充与加粗，避免“刻意、太重” */
-.nav-item.active {
-  /* v2 的 neutral-fill-stealth-active 极淡（近透明叠加）；v3 的
-     colorNeutralBackground1Pressed 明显更重，这里按原观感用 5% 文字色混入 */
-  background: color-mix(in srgb, var(--colorNeutralForeground1) 5%, transparent);
+/* hover 与选中底色自绘在宿主背景上：v3 tablist 的内部态在纵向模式下不明显，
+   且用文字色 mix 能保证两主题都可见（不会像之前那样与 --app-bg 撞色） */
+.nav-tab:hover {
+  background: color-mix(in srgb, var(--colorNeutralForeground1) 8%, transparent);
+}
+.nav-tab[aria-selected='true'] {
+  background: color-mix(in srgb, var(--colorNeutralForeground1) 10%, transparent);
   color: var(--accent-base-color);
   font-weight: 500;
 }
-.nav-item.active::before {
+/* 选中态左侧细条指示（沿用原设计的轻量指示，不用整块强调色填充） */
+.nav-tab[aria-selected='true']::before {
   content: '';
   position: absolute;
   left: 0;
@@ -155,6 +203,14 @@ const nav = [
   width: 3px;
   border-radius: calc(var(--design-unit) * 0.75 * 1px);
   background: var(--accent-base-color);
+}
+.nav-list.is-inactive .nav-tab[aria-selected='true'] {
+  background: transparent;
+  color: var(--colorNeutralForeground1);
+  font-weight: 400;
+}
+.nav-list.is-inactive .nav-tab[aria-selected='true']::before {
+  display: none;
 }
 .nav-icon {
   width: 18px;

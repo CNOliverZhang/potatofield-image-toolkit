@@ -119,13 +119,11 @@ function goBatch(tool: ToolEntry) {
   display: flex;
   flex-direction: column;
   /* 定高：没有批量按钮的卡片不会塌陷，整行卡片高度一致 */
-  height: 132px;
+  height: 120px;
   overflow: hidden;
   background: var(--app-card);
   border: 1px solid var(--colorNeutralStroke1);
-  border-radius: calc(
-    var(--borderRadiusXLarge) + var(--design-unit) * 1px / 2
-  );
+  border-radius: calc(var(--borderRadiusXLarge) + var(--design-unit) * 1px / 2);
   padding: calc(var(--design-unit) * 2 * 1px)
     calc(var(--design-unit) * 2.5 * 1px);
   cursor: pointer;
@@ -156,9 +154,7 @@ function goBatch(tool: ToolEntry) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: calc(
-    var(--borderRadiusMedium) + var(--design-unit) * 1px
-  );
+  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px);
   background: color-mix(in srgb, var(--accent-base-color) 12%, transparent);
   color: var(--accent-base-color);
   font-size: 14px;

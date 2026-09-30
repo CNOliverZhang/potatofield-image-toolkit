@@ -57,7 +57,7 @@ const open = ref(props.defaultOpen);
   background: transparent;
   border: none;
   border-radius: 0;
-  border-top: 1px solid var(--neutral-stroke-divider-rest, var(--colorNeutralStroke1));
+  border-top: 1px solid var(--colorNeutralStroke2);
 }
 .sr-main {
   flex: 1;
