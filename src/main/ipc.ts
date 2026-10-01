@@ -7,7 +7,9 @@ import {
   hasWindowMaterial,
   hasAcrylicLib,
   refreshAcrylicVibrancy,
-  runWithProgrammaticResize
+  runWithProgrammaticResize,
+  setWindowBusy,
+  closeWindowNow
 } from './windows';
 import {
   saveTemplateAsset,
@@ -99,6 +101,22 @@ export function registerIpc(): void {
     BrowserWindow.fromWebContents(e.sender);
 
   ipcMain.on('window:minimize', (e) => senderWindow(e)?.minimize());
+  // 批处理进行中标记：用于关闭/退出前的确认（由渲染层的 useBatchRunner 上报）
+  ipcMain.on('window:busy', (e, busy: boolean) => {
+    const w = senderWindow(e);
+    if (w) setWindowBusy(w, !!busy);
+  });
+  // 用户在确认弹窗里选了「中断并关闭」：跳过关闭确认直接关；退出请求挂起时关完即退出
+  ipcMain.on('window:close-now', (e) => {
+    const w = senderWindow(e);
+    if (w) closeWindowNow(w);
+  });
+  // 「最小化到托盘」：窗口隐藏但进程保留在托盘
+  ipcMain.on('window:hide', (e) => {
+    const w = senderWindow(e);
+    if (!w) return;
+    w.hide();
+  });
   ipcMain.on('window:maximize', (e) => {
     const w = senderWindow(e);
     if (!w) return;

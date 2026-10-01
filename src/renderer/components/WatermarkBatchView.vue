@@ -1,6 +1,10 @@
 <template>
   <div class="batch-tool">
-    <BatchImportPanel v-model="files" v-model:selected="selected" class="import-col" />
+    <BatchImportPanel
+      v-model="files"
+      v-model:selected="selected"
+      class="import-col"
+    />
 
     <section class="preview-pane">
       <div v-if="!selected" class="dropzone">
@@ -9,7 +13,12 @@
       </div>
       <template v-else>
         <div class="preview-stage">
-          <img v-if="previewUrl" :src="previewUrl" class="preview-img" alt="预览" />
+          <img
+            v-if="previewUrl"
+            :src="previewUrl"
+            class="preview-img"
+            alt="预览"
+          />
         </div>
         <div class="preview-bar">
           <span class="fname">{{ selectedName }}</span>
@@ -22,15 +31,29 @@
         <WatermarkControls v-model="params" :lock-tile="lockTile">
           <!-- 保存位置并入水印控件的「输出设置」组 -->
           <template #output-extra>
-            <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
+            <SaveLocationSetting
+              v-model="saveDir"
+              v-model:keepRelative="keepRelative"
+            />
           </template>
         </WatermarkControls>
       </div>
       <div class="controls-footer">
-        <fluent-button v-if="processing" appearance="neutral" class="save-btn" @click="cancel">
+        <fluent-button
+          v-if="processing"
+          appearance="neutral"
+          class="save-btn"
+          @click="cancel"
+        >
           取消（已完成 {{ progress.done }}/{{ progress.total }}）
         </fluent-button>
-        <fluent-button v-else appearance="primary" class="save-btn" :disabled="!files.length" @click="run">
+        <fluent-button
+          v-else
+          appearance="primary"
+          class="save-btn"
+          :disabled="!files.length"
+          @click="run"
+        >
           开始批量处理 ({{ files.length }})
         </fluent-button>
       </div>
@@ -39,16 +62,16 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onBeforeUnmount, computed } from 'vue';
-import type { WatermarkParams } from '@shared/types';
-import type { BatchItem } from '@renderer/utils/directoryScanner';
-import { useDialog } from '@renderer/composables/useDialog';
-import { outExt } from '@renderer/composables/useOutputSettings';
-import { useBatchRunner } from '@renderer/composables/useBatchRunner';
-import { useSettingsStore } from '@renderer/stores/settings';
-import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
-import WatermarkControls from '@renderer/components/WatermarkControls.vue';
-import SaveLocationSetting from '@renderer/components/SaveLocationSetting.vue';
+import { reactive, ref, watch, onBeforeUnmount, computed } from "vue";
+import type { WatermarkParams } from "@shared/types";
+import type { BatchItem } from "@renderer/utils/directoryScanner";
+import { useDialog } from "@renderer/composables/useDialog";
+import { outExt } from "@renderer/composables/useOutputSettings";
+import { useBatchRunner } from "@renderer/composables/useBatchRunner";
+import { useSettingsStore } from "@renderer/stores/settings";
+import BatchImportPanel from "@renderer/components/BatchImportPanel.vue";
+import WatermarkControls from "@renderer/components/WatermarkControls.vue";
+import SaveLocationSetting from "@renderer/components/SaveLocationSetting.vue";
 
 defineProps<{ lockTile?: boolean }>();
 
@@ -57,27 +80,31 @@ const settings = useSettingsStore();
 
 const files = ref<BatchItem[]>([]);
 const keepRelative = ref(false);
-const selected = ref('');
+const selected = ref("");
 const params = reactive<WatermarkParams>(defaultParams());
-const saveDir = ref(settings.defaultSaveDirectory || settings.recentSaveDirs[0] || '');
-const previewUrl = ref('');
+const saveDir = ref(
+  settings.defaultSaveDirectory || settings.recentSaveDirs[0] || "",
+);
+const previewUrl = ref("");
 
 let previewTimer: number | undefined;
 
-const selectedName = computed(() => (selected.value ? selected.value.split(/[\\/]/).pop() : ''));
+const selectedName = computed(() =>
+  selected.value ? selected.value.split(/[\\/]/).pop() : "",
+);
 
 function defaultParams(): WatermarkParams {
   return {
-    type: 'text',
-    text: '洋芋田',
+    type: "text",
+    text: "洋芋田",
     fontSize: 48,
-    color: '#ffffff',
+    color: "#ffffff",
     opacity: 0.5,
     bold: true,
-    fontFamily: 'sans-serif',
+    fontFamily: "sans-serif",
     rotation: 0,
-    gravity: 'se',
-    positionUnit: 'percent',
+    gravity: "se",
+    positionUnit: "percent",
     sizePct: 20,
     offsetX: 5,
     offsetY: 5,
@@ -85,21 +112,21 @@ function defaultParams(): WatermarkParams {
     offsetYPx: 20,
     tile: false,
     tileGap: 60,
-    watermarkPath: '',
+    watermarkPath: "",
     scale: 0.25,
-    format: 'original',
-    quality: 90
+    format: "original",
+    quality: 90,
   };
 }
 
-function extFor(fmt: WatermarkParams['format']): string {
-  return fmt === 'jpeg' ? '.jpg' : fmt === 'webp' ? '.webp' : '.png';
+function extFor(fmt: WatermarkParams["format"]): string {
+  return fmt === "jpeg" ? ".jpg" : fmt === "webp" ? ".webp" : ".png";
 }
 
 function clearPreview() {
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value);
-    previewUrl.value = '';
+    previewUrl.value = "";
   }
 }
 
@@ -109,24 +136,24 @@ async function updatePreview() {
     clearPreview();
     return;
   }
-  if (params.type === 'image' && !params.watermarkPath) {
+  if (params.type === "image" && !params.watermarkPath) {
     clearPreview();
     return;
   }
   try {
     const res = await window.api.image.process({
-      op: 'watermark',
+      op: "watermark",
       inputPath: path,
-      extra: { ...params } as unknown as Record<string, unknown>
+      extra: { ...params } as unknown as Record<string, unknown>,
     });
     if (res.buffer) {
-      const blob = new Blob([res.buffer], { type: 'image/png' });
+      const blob = new Blob([res.buffer], { type: "image/png" });
       const url = URL.createObjectURL(blob);
       clearPreview();
       previewUrl.value = url;
     }
   } catch (err) {
-    message('预览失败：' + (err as Error).message, 'error');
+    message("预览失败：" + (err as Error).message, "error");
   }
 }
 
@@ -142,19 +169,22 @@ const { processing, progress, run, cancel } = useBatchRunner({
   files,
   saveDir,
   keepRelative,
-  op: 'watermark',
-  suffix: '_watermarked',
+  op: "watermark",
+  suffix: "_watermarked",
   // 保持原格式时沿用各自输入图的扩展名
-  extOf: (item) => (params.format === 'original' ? undefined : outExt(params.format, item.path)),
+  extOf: (item) =>
+    params.format === "original" ? undefined : outExt(params.format, item.path),
   validate: () =>
-    params.type === 'image' && !params.watermarkPath ? '请先选择水印图片' : null,
+    params.type === "image" && !params.watermarkPath
+      ? "请先选择水印图片"
+      : null,
   prepare: () => ({
     options: {
-      format: params.format === 'original' ? undefined : params.format,
-      quality: params.quality
+      format: params.format === "original" ? undefined : params.format,
+      quality: params.quality,
     },
-    extra: { ...params } as unknown as Record<string, unknown>
-  })
+    extra: { ...params } as unknown as Record<string, unknown>,
+  }),
 });
 
 onBeforeUnmount(() => {
@@ -167,7 +197,7 @@ onBeforeUnmount(() => {
 .batch-tool {
   display: flex;
   flex-direction: row;
-  gap: calc(var(--design-unit) * 1px * 5);
+  gap: calc(var(--design-unit) * 1px * 3);
   height: 100%;
   min-height: 0;
   /* 底部不再抵扣：与其它页面统一为内容区下边距 */
@@ -208,12 +238,20 @@ onBeforeUnmount(() => {
   justify-content: center;
   padding: calc(var(--design-unit) * 1px);
   background-color: var(--colorNeutralBackground1);
-  background-image: linear-gradient(45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
+  background-image:
+    linear-gradient(45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
+    linear-gradient(
+      -45deg,
+      var(--colorNeutralBackground3) 25%,
+      transparent 25%
+    ),
     linear-gradient(45deg, transparent 75%, var(--colorNeutralBackground3) 75%),
     linear-gradient(-45deg, transparent 75%, var(--colorNeutralBackground3) 75%);
-  background-size: calc(var(--design-unit) * 1px * 5) calc(var(--design-unit) * 1px * 5);
-  background-position: 0 0, 0 calc(var(--design-unit) * 1px * 2.5),
+  background-size: calc(var(--design-unit) * 1px * 5)
+    calc(var(--design-unit) * 1px * 5);
+  background-position:
+    0 0,
+    0 calc(var(--design-unit) * 1px * 2.5),
     calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * -2.5),
     calc(var(--design-unit) * 1px * -2.5) 0;
 }
@@ -221,14 +259,16 @@ onBeforeUnmount(() => {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  box-shadow: 0 calc(var(--design-unit) * 1px * 0.5) calc(var(--design-unit) * 1px * 3) rgba(0, 0, 0, 0.18);
+  box-shadow: 0 calc(var(--design-unit) * 1px * 0.5)
+    calc(var(--design-unit) * 1px * 3) rgba(0, 0, 0, 0.18);
 }
 .preview-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: calc(var(--design-unit) * 1px * 3);
-  padding: calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * 3.5);
+  padding: calc(var(--design-unit) * 1px * 2.5)
+    calc(var(--design-unit) * 1px * 3.5);
   border-top: 1px solid var(--colorNeutralStroke1);
   background: var(--colorNeutralBackground2);
 }

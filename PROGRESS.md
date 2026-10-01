@@ -16,6 +16,32 @@ pinia 持久化
 - [x] 跨窗口应用：模板窗口 `window.api.template.apply` → 主进程广播（排除发送者）+ 主窗口置前 → App.vue 存 `watermarkPending` 并跳转 → watermark.vue 用 watch 载入参数
   - 两个坑：① params 是 Pinia 响应式 Proxy，IPC 无法克隆，必须传 `JSON.parse(JSON.stringify())`；② 必须用 watch 而非 onMounted，否则主窗口已在本页时再次应用不生效
 
+### 本轮（2026-10-01 深夜 13）：批量裁剪接入 cropper 画布
+- [x] 抽出 `components/CropCanvas.vue`（cropper.js 画布）：单图与批量共用，负责
+  「画布 ↔ 裁剪区域」双向同步（region / ratio / position / meta 变化 → 画布；拖拽裁剪框 → 写回 region + emit change），
+  以及容器尺寸变化后重建、居中轴的锚点约束、两轴居中时禁止移动裁剪框
+- [x] 单图裁剪页改用该组件，删掉内联的 cropper 代码（顺带修掉 `cropper.options` 这一个历史 TS 报错）
+- [x] 批量裁剪：预览区改为 cropper 画布（选中图经 `fs.readFileBase64` 转 data URI，与单图一致），
+  CropControls 传 `use-canvas`（比例预设交给画布），初始区域为整图；导出仍按 `fitTo()` 逐图适配
+- [x] 移除批量页已无用的 extract 预览逻辑（`previewUrl` / `schedulePreview`）
+
+### 本轮（2026-10-01 深夜 12）：分割工具预览只显示第一块
+- [x] 根因：`slicer.vue` 的 `refresh()` 把 `tileRegions()[0]`（第一行第一列）extract 出来当预览
+- [x] 改为整图预览（`op:'resize'` 1600 inside），并用 `#stage` 插槽叠一层网格线示意切割：
+  行/列方向的 `repeating-linear-gradient`（步长 `100%/cols`、`100%/rows`）+ outline 补外框；
+  图片与网格用 CSS grid 放同一单元格，网格层自动贴合图片实际尺寸（图片是 object-fit: contain）
+
+### 本轮（2026-10-01 深夜 11）：批处理中的关闭/退出确认
+- [x] 主进程：`windows.ts` 维护 `busyWindows`（由渲染层 `window.setBusy()` 上报）、`forceClosing`、`pendingQuit`；
+  `close` 事件对忙碌窗口 preventDefault 并下发 `window:confirm-close`；`requestQuit()` 供托盘「退出」使用
+  （先把忙碌窗口 show+focus 再询问；无忙碌窗口则直接 `app.quit()`）
+- [x] IPC：`window:busy` / `window:close-now` / `window:hide`；托盘「退出」改走 `requestQuit()`
+- [x] 渲染层：`useBatchRunner` watch(processing) 同步忙碌状态，并监听 `window:confirm-close`
+  弹出三选一（**中断并关闭 / 最小化到托盘 / 取消**）：中断=先 cancel 再 closeNow；最小化=hide
+- [x] 窗口去重改为先 show 再 focus：「最小化到托盘」的窗口可从托盘菜单的批量入口重新调出
+- [x] 文案：官网 highlights / 工具速览 三处补上「支持系统已安装字体（老版本只是内置几款，不算自定义）」；
+  公众号文章（`docs/WECHAT_ARTICLE_v5.md`）新增说明，并顺带补了「跟随系统」与批处理关闭确认
+
 ### 本轮（2026-10-01 深夜 10）：图片读取改为 blob（file:// 直读的三个坑）
 - [x] 全项目已无 `file://` 直读（此前 3 处）：
   - EXIF：不产生处理结果，原来直接用 file:// 显示原图 → 被拦成裂图；改为 op=metadata 后

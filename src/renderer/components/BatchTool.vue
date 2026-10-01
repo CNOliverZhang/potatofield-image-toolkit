@@ -1,6 +1,10 @@
 <template>
   <div class="batch-tool">
-    <BatchImportPanel v-model="files" v-model:selected="selected" class="import-col" />
+    <BatchImportPanel
+      v-model="files"
+      v-model:selected="selected"
+      class="import-col"
+    />
 
     <section class="preview-pane">
       <div v-if="!selected" class="dropzone">
@@ -9,7 +13,12 @@
       </div>
       <template v-else>
         <div class="preview-stage">
-          <img v-if="previewUrl" :src="previewUrl" class="preview-img" alt="预览" />
+          <img
+            v-if="previewUrl"
+            :src="previewUrl"
+            class="preview-img"
+            alt="预览"
+          />
         </div>
         <div class="preview-bar">
           <span class="fname">{{ selectedName }}</span>
@@ -22,13 +31,29 @@
         <SettingsGroup :title="`${config[tool].title}设置`">
           <template v-if="tool === 'resizer'">
             <SettingsRow label="宽度" desc="填 0 等比缩放">
-              <num-input class="ctl-num" :value="opts.width" min="0" @input="opts.width = evNum($event)"><span slot="end">px</span></num-input>
+              <num-input
+                class="ctl-num"
+                :value="opts.width"
+                min="0"
+                @input="opts.width = evNum($event)"
+                ><span slot="end">px</span></num-input
+              >
             </SettingsRow>
             <SettingsRow label="高度" desc="填 0 等比缩放">
-              <num-input class="ctl-num" :value="opts.height" min="0" @input="opts.height = evNum($event)"><span slot="end">px</span></num-input>
+              <num-input
+                class="ctl-num"
+                :value="opts.height"
+                min="0"
+                @input="opts.height = evNum($event)"
+                ><span slot="end">px</span></num-input
+              >
             </SettingsRow>
             <SettingsRow label="适配方式">
-              <app-select class="ctl-lg" :value="opts.fit" @change="opts.fit = evVal($event) as ImageProcessOptions['fit']">
+              <app-select
+                class="ctl-lg"
+                :value="opts.fit"
+                @change="opts.fit = evVal($event) as ImageProcessOptions['fit']"
+              >
                 <fluent-option value="inside">等比缩放（inside）</fluent-option>
                 <fluent-option value="cover">裁剪填充（cover）</fluent-option>
                 <fluent-option value="fill">拉伸（fill）</fluent-option>
@@ -42,7 +67,11 @@
             <!-- 格式为主项，质量为子项；保存位置也是主项（子项：常用位置/保持相对目录） -->
             <SettingsCollapse label="格式">
               <template #control>
-                <app-select class="ctl-md" :value="out.format" @change="onFormat">
+                <app-select
+                  class="ctl-md"
+                  :value="out.format"
+                  @change="onFormat"
+                >
                   <fluent-option value="original">保持原格式</fluent-option>
                   <fluent-option value="png">PNG（无损）</fluent-option>
                   <fluent-option value="jpeg">JPG（有损）</fluent-option>
@@ -50,28 +79,52 @@
                 </app-select>
               </template>
               <SettingsRow v-if="lossy" label="质量">
-                <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+                <fluent-slider
+                  class="ctl-slider"
+                  :value="out.quality"
+                  :min="10"
+                  :max="100"
+                  :step="1"
+                  @change="out.quality = evNum($event)"
+                ></fluent-slider>
                 <span class="row-val">{{ out.quality }}</span>
               </SettingsRow>
             </SettingsCollapse>
-            <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
+            <SaveLocationSetting
+              v-model="saveDir"
+              v-model:keepRelative="keepRelative"
+            />
           </template>
 
           <template v-else-if="tool === 'convert'">
             <SettingsCollapse label="目标格式">
               <template #control>
-                <app-select class="ctl-md" :value="out.format" @change="onFormat">
+                <app-select
+                  class="ctl-md"
+                  :value="out.format"
+                  @change="onFormat"
+                >
                   <fluent-option value="png">PNG（无损）</fluent-option>
                   <fluent-option value="jpeg">JPG（有损）</fluent-option>
                   <fluent-option value="webp">WebP（有损）</fluent-option>
                 </app-select>
               </template>
               <SettingsRow v-if="lossy" label="质量">
-                <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+                <fluent-slider
+                  class="ctl-slider"
+                  :value="out.quality"
+                  :min="10"
+                  :max="100"
+                  :step="1"
+                  @change="out.quality = evNum($event)"
+                ></fluent-slider>
                 <span class="row-val">{{ out.quality }}</span>
               </SettingsRow>
             </SettingsCollapse>
-            <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
+            <SaveLocationSetting
+              v-model="saveDir"
+              v-model:keepRelative="keepRelative"
+            />
           </template>
         </SettingsGroup>
 
@@ -88,13 +141,22 @@
               </app-select>
             </template>
             <SettingsRow v-if="lossy" label="质量">
-              <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+              <fluent-slider
+                class="ctl-slider"
+                :value="out.quality"
+                :min="10"
+                :max="100"
+                :step="1"
+                @change="out.quality = evNum($event)"
+              ></fluent-slider>
               <span class="row-val">{{ out.quality }}</span>
             </SettingsRow>
           </SettingsCollapse>
-          <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
+          <SaveLocationSetting
+            v-model="saveDir"
+            v-model:keepRelative="keepRelative"
+          />
         </SettingsGroup>
-
       </div>
       <div class="controls-footer">
         <fluent-button
@@ -105,7 +167,13 @@
         >
           取消（已完成 {{ progress.done }}/{{ progress.total }}）
         </fluent-button>
-        <fluent-button v-else appearance="primary" class="save-btn" :disabled="!files.length || invalidSize" @click="start">
+        <fluent-button
+          v-else
+          appearance="primary"
+          class="save-btn"
+          :disabled="!files.length || invalidSize"
+          @click="start"
+        >
           开始批量处理 ({{ files.length }})
         </fluent-button>
       </div>
@@ -114,35 +182,38 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onBeforeUnmount, computed } from 'vue';
-import type { ImageProcessOptions } from '@shared/types';
-import type { BatchItem } from '@renderer/utils/directoryScanner';
-import { useDialog } from '@renderer/composables/useDialog';
+import { reactive, ref, watch, onBeforeUnmount, computed } from "vue";
+import type { ImageProcessOptions } from "@shared/types";
+import type { BatchItem } from "@renderer/utils/directoryScanner";
+import { useDialog } from "@renderer/composables/useDialog";
 import {
   createOutputOpts,
   isLossy,
   outExt,
   withOutput,
-  type OutputOpts
-} from '@renderer/composables/useOutputSettings';
-import { useBatchRunner } from '@renderer/composables/useBatchRunner';
-import { useSettingsStore } from '@renderer/stores/settings';
-import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
-import SaveLocationSetting from '@renderer/components/SaveLocationSetting.vue';
-import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
-import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
-import SettingsCollapse from '@renderer/components/settings/SettingsCollapse.vue';
-import NumInput from '@renderer/components/NumInput.vue';
-import AppSelect from '@renderer/components/AppSelect.vue';
+  type OutputOpts,
+} from "@renderer/composables/useOutputSettings";
+import { useBatchRunner } from "@renderer/composables/useBatchRunner";
+import { useSettingsStore } from "@renderer/stores/settings";
+import BatchImportPanel from "@renderer/components/BatchImportPanel.vue";
+import SaveLocationSetting from "@renderer/components/SaveLocationSetting.vue";
+import SettingsGroup from "@renderer/components/settings/SettingsGroup.vue";
+import SettingsRow from "@renderer/components/settings/SettingsRow.vue";
+import SettingsCollapse from "@renderer/components/settings/SettingsCollapse.vue";
+import NumInput from "@renderer/components/NumInput.vue";
+import AppSelect from "@renderer/components/AppSelect.vue";
 
-type ToolKey = 'resizer' | 'compress' | 'convert';
+type ToolKey = "resizer" | "compress" | "convert";
 
 const props = defineProps<{ tool: ToolKey }>();
 
-const config: Record<ToolKey, { title: string; op: 'resize' | 'compress' | 'convert'; suffix: string }> = {
-  resizer: { title: '尺寸调整', op: 'resize', suffix: '_resized' },
-  compress: { title: '压缩', op: 'compress', suffix: '_compressed' },
-  convert: { title: '格式转换', op: 'convert', suffix: '_converted' }
+const config: Record<
+  ToolKey,
+  { title: string; op: "resize" | "compress" | "convert"; suffix: string }
+> = {
+  resizer: { title: "尺寸调整", op: "resize", suffix: "_resized" },
+  compress: { title: "压缩", op: "compress", suffix: "_compressed" },
+  convert: { title: "格式转换", op: "convert", suffix: "_converted" },
 };
 
 const { message } = useDialog();
@@ -150,26 +221,30 @@ const settings = useSettingsStore();
 
 const files = ref<BatchItem[]>([]);
 const keepRelative = ref(false);
-const selected = ref('');
-const saveDir = ref(settings.defaultSaveDirectory || settings.recentSaveDirs[0] || '');
-const previewUrl = ref('');
+const selected = ref("");
+const saveDir = ref(
+  settings.defaultSaveDirectory || settings.recentSaveDirs[0] || "",
+);
+const previewUrl = ref("");
 const opts = reactive({
   width: 800,
   height: 0,
-  fit: 'inside' as ImageProcessOptions['fit']
+  fit: "inside" as ImageProcessOptions["fit"],
 });
 /** 输出格式/质量：默认取设置页「默认输出」（convert 无「保持原格式」，回退为 png） */
 const out: OutputOpts = createOutputOpts();
-if (props.tool === 'convert' && out.format === 'original') out.format = 'png';
+if (props.tool === "convert" && out.format === "original") out.format = "png";
 const lossy = computed(() => isLossy(out.format));
 
 function onFormat(e: Event) {
-  out.format = (e.target as HTMLInputElement).value as OutputOpts['format'];
+  out.format = (e.target as HTMLInputElement).value as OutputOpts["format"];
 }
 
 let previewTimer: number | undefined;
 
-const selectedName = computed(() => (selected.value ? selected.value.split(/[\\/]/).pop() : ''));
+const selectedName = computed(() =>
+  selected.value ? selected.value.split(/[\\/]/).pop() : "",
+);
 
 function evVal(e: Event): string {
   return (e.target as HTMLInputElement).value;
@@ -180,7 +255,7 @@ function evNum(e: Event): number {
 
 function buildOptions(): ImageProcessOptions {
   const o: ImageProcessOptions = {};
-  if (props.tool === 'resizer') {
+  if (props.tool === "resizer") {
     if (opts.width) o.width = opts.width;
     if (opts.height) o.height = opts.height;
     o.fit = opts.fit;
@@ -192,7 +267,7 @@ function buildOptions(): ImageProcessOptions {
 function clearPreview() {
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value);
-    previewUrl.value = '';
+    previewUrl.value = "";
   }
 }
 
@@ -206,16 +281,16 @@ async function updatePreview() {
     const res = await window.api.image.process({
       op: config[props.tool].op,
       inputPath: path,
-      options: buildOptions()
+      options: buildOptions(),
     });
     if (res.buffer) {
-      const blob = new Blob([res.buffer], { type: 'image/png' });
+      const blob = new Blob([res.buffer], { type: "image/png" });
       const url = URL.createObjectURL(blob);
       clearPreview();
       previewUrl.value = url;
     }
   } catch (err) {
-    message('预览失败：' + (err as Error).message, 'error');
+    message("预览失败：" + (err as Error).message, "error");
   }
 }
 
@@ -233,16 +308,19 @@ const { processing, progress, run, cancel } = useBatchRunner({
   keepRelative,
   op: config[props.tool].op,
   suffix: config[props.tool].suffix,
-  extOf: (item) => (out.format === 'original' ? undefined : outExt(out.format, item.path)),
-  prepare: () => ({ options: buildOptions() })
+  extOf: (item) =>
+    out.format === "original" ? undefined : outExt(out.format, item.path),
+  prepare: () => ({ options: buildOptions() }),
 });
 
 /** 尺寸调整：宽高都为 0 时无法缩放（0 = 等比，但两个都等比就什么都没定） */
-const invalidSize = computed(() => props.tool === 'resizer' && opts.width <= 0 && opts.height <= 0);
+const invalidSize = computed(
+  () => props.tool === "resizer" && opts.width <= 0 && opts.height <= 0,
+);
 
 function start() {
   if (invalidSize.value) {
-    message('宽度和高度不能都为 0，请至少填写一项', 'warning');
+    message("宽度和高度不能都为 0，请至少填写一项", "warning");
     return;
   }
   void run();
@@ -258,7 +336,7 @@ onBeforeUnmount(() => {
 .batch-tool {
   display: flex;
   flex-direction: row;
-  gap: calc(var(--design-unit) * 1px * 5);
+  gap: calc(var(--design-unit) * 1px * 3);
   height: 100%;
   min-height: 0;
   /* 底部不再抵扣：与其它页面统一为内容区下边距 */
@@ -299,12 +377,16 @@ onBeforeUnmount(() => {
   justify-content: center;
   padding: calc(var(--design-unit) * 1px);
   background-color: var(--checker-base);
-  background-image: linear-gradient(45deg, var(--checker-cell) 25%, transparent 25%),
+  background-image:
+    linear-gradient(45deg, var(--checker-cell) 25%, transparent 25%),
     linear-gradient(-45deg, var(--checker-cell) 25%, transparent 25%),
     linear-gradient(45deg, transparent 75%, var(--checker-cell) 75%),
     linear-gradient(-45deg, transparent 75%, var(--checker-cell) 75%);
-  background-size: calc(var(--design-unit) * 1px * 5) calc(var(--design-unit) * 1px * 5);
-  background-position: 0 0, 0 calc(var(--design-unit) * 1px * 2.5),
+  background-size: calc(var(--design-unit) * 1px * 5)
+    calc(var(--design-unit) * 1px * 5);
+  background-position:
+    0 0,
+    0 calc(var(--design-unit) * 1px * 2.5),
     calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * -2.5),
     calc(var(--design-unit) * 1px * -2.5) 0;
 }
@@ -312,14 +394,16 @@ onBeforeUnmount(() => {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  box-shadow: 0 calc(var(--design-unit) * 1px * 0.5) calc(var(--design-unit) * 1px * 3) rgba(0, 0, 0, 0.18);
+  box-shadow: 0 calc(var(--design-unit) * 1px * 0.5)
+    calc(var(--design-unit) * 1px * 3) rgba(0, 0, 0, 0.18);
 }
 .preview-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: calc(var(--design-unit) * 1px * 3);
-  padding: calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * 3.5);
+  padding: calc(var(--design-unit) * 1px * 2.5)
+    calc(var(--design-unit) * 1px * 3.5);
   border-top: 1px solid var(--colorNeutralStroke1);
   background: var(--colorNeutralBackground2);
 }

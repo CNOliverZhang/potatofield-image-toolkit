@@ -1,6 +1,10 @@
 <template>
   <div class="batch-tool">
-    <BatchImportPanel v-model="files" v-model:selected="selected" class="import-col" />
+    <BatchImportPanel
+      v-model="files"
+      v-model:selected="selected"
+      class="import-col"
+    />
 
     <section class="preview-pane">
       <div v-if="!selected" class="dropzone">
@@ -8,8 +12,17 @@
         <p>从左侧导入图片，点击列表项预览裁剪效果</p>
       </div>
       <template v-else>
+        <!-- 与单图裁剪同一套 cropper 画布：可直接拖拽/缩放裁剪框（不再只有参数面板） -->
         <div class="preview-stage">
-          <img v-if="previewUrl" :src="previewUrl" class="preview-img" alt="预览" />
+          <CropCanvas
+            v-if="selectedUrl"
+            :src="selectedUrl"
+            :region="region"
+            :meta="selectedMeta"
+            :ratio="ratio"
+            :position="position"
+            initial="full"
+          />
         </div>
         <div class="preview-bar">
           <span class="fname">{{ selectedName }}</span>
@@ -19,17 +32,19 @@
 
     <aside class="controls-pane">
       <div class="controls-body">
-        <!-- 裁剪参数：与单图裁剪共用同一组件（批量无画布） -->
+        <!-- 裁剪参数：与单图裁剪共用同一组件；批量同样带 cropper 画布（use-canvas） -->
         <CropControls
           :region="region"
           :meta="selectedMeta"
+          use-canvas
           v-model:unit="unit"
           v-model:ratio="ratio"
           v-model:position="position"
-          @change="schedulePreview"
         />
         <p class="hint">
-          区域以当前选中图为基准；尺寸不同的图片按「{{ unit === 'px' ? '固定像素并裁剪到图片范围内' : '百分比等比换算' }}」处理。
+          区域以当前选中图为基准；尺寸不同的图片按「{{
+            unit === "px" ? "固定像素并裁剪到图片范围内" : "百分比等比换算"
+          }}」处理。
         </p>
 
         <!-- 输出设置：与单图裁剪一致 -->
@@ -44,19 +59,38 @@
               </app-select>
             </template>
             <SettingsRow v-if="lossy" label="质量">
-              <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+              <fluent-slider
+                class="ctl-slider"
+                :value="out.quality"
+                :min="10"
+                :max="100"
+                :step="1"
+                @change="out.quality = evNum($event)"
+              ></fluent-slider>
               <span class="row-val">{{ out.quality }}</span>
             </SettingsRow>
           </SettingsCollapse>
-          <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
+          <SaveLocationSetting
+            v-model="saveDir"
+            v-model:keepRelative="keepRelative"
+          />
         </SettingsGroup>
-
       </div>
       <div class="controls-footer">
-        <fluent-button v-if="processing" appearance="neutral" class="save-btn" @click="cancel">
+        <fluent-button
+          v-if="processing"
+          appearance="neutral"
+          class="save-btn"
+          @click="cancel"
+        >
           取消（已完成 {{ progress.done }}/{{ progress.total }}）
         </fluent-button>
-        <fluent-button v-else appearance="primary" class="save-btn" @click="run">
+        <fluent-button
+          v-else
+          appearance="primary"
+          class="save-btn"
+          @click="run"
+        >
           开始批量处理 ({{ files.length }})
         </fluent-button>
       </div>
@@ -65,99 +99,94 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, computed, onBeforeUnmount } from 'vue';
-import type { BatchItem } from '@renderer/utils/directoryScanner';
-import { useDialog } from '@renderer/composables/useDialog';
-import { useSettingsStore } from '@renderer/stores/settings';
-import { evNum } from '@renderer/composables/useSingleTool';
+import { reactive, ref, watch, computed, onBeforeUnmount } from "vue";
+import type { BatchItem } from "@renderer/utils/directoryScanner";
+import { useDialog } from "@renderer/composables/useDialog";
+import { useSettingsStore } from "@renderer/stores/settings";
+import { evNum } from "@renderer/composables/useSingleTool";
 import {
   createOutputOpts,
   isLossy,
   outExt,
   withOutput,
-  type OutputOpts
-} from '@renderer/composables/useOutputSettings';
-import { clampRegionToImage, scaleRegionToImage, type CropMeta } from '@renderer/composables/useCropGeometry';
-import { useBatchRunner } from '@renderer/composables/useBatchRunner';
-import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
-import CropControls from '@renderer/components/CropControls.vue';
-import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
-import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
-import SettingsCollapse from '@renderer/components/settings/SettingsCollapse.vue';
-import SaveLocationSetting from '@renderer/components/SaveLocationSetting.vue';
-import AppSelect from '@renderer/components/AppSelect.vue';
+  type OutputOpts,
+} from "@renderer/composables/useOutputSettings";
+import {
+  clampRegionToImage,
+  scaleRegionToImage,
+  type CropMeta,
+} from "@renderer/composables/useCropGeometry";
+import { useBatchRunner } from "@renderer/composables/useBatchRunner";
+import BatchImportPanel from "@renderer/components/BatchImportPanel.vue";
+import CropCanvas from "@renderer/components/CropCanvas.vue";
+import CropControls from "@renderer/components/CropControls.vue";
+import SettingsGroup from "@renderer/components/settings/SettingsGroup.vue";
+import SettingsRow from "@renderer/components/settings/SettingsRow.vue";
+import SettingsCollapse from "@renderer/components/settings/SettingsCollapse.vue";
+import SaveLocationSetting from "@renderer/components/SaveLocationSetting.vue";
+import AppSelect from "@renderer/components/AppSelect.vue";
 
 const { message } = useDialog();
 const settings = useSettingsStore();
 
 const files = ref<BatchItem[]>([]);
-const selected = ref('');
-const saveDir = ref(settings.defaultSaveDirectory || settings.recentSaveDirs[0] || '');
+const selected = ref("");
+const saveDir = ref(
+  settings.defaultSaveDirectory || settings.recentSaveDirs[0] || "",
+);
 const keepRelative = ref(false);
-const previewUrl = ref('');
+/** 选中图的原图地址（data URI）：cropper.js 需要真实尺寸的图片才能给出正确的裁剪坐标 */
+const selectedUrl = ref("");
 
 const region = reactive({ left: 0, top: 0, width: 0, height: 0 });
-const unit = ref<'px' | 'ratio'>('px');
-const ratio = ref('free');
+const unit = ref<"px" | "ratio">("px");
+const ratio = ref("free");
 /** 与单图一致：默认左上角基准 */
-const position = ref('nw');
+const position = ref("nw");
 
 /** 输出格式/质量：默认取设置页「默认输出」 */
 const out: OutputOpts = createOutputOpts();
 const lossy = computed(() => isLossy(out.format));
 function onFormat(e: Event) {
-  out.format = (e.target as HTMLInputElement).value as OutputOpts['format'];
+  out.format = (e.target as HTMLInputElement).value as OutputOpts["format"];
 }
 
 const selectedMeta = ref<CropMeta | null>(null);
 
-const selectedName = computed(() => (selected.value ? selected.value.split(/[\\/]/).pop() : ''));
+const selectedName = computed(() =>
+  selected.value ? selected.value.split(/[\\/]/).pop() : "",
+);
 
-let previewTimer: number | undefined;
-
-function clearPreview() {
-  if (previewUrl.value) {
-    URL.revokeObjectURL(previewUrl.value);
-    previewUrl.value = '';
-  }
+function mimeOf(path: string): string {
+  const ext = path.slice(path.lastIndexOf(".")).toLowerCase();
+  if (ext === ".png") return "image/png";
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".gif") return "image/gif";
+  if (ext === ".bmp") return "image/bmp";
+  return "image/png";
 }
 
-async function updatePreview() {
+/** 载入选中图到画布：先取尺寸，再把原图读成 data URI（与单图裁剪一致） */
+async function loadSelected() {
   const path = selected.value;
   if (!path) {
-    clearPreview();
+    selectedUrl.value = "";
     return;
   }
-  const r = fitTo(path, selectedMeta.value?.width ?? 0, selectedMeta.value?.height ?? 0);
-  if (!r) {
-    clearPreview();
-    return;
-  }
+  await fetchSelectedMeta();
   try {
-    const res = await window.api.image.process({
-      op: 'extract',
-      inputPath: path,
-      options: { ...r, ...withOutput({}, out) }
-    });
-    if (res.buffer) {
-      const blob = new Blob([res.buffer], { type: 'image/png' });
-      const url = URL.createObjectURL(blob);
-      clearPreview();
-      previewUrl.value = url;
-    }
-  } catch (err) {
-    message('预览失败：' + (err as Error).message, 'error');
+    const b64 = await window.api.fs.readFileBase64(path);
+    selectedUrl.value = `data:${mimeOf(path)};base64,${b64}`;
+  } catch {
+    selectedUrl.value = "";
+    message("图片读取失败", "error");
   }
-}
-
-function schedulePreview() {
-  if (previewTimer) window.clearTimeout(previewTimer);
-  previewTimer = window.setTimeout(updatePreview, 220);
 }
 
 /** 把裁剪区域适配到目标图：像素模式钳到图内，比例模式按百分比换算 */
 function fitTo(path: string, iw: number, ih: number) {
-  return unit.value === 'ratio'
+  return unit.value === "ratio"
     ? scaleRegionToImage(region, selectedMeta.value, iw, ih)
     : clampRegionToImage(region, iw, ih);
 }
@@ -168,7 +197,10 @@ async function fetchSelectedMeta() {
     return;
   }
   try {
-    const res = await window.api.image.process({ op: 'metadata', inputPath: selected.value });
+    const res = await window.api.image.process({
+      op: "metadata",
+      inputPath: selected.value,
+    });
     const m = res.info as unknown as CropMeta;
     selectedMeta.value = { width: m.width || 0, height: m.height || 0 };
     // 首次拿到尺寸时给一个「整图」的初始区域（与单图的居中 60% 接近，批量取整图更可控）
@@ -183,22 +215,23 @@ async function fetchSelectedMeta() {
   }
 }
 
-watch(selected, async () => {
-  await fetchSelectedMeta();
-  schedulePreview();
-}, { immediate: true });
-watch(region, schedulePreview, { deep: true });
+// 切换选中项：重新载入画布（区域沿用当前值，由 CropCanvas 同步到画布）
+watch(selected, () => void loadSelected(), { immediate: true });
 
 /** 批量执行：统一走 useBatchRunner（覆盖策略 / 取消 / 进度 / 打开输出文件） */
 const { processing, progress, run, cancel } = useBatchRunner({
   files,
   saveDir,
   keepRelative,
-  op: 'extract',
-  suffix: '_cropped',
-  extOf: (item) => (out.format === 'original' ? undefined : outExt(out.format, item.path)),
+  op: "extract",
+  suffix: "_cropped",
+  extOf: (item) =>
+    out.format === "original" ? undefined : outExt(out.format, item.path),
   prepare: async (item) => {
-    const res = await window.api.image.process({ op: 'metadata', inputPath: item.path });
+    const res = await window.api.image.process({
+      op: "metadata",
+      inputPath: item.path,
+    });
     const m = res.info as unknown as CropMeta;
     const iw = m.width || 0;
     const ih = m.height || 0;
@@ -206,12 +239,7 @@ const { processing, progress, run, cancel } = useBatchRunner({
     const r = fitTo(item.path, iw, ih);
     if (!r) return { skip: `图片尺寸 ${iw}×${ih} 小于裁剪区域，已跳过` };
     return { options: { ...r, ...withOutput({}, out) } };
-  }
-});
-
-onBeforeUnmount(() => {
-  clearPreview();
-  if (previewTimer) window.clearTimeout(previewTimer);
+  },
 });
 </script>
 
@@ -219,7 +247,7 @@ onBeforeUnmount(() => {
 .batch-tool {
   display: flex;
   flex-direction: row;
-  gap: calc(var(--design-unit) * 1px * 5);
+  gap: calc(var(--design-unit) * 1px * 3);
   height: 100%;
   min-height: 0;
   /* 底部不再抵扣：与其它页面统一为内容区下边距 */
@@ -260,12 +288,20 @@ onBeforeUnmount(() => {
   justify-content: center;
   padding: calc(var(--design-unit) * 1px);
   background-color: var(--colorNeutralBackground1);
-  background-image: linear-gradient(45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
+  background-image:
+    linear-gradient(45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
+    linear-gradient(
+      -45deg,
+      var(--colorNeutralBackground3) 25%,
+      transparent 25%
+    ),
     linear-gradient(45deg, transparent 75%, var(--colorNeutralBackground3) 75%),
     linear-gradient(-45deg, transparent 75%, var(--colorNeutralBackground3) 75%);
-  background-size: calc(var(--design-unit) * 1px * 5) calc(var(--design-unit) * 1px * 5);
-  background-position: 0 0, 0 calc(var(--design-unit) * 1px * 2.5),
+  background-size: calc(var(--design-unit) * 1px * 5)
+    calc(var(--design-unit) * 1px * 5);
+  background-position:
+    0 0,
+    0 calc(var(--design-unit) * 1px * 2.5),
     calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * -2.5),
     calc(var(--design-unit) * 1px * -2.5) 0;
 }
@@ -273,14 +309,16 @@ onBeforeUnmount(() => {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  box-shadow: 0 calc(var(--design-unit) * 1px * 0.5) calc(var(--design-unit) * 1px * 3) rgba(0, 0, 0, 0.18);
+  box-shadow: 0 calc(var(--design-unit) * 1px * 0.5)
+    calc(var(--design-unit) * 1px * 3) rgba(0, 0, 0, 0.18);
 }
 .preview-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: calc(var(--design-unit) * 1px * 3);
-  padding: calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * 3.5);
+  padding: calc(var(--design-unit) * 1px * 2.5)
+    calc(var(--design-unit) * 1px * 3.5);
   border-top: 1px solid var(--colorNeutralStroke1);
   background: var(--colorNeutralBackground2);
 }

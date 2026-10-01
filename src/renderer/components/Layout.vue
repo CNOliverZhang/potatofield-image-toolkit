@@ -1,9 +1,18 @@
 <template>
   <div class="app-shell">
-    <WindowControls :inset="standalone ? 0 : 232" :title="standalone ? pageTitle : ''" />
+    <WindowControls
+      :inset="standalone ? 0 : 232"
+      :title="standalone ? pageTitle : ''"
+    />
     <div class="body">
       <!-- 侧边栏与主窗口外观完全一致；模板库这类内容型独立窗口也复用它（自带 Logo 与标题） -->
-      <AppSidebar v-if="!standalone" :items="nav" :active-id="activeId" show-settings @change="go" />
+      <AppSidebar
+        v-if="!standalone"
+        :items="nav"
+        :active-id="activeId"
+        show-settings
+        @change="go"
+      />
 
       <main class="content" :class="{ standalone }">
         <router-view />
@@ -13,11 +22,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, watchEffect } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import WindowControls from './WindowControls.vue';
-import AppSidebar from './AppSidebar.vue';
-import { tools } from '@renderer/consts/tools';
+import { computed, ref, watch, watchEffect } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import WindowControls from "./WindowControls.vue";
+import AppSidebar from "./AppSidebar.vue";
+import { tools } from "@renderer/consts/tools";
 
 const route = useRoute();
 const router = useRouter();
@@ -26,21 +35,24 @@ const router = useRouter();
 const standalone = computed(() => route.meta.standalone === true);
 /** 独立窗口的标题栏文字；页面自带侧边栏（有 Logo + 标题）时用 hideTitle 让位，避免重复 */
 const pageTitle = computed(() =>
-  route.meta.hideTitle ? '' : ((route.meta.title as string | undefined) ?? '')
+  route.meta.hideTitle ? "" : ((route.meta.title as string | undefined) ?? ""),
 );
 
 watchEffect(() => {
-  document.title = standalone.value && pageTitle.value ? `${pageTitle.value} - 洋芋田图像工具箱` : '洋芋田图像工具箱';
+  document.title =
+    standalone.value && pageTitle.value
+      ? `${pageTitle.value} - 洋芋田图像工具箱`
+      : "洋芋田图像工具箱";
 });
 
 // 工具项与首页 / 图片输入区共用同一份清单，名称与图标不会不一致
 const nav = [
-  { id: '/', label: '首页', icon: ['fas', 'house'] as [string, string] },
+  { id: "/", label: "首页", icon: ["fas", "house"] as [string, string] },
   ...tools.map((tool) => ({
     id: tool.path,
     label: tool.label,
-    icon: ['fas', tool.icon] as [string, string]
-  }))
+    icon: ["fas", tool.icon] as [string, string],
+  })),
 ];
 
 /**
@@ -51,11 +63,11 @@ const nav = [
  * 此时给一个不在 items 里的 id，让 AppSidebar 中和掉功能导航的高亮，
  * 否则「上一次的工具」和「设置」会同时高亮。
  */
-const lastNavId = ref('/');
+const lastNavId = ref("/");
 const inNav = computed(() => nav.some((item) => item.id === route.path));
 const activeId = computed(() => {
   if (inNav.value) return route.path;
-  return route.path === '/settings' ? '/settings' : lastNavId.value;
+  return route.path === "/settings" ? "/settings" : lastNavId.value;
 });
 
 watch(
@@ -63,7 +75,7 @@ watch(
   (p) => {
     if (nav.some((item) => item.id === p)) lastNavId.value = p;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 function go(to: string): void {
@@ -98,10 +110,10 @@ function go(to: string): void {
   z-index: 1;
 }
 .content {
-  /* 内容区边距：左右取 32；上/下用全局的 --content-pad-top / --content-pad-b
+  /* 内容区边距：左右取 12；上/下用全局的 --content-pad-top / --content-pad-b
      （Windows 40、macOS 32，定义见 global.css）。所有页面、所有窗口都用这几个变量，
      需要把滚动条/列表延伸到窗口边缘的页面（字体管理、模板列表、设置页）用它们做负 margin 抵扣 */
-  --content-pad-x: 32px;
+  --content-pad-x: 12px;
   flex: 1;
   min-width: 0;
   overflow: auto;

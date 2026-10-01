@@ -1,5 +1,5 @@
 import { app, Tray, Menu, nativeImage, type MenuItemConstructorOptions } from 'electron';
-import { openWindow, getWindows, resolveAppIcon } from './windows';
+import { openWindow, getWindows, resolveAppIcon, requestQuit } from './windows';
 import { registerIpc } from './ipc';
 import { initUpdater, checkForUpdates } from './updater';
 // 工具清单是渲染进程的单一数据源（首页卡片/侧边栏都用它），托盘菜单直接复用，
@@ -69,7 +69,14 @@ function createTray(): void {
       { type: 'separator' },
       ...buildToolMenuItems(),
       { type: 'separator' },
-      { label: '退出', click: () => app.quit() }
+      {
+        label: '退出',
+        click: () => {
+          // 有窗口正在批处理：先把它们显示出来并让用户选择（中断关闭 / 最小化到托盘 / 取消），
+          // 用户选择后由 useBatchRunner 的确认弹窗驱动收尾（见 windows.ts 的 requestQuit）
+          requestQuit();
+        }
+      }
     ])
   );
   tray.on('click', () => openWindow({ key: 'main', route: '/' }));

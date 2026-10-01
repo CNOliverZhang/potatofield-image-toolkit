@@ -54,6 +54,50 @@ const windows = new Map<string, BrowserWindow>();
 /** 处于「程序化改尺寸」中的窗口：其 will-resize 不拦截（见 openWindow 内的说明） */
 const programmaticResizeWindows = new WeakSet<BrowserWindow>();
 
+/** 正在执行批量处理的窗口：关闭/退出前需要让用户确认 */
+const busyWindows = new Set<BrowserWindow>();
+/** 已选择「中断并关闭」的窗口：其 close 事件不再拦截 */
+const forceClosing = new WeakSet<BrowserWindow>();
+/** 用户请求过退出（托盘「退出」/ 快捷键），等所有批处理窗口处理完再真正退出 */
+let pendingQuit = false;
+
+/** 标记/取消一个窗口的「批处理进行中」状态 */
+export function setWindowBusy(win: BrowserWindow, busy: boolean): void {
+  if (busy) busyWindows.add(win);
+  else busyWindows.delete(win);
+}
+
+/** 所有正在批处理的窗口 */
+export function getBusyWindows(): BrowserWindow[] {
+  return [...busyWindows].filter((w) => !w.isDestroyed());
+}
+
+/**
+ * 请求退出：有批处理窗口时先把它显示出来并让用户选择，否则直接退出。
+ * 用户在弹窗里选「中断并关闭」后由 close-now 走完退出流程（见 ipc.ts）。
+ */
+export function requestQuit(): void {
+  const busy = getBusyWindows();
+  if (!busy.length) {
+    app.quit();
+    return;
+  }
+  pendingQuit = true;
+  for (const win of busy) {
+    if (win.isMinimized()) win.restore();
+    if (!win.isVisible()) win.show();
+    win.focus();
+    win.webContents.send('window:confirm-close');
+  }
+}
+
+/** 关闭指定窗口（跳过关闭确认） */
+export function closeWindowNow(win: BrowserWindow): void {
+  forceClosing.add(win);
+  busyWindows.delete(win);
+  win.close();
+}
+
 /**
  * 以「程序化改尺寸」身份执行 fn：期间该窗口的 will-resize 不被拦截。
  * 用于窗口去重时恢复窗口位置等内部 setBounds 调用；最大化/还原走 maximize()/unmaximize()，
@@ -124,6 +168,9 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
   if (dedupKey && windows.has(dedupKey)) {
     const existing = windows.get(dedupKey)!;
     if (!existing.isDestroyed()) {
+      // 之前选择「最小化到托盘」的窗口是隐藏的，focus() 不会让它现身 —— 先 show 再 focus
+      if (!existing.isVisible()) existing.show();
+      if (existing.isMinimized()) existing.restore();
       existing.focus();
       return existing;
     }
@@ -189,6 +236,17 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
 
   win.on('closed', () => {
     if (dedupKey) windows.delete(dedupKey);
+    busyWindows.delete(win);
+    // 退出请求挂起时：最后一个批处理窗口关掉后才真正退出
+    if (pendingQuit && getBusyWindows().length === 0) app.quit();
+  });
+
+  // 批处理进行中的窗口不允许「无声关闭」：交给渲染层弹窗让用户选
+  win.on('close', (event) => {
+    if (!busyWindows.has(win) || forceClosing.has(win)) return;
+    event.preventDefault();
+    if (!win.isVisible()) win.show();
+    win.webContents.send('window:confirm-close');
   });
 
   // 同步最大化状态给渲染进程（覆盖双击标题栏 / 系统贴靠等外部触发）

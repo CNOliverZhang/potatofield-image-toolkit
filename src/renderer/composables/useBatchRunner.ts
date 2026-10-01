@@ -1,4 +1,4 @@
-import { reactive, ref, type Ref } from 'vue';
+import { onBeforeUnmount, reactive, ref, watch, type Ref } from 'vue';
 import type { ImageProcessOp, ImageProcessOptions } from '@shared/types';
 import type { BatchItem } from '@renderer/utils/directoryScanner';
 import { resolveBatchOutputPath, ensureDir, fileExists } from '@renderer/utils/fileIO';
@@ -73,6 +73,37 @@ export function useBatchRunner(cfg: BatchRunnerConfig) {
   function cancel(): void {
     cancelled.value = true;
   }
+
+  /**
+   * 关闭窗口 / 托盘退出时的确认：批处理进行中不能默默中断。
+   * 三选一：中断并关闭（取消剩余任务后关窗）、最小化到托盘（窗口隐藏，任务继续跑）、取消（什么都不做）。
+   */
+  async function confirmClose(): Promise<void> {
+    if (!processing.value) return;
+    const action = await choose(
+      `批量处理正在进行中（已完成 ${progress.done}/${progress.total}）。\n\n中断后已处理完成的文件会保留，未开始的不再处理。`,
+      '批量处理进行中',
+      [
+        { label: '中断并关闭', value: 'abort' },
+        { label: '最小化到托盘', value: 'tray' },
+        { label: '取消', value: 'cancel' }
+      ]
+    );
+    if (action === 'abort') {
+      cancel();
+      window.api.window.closeNow();
+    } else if (action === 'tray') {
+      window.api.window.hide();
+    }
+  }
+
+  // 处理状态同步给主进程：主进程据此拦截窗口关闭与退出
+  watch(processing, (busy) => window.api.window.setBusy(busy), { immediate: true });
+  const offConfirmClose = window.api.window.onConfirmClose(() => void confirmClose());
+  onBeforeUnmount(() => {
+    offConfirmClose();
+    window.api.window.setBusy(false);
+  });
 
   async function run(): Promise<void> {
     const files = cfg.files.value;

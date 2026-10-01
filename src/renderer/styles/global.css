@@ -21,7 +21,7 @@
      非 Windows 没有自绘按钮，与下边距保持一致即可 */
   --content-pad-top: 40px;
   /* 内容区下边距 = 上边距（用户要求四周边距一致；仅顶部因标题栏在 Windows 上更高是例外） */
-  --content-pad-b: 40px;
+  --content-pad-b: 12px;
 
   /* 应用主背景与卡片背景（Windows 设置 / PowerToys 非活跃态配色）：
      浅色：背景浅灰（v2 的 layer-2 ≈ #f3f3f3），卡片白（v2 的 fill-layer-rest ≈ #fbfbfb）
@@ -150,7 +150,6 @@ html[data-platform='mac'] {
   /* mac 红绿灯在窗口左上角：顶部给到 32px（与左右边距一致），避免按钮贴着内容；
      下边距同步取 32 保持四周一致（Windows 上是 40，因其顶部更高） */
   --content-pad-top: 32px;
-  --content-pad-b: 32px;
 }
 
 /* 最大化时取消内边距，卡片铺满整个窗口，并隐藏阴影 / 圆角 */
@@ -230,7 +229,7 @@ fluent-slider::part(track-container)::after {
 /* ===================== 工具页通用布局 ===================== */
 .tool {
   display: flex;
-  gap: calc(var(--design-unit) * 1px * 6);
+  gap: calc(var(--design-unit) * 1px * 3);
   height: 100%;
   min-height: 0;
   /* 不加负的 bottom margin：否则工具区会比内容区低一截，底部边距与其它页面不一致 */
@@ -537,7 +536,7 @@ fluent-button[appearance='primary']:disabled {
 .batch-tool {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--design-unit) * 1px * 4);
+  gap: calc(var(--design-unit) * 1px * 3);
   height: 100%;
   min-height: 0;
   /* 底部不再抵扣、右侧不再额外留白：与所有页面统一为内容区边距。

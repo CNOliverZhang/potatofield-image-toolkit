@@ -89,6 +89,18 @@ const api: ImageToolkitApi = {
       const listener = (_e: unknown, route: string) => callback(route);
       ipcRenderer.on('window:navigate', listener);
       return () => ipcRenderer.removeListener('window:navigate', listener);
+    },
+    // 批处理进行中：上报给主进程，用于关闭/退出前的确认
+    setBusy: (busy: boolean) => ipcRenderer.send('window:busy', busy),
+    // 用户已选择「中断并关闭」：跳过确认直接关窗
+    closeNow: () => ipcRenderer.send('window:close-now'),
+    // 「最小化到托盘」：隐藏本窗口（进程仍驻留托盘，可从托盘再次打开）
+    hide: () => ipcRenderer.send('window:hide'),
+    // 主进程要求本窗口确认关闭（点关闭按钮 / 托盘退出时）
+    onConfirmClose: (callback: () => void) => {
+      const listener = () => callback();
+      ipcRenderer.on('window:confirm-close', listener);
+      return () => ipcRenderer.removeListener('window:confirm-close', listener);
     }
   },
   theme: {

@@ -129,6 +129,14 @@ export interface ImageToolkitApi {
     }) => void;
     /** 主进程要求本窗口跳转到指定路由（托盘菜单点击工具入口时用） */
     onNavigate: (callback: (route: string) => void) => () => void;
+    /** 上报「批处理进行中」：主进程据此在关闭窗口 / 退出应用前要求确认 */
+    setBusy: (busy: boolean) => void;
+    /** 已在确认弹窗中选择中断：跳过确认直接关闭本窗口 */
+    closeNow: () => void;
+    /** 最小化到托盘：隐藏本窗口，进程驻留托盘 */
+    hide: () => void;
+    /** 主进程要求本窗口确认关闭（点关闭按钮，或托盘「退出」且本窗口正在批处理） */
+    onConfirmClose: (callback: () => void) => () => void;
   };
   /** 跨窗口主题同步：任意窗口切换深色模式/主题色后广播给其它窗口 */
   theme: {

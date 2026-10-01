@@ -6,7 +6,16 @@
       icon="grip"
       hint="选择一张图片开始分割"
       @pick="onPick"
-    />
+    >
+      <!-- 整图预览 + 分割网格：预览必须是完整图片（不能只裁第一块），
+           上面的线才是「会切成几行几列」的示意 -->
+      <template #stage>
+        <div class="slice-stage">
+          <img :src="previewUrl" class="slice-img" alt="预览" />
+          <span class="slice-grid" :style="gridStyle"></span>
+        </div>
+      </template>
+    </ImagePicker>
     <aside class="controls-pane">
       <div class="controls-body">
         <SettingsGroup title="分割网格">
@@ -120,18 +129,27 @@ function tileRegions() {
   return out;
 }
 
+/**
+ * 预览：展示**完整图片**（旧实现裁了第一块当预览，看起来像「只显示第一行第一列」），
+ * 分割方式由覆盖在上面的网格线示意；真正导出时仍按 tileRegions() 逐块裁剪。
+ */
 async function refresh(): Promise<ArrayBuffer | undefined> {
   if (!inputPath.value) return undefined;
-  const tiles = tileRegions();
-  if (!tiles.length) return undefined;
-  const t = tiles[0];
   const res = await window.api.image.process({
-    op: 'extract',
+    op: 'resize',
     inputPath: inputPath.value,
-    options: { left: t.left, top: t.top, width: t.width, height: t.height }
+    options: { width: 1600, height: 1600, fit: 'inside' }
   });
   return res.buffer;
 }
+
+/** 网格线：按行/列数在整图上画线（外框 + 内部各条） */
+const gridStyle = computed(() => ({
+  backgroundImage: [
+    `repeating-linear-gradient(to right, var(--accent-base-color) 0 1px, transparent 1px calc(100% / ${cols.value}))`,
+    `repeating-linear-gradient(to bottom, var(--accent-base-color) 0 1px, transparent 1px calc(100% / ${rows.value}))`
+  ].join(',')
+}));
 
 async function onPick() {
   if (await pickImage()) {
@@ -186,5 +204,31 @@ async function onSave() {
 .batch-tool .import-panel {
   height: auto;
   max-height: 340px;
+}
+/* 分割预览：整图 + 覆盖其上的网格线。
+   用 grid 把图片和网格放在同一个网格单元里，网格层自动贴合图片实际尺寸
+   （图片是 object-fit: contain，直接绝对定位会超出图片边界） */
+.slice-stage {
+  display: grid;
+  max-width: 100%;
+  max-height: 100%;
+}
+.slice-stage > * {
+  grid-area: 1 / 1;
+}
+.slice-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+.slice-grid {
+  /* 外框（右边与下边的线由 outline 补上，重复渐变画不到末端） */
+  outline: 1px solid var(--accent-base-color);
+  outline-offset: -1px;
+  pointer-events: none;
+  opacity: 0.9;
 }
 </style>
