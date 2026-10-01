@@ -31,6 +31,11 @@ window.api.template.onChanged((data: TemplateStoreData) => {
   useSettingsStore().applyTemplateStore(data);
 });
 
+// 托盘菜单点击工具入口：主进程让本窗口切到该工具页（主窗口已存在时不会再开新窗）
+window.api.window.onNavigate((route: string) => {
+  if (route && route !== router.currentRoute.value.path) router.push(route);
+});
+
 onMounted(async () => {
   const settings = useSettingsStore();
   const messages = useMessagesStore();

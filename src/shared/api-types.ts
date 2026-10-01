@@ -127,6 +127,8 @@ export interface ImageToolkitApi {
       minWidth?: number;
       minHeight?: number;
     }) => void;
+    /** 主进程要求本窗口跳转到指定路由（托盘菜单点击工具入口时用） */
+    onNavigate: (callback: (route: string) => void) => () => void;
   };
   /** 跨窗口主题同步：任意窗口切换深色模式/主题色后广播给其它窗口 */
   theme: {

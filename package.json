@@ -62,7 +62,16 @@
       "out/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "build/icons",
+        "to": "icons"
+      }
+    ],
     "asar": false,
+    "releaseInfo": {
+      "releaseNotesFile": "RELEASE_NOTES.md"
+    },
     "publish": [
       {
         "provider": "generic",

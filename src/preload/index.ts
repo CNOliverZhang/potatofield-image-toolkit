@@ -84,6 +84,11 @@ const api: ImageToolkitApi = {
       const listener = (_e: unknown, v: boolean) => callback(v);
       ipcRenderer.on('window:maximize-changed', listener);
       return () => ipcRenderer.removeListener('window:maximize-changed', listener);
+    },
+    onNavigate: (callback: (route: string) => void) => {
+      const listener = (_e: unknown, route: string) => callback(route);
+      ipcRenderer.on('window:navigate', listener);
+      return () => ipcRenderer.removeListener('window:navigate', listener);
     }
   },
   theme: {

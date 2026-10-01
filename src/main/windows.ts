@@ -81,10 +81,13 @@ function resolvePreload(): string {
 }
 
 // 应用图标：Windows 用 .ico（任务栏/窗口），其它平台用 .png
-// 多候选路径回退，兼容 dev（项目根）/ 打包（resources）等不同运行位置
+// 多候选路径回退，兼容 dev（项目根）/ 打包（resources）等不同运行位置。
+// 打包后图标由 electron-builder 的 extraResources 拷到 resources/icons
+// （build.files 白名单只放 out 与 package.json，所以必须走 extraResources）
 export function resolveAppIcon(): string {
   const name = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
   const candidates = [
+    join(process.resourcesPath, 'icons', name),
     join(app.getAppPath(), 'build/icons', name),
     join(process.cwd(), 'build/icons', name),
     join(__dirname, '../icons', name)

@@ -5,6 +5,15 @@ build/*.dmg
 build/*.zip
 build/*.yml
 build/*.yaml
+build/*.blockmap
+build/builder-effective-config.yaml
+build/win-unpacked/
+build/win-unpacked.*/
+build/mac/
+build/mac-arm64/
+build/linux-unpacked/
+build/linux-unpacked.*/
+build/*.log
 out
 .DS_Store
 *.log
