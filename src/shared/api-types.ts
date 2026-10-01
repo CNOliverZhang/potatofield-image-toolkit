@@ -1,4 +1,11 @@
 import type {
+  TemplateApplyPayload,
+  TemplateEditPayload,
+  TemplateItem,
+  TemplateStoreData,
+  TemplateToolKey
+} from './types';
+import type {
   ImageProcessPayload,
   ImageProcessResult,
   SelectFileOptions,
@@ -33,6 +40,46 @@ export interface ImageToolkitApi {
   };
   image: {
     process: (payload: ImageProcessPayload) => Promise<ImageProcessResult>;
+  };
+  /** 模板相关：素材持久化（避免原图丢失）与旧版本数据导入 */
+  template: {
+    /** 保存素材文件，返回存储文件名（内容相同即复用） */
+    saveAsset: (sourcePath: string) => Promise<{ fileName: string } | null>;
+    /** 解析素材为绝对路径，缺失返回 null */
+    resolveAsset: (fileName: string) => Promise<string | null>;
+    removeAsset: (fileName: string) => Promise<void>;
+    /** 读取旧版本（3.x）的水印模板 */
+    importLegacy: () => Promise<TemplateItem[]>;
+    /** 编辑页预览底图：中性占位图的绝对路径（无用户图片时用于渲染水印效果） */
+    placeholder: () => Promise<string>;
+    /**
+     * 模板库：权威数据在主进程（userData/templates.json）。
+     * 多窗口共享 localStorage 存在同步延迟、会互相覆盖，因此读写一律走 IPC。
+     */
+    list: () => Promise<TemplateStoreData>;
+    add: (payload: {
+      tool: TemplateToolKey;
+      name: string;
+      params: unknown;
+      legacy?: boolean;
+    }) => Promise<TemplateStoreData>;
+    update: (payload: {
+      tool: TemplateToolKey;
+      id: string;
+      name?: string;
+      params?: unknown;
+    }) => Promise<TemplateStoreData>;
+    remove: (payload: { tool: TemplateToolKey; id: string }) => Promise<TemplateStoreData>;
+    setLegacyImported: (value: boolean) => Promise<TemplateStoreData>;
+    /** 编辑窗口入参：开窗口前由列表页暂存，编辑页挂载后取走 */
+    setEditing: (payload: TemplateEditPayload) => Promise<void>;
+    takeEditing: () => Promise<TemplateEditPayload | null>;
+    /** 应用模板：通知主窗口载入参数并跳转（模板窗口自身不跳转） */
+    apply: (payload: TemplateApplyPayload) => Promise<void>;
+    /** 主窗口监听模板应用 */
+    onApplied: (cb: (payload: TemplateApplyPayload) => void) => void;
+    /** 模板库变更：主进程写入后推送最新全量数据给所有窗口 */
+    onChanged: (cb: (payload: TemplateStoreData) => void) => void;
   };
   fs: {
     scanDirectory: (

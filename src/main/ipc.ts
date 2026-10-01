@@ -1,6 +1,22 @@
 import { ipcMain, dialog, shell, app, BrowserWindow, nativeTheme } from 'electron';
 import { processImage } from './image';
 import { openWindow, getZoomFactor, setZoomFactor, hasWindowMaterial, refreshAcrylicVibrancy } from './windows';
+import {
+  saveTemplateAsset,
+  resolveTemplateAsset,
+  removeTemplateAsset,
+  ensurePlaceholderImage
+} from './templateAssets';
+import { importLegacyTemplates } from './legacy';
+import {
+  readTemplateStore,
+  addTemplate,
+  updateTemplate,
+  removeTemplate,
+  setLegacyImported,
+  setEditingPayload,
+  takeEditingPayload
+} from './templates';
 import { getOpenAtLogin, setOpenAtLogin } from './system';
 import {
   scanDirectory,
@@ -103,6 +119,73 @@ export function registerIpc(): void {
   ipcMain.handle('image:process', async (_e, payload: ImageProcessPayload): Promise<ImageProcessResult> => {
     return processImage(payload);
   });
+
+  // 模板素材（图片水印等）：复制到 userData，避免原文件被移动/删除后模板失效
+  ipcMain.handle('templateAsset:save', (_e, sourcePath: string) => saveTemplateAsset(sourcePath));
+  ipcMain.handle('templateAsset:resolve', (_e, fileName: string) => resolveTemplateAsset(fileName));
+  ipcMain.handle('templateAsset:remove', (_e, fileName: string) => removeTemplateAsset(fileName));
+  // 模板编辑页的预览底图（无用户图片时的中性占位图）
+  ipcMain.handle('template:placeholder', () => ensurePlaceholderImage());
+
+  // 模板库：权威数据在主进程，任何写入后把最新数据推给所有窗口（含发起方），
+  // 窗口之间不再各自维护副本 —— 多窗口共享 localStorage 存在同步延迟，会互相覆盖
+  ipcMain.handle('template:list', () => readTemplateStore());
+  const broadcastTemplates = (): void => {
+    const data = readTemplateStore();
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (win.isDestroyed()) continue;
+      win.webContents.send('template:updated', data);
+    }
+  };
+  ipcMain.handle('template:add', (_e, payload: { tool: 'watermark'; name: string; params: unknown; legacy?: boolean }) => {
+    addTemplate(payload.tool, payload.name, payload.params, payload.legacy ?? false);
+    broadcastTemplates();
+    return readTemplateStore();
+  });
+  ipcMain.handle(
+    'template:update',
+    (_e, payload: { tool: 'watermark'; id: string; name?: string; params?: unknown }) => {
+      updateTemplate(payload.tool, payload.id, { name: payload.name, params: payload.params });
+      broadcastTemplates();
+      return readTemplateStore();
+    }
+  );
+  ipcMain.handle('template:remove', (_e, payload: { tool: 'watermark'; id: string }) => {
+    removeTemplate(payload.tool, payload.id);
+    broadcastTemplates();
+    return readTemplateStore();
+  });
+  ipcMain.handle('template:setLegacyImported', (_e, value: boolean) => {
+    setLegacyImported(value);
+    broadcastTemplates();
+    return readTemplateStore();
+  });
+  // 编辑窗口入参：主进程暂存，窗口打开后取走（替代原先的 localStorage 传递）
+  ipcMain.handle('template:setEditing', (_e, payload) => {
+    setEditingPayload(payload);
+  });
+  ipcMain.handle('template:takeEditing', () => takeEditingPayload());
+  // 模板应用：独立窗口的模板页不应自己跳转，交由主窗口处理（保持独立窗口语义与主窗口单例）
+  ipcMain.handle('template:apply', (e, payload) => {
+    const sender = BrowserWindow.fromWebContents(e.sender);
+    let delivered = false;
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (win === sender || win.isDestroyed()) continue;
+      win.webContents.send('template:applied', payload);
+      delivered = true;
+    }
+    // 把主窗口带到前台，让用户直接看到应用结果
+    if (!delivered) {
+      const main = BrowserWindow.getAllWindows().find((w) => w !== sender && !w.isDestroyed());
+      main?.focus();
+    } else {
+      const main = BrowserWindow.getAllWindows().find((w) => w !== sender && !w.isDestroyed());
+      main?.focus();
+    }
+  });
+
+  // 旧版本（3.x）水印模板导入
+  ipcMain.handle('legacy:importTemplates', () => importLegacyTemplates());
 
   ipcMain.handle('fs:scanDirectory', (_e, root: string, extensions: string[]) => scanDirectory(root, extensions));
   ipcMain.handle('fs:readFileBase64', (_e, path: string) => readFileBase64(path));

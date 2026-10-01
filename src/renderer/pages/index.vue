@@ -21,7 +21,7 @@
             <span class="card-title">{{ tool.label }}</span>
           </div>
           <div class="card-desc">{{ tool.desc }}</div>
-          <div v-if="tool.batchRoute" class="card-foot">
+          <div v-if="tool.batchRoute || tool.templateRoute" class="card-foot">
             <fluent-button
               appearance="primary"
               size="small"
@@ -30,6 +30,15 @@
               @click.stop="goBatch(tool)"
             >
               批量处理
+            </fluent-button>
+            <fluent-button
+              v-if="tool.templateRoute"
+              size="small"
+              shape="circular"
+              class="card-batch"
+              @click.stop="goTemplates(tool)"
+            >
+              模板
             </fluent-button>
           </div>
         </div>
@@ -56,6 +65,14 @@ const groups = computed(() =>
 
 function go(path: string) {
   router.push(path);
+}
+
+function goTemplates(tool: ToolEntry) {
+  if (!tool.templateRoute) return;
+  window.api.window.open({
+    route: tool.templateRoute,
+    key: tool.templateRoute
+  });
 }
 
 function goBatch(tool: ToolEntry) {

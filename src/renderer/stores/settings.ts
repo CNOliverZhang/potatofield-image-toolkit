@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import type { TemplateItem, TemplateStoreData, TemplateToolKey } from '@shared/types';
 import CryptoJS from 'crypto-js';
 
 /** 默认输出格式：original 表示保持原图格式 */
@@ -18,6 +19,14 @@ interface SettingsState {
   defaultOutput: DefaultOutput;
   identifier: string;
   recentSaveDirs: string[];
+  /**
+   * 各工具的模板库（目前仅 watermark）。
+   * 权威数据在主进程 templates.json，这里是各窗口的展示用副本，
+   * 通过 loadTemplates / 增删改 action（走 IPC）与主进程同步。
+   */
+  templates: Record<TemplateToolKey, TemplateItem[]>;
+  /** 是否已完成旧版本（3.x）模板导入（只跑一次，标记同样存主进程） */
+  legacyImported: boolean;
 }
 
 function generateIdentifier(): string {
@@ -33,7 +42,9 @@ export const useSettingsStore = defineStore('settings', {
     defaultExportParams: {},
     defaultOutput: { format: 'original', quality: 90 },
     identifier: '',
-    recentSaveDirs: []
+    recentSaveDirs: [],
+    templates: { watermark: [] },
+    legacyImported: false
   }),
   getters: {
     toolParams: (state) => (name: string) => state.defaultExportParams[name] ?? {}
@@ -64,10 +75,52 @@ export const useSettingsStore = defineStore('settings', {
     setDefaultOutput(patch: Partial<DefaultOutput>) {
       this.defaultOutput = { ...this.defaultOutput, ...patch };
     },
+    /** 用主进程推送的全量数据刷新本地副本 */
+    applyTemplateStore(data: TemplateStoreData) {
+      this.templates = data.templates;
+      this.legacyImported = data.legacyImported;
+    },
+    /** 首次进入模板相关页面时拉取一次 */
+    async loadTemplates(): Promise<void> {
+      this.applyTemplateStore(await window.api.template.list());
+    },
+    /** 新增模板（主进程落盘 + 广播），返回新项 */
+    async addTemplate(
+      tool: TemplateToolKey,
+      name: string,
+      params: unknown,
+      legacy = false
+    ): Promise<TemplateItem | null> {
+      const before = new Set((this.templates[tool] ?? []).map((i) => i.id));
+      const data = await window.api.template.add({ tool, name, params, legacy });
+      this.applyTemplateStore(data);
+      return (data.templates[tool] ?? []).find((i) => !before.has(i.id)) ?? null;
+    },
+    async updateTemplate(tool: TemplateToolKey, id: string, patch: { name?: string; params?: unknown }) {
+      this.applyTemplateStore(await window.api.template.update({ tool, id, ...patch }));
+    },
+    async removeTemplate(tool: TemplateToolKey, id: string) {
+      this.applyTemplateStore(await window.api.template.remove({ tool, id }));
+    },
+    async markLegacyImported() {
+      this.applyTemplateStore(await window.api.template.setLegacyImported(true));
+    },
     ensureIdentifier(): string {
       if (!this.identifier) this.identifier = generateIdentifier();
       return this.identifier;
     }
   },
-  persist: true
+  // 模板库与旧版导入标记不落 localStorage：它们由主进程 templates.json 持有，
+  // 若这里也持久化，窗口启动时会先显示一份可能过期的副本
+  persist: {
+    paths: [
+      'themeColor',
+      'darkMode',
+      'defaultSaveDirectory',
+      'defaultExportParams',
+      'defaultOutput',
+      'identifier',
+      'recentSaveDirs'
+    ]
+  }
 });

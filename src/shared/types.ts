@@ -100,3 +100,46 @@ export interface WatermarkParams {
   format: 'original' | 'png' | 'jpeg' | 'webp';
   quality: number;
 }
+
+/** 模板归属的工具（未来可扩展；目前仅水印） */
+export type TemplateToolKey = 'watermark';
+
+/** 模板项：参数为对应工具的参数快照，按泛型区分类型 */
+export interface TemplateItem<P = Record<string, unknown>> {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  params: P;
+  /** 来自旧版本（3.x）导入的模板 */
+  legacy?: boolean;
+}
+
+/** 跨窗口传递的「应用模板」载荷 */
+export interface TemplateApplyPayload {
+  /** 模板参数 */
+  params: Record<string, unknown>;
+  /** 来源模板 id（用于工具页回显当前选中的模板） */
+  templateId?: string;
+}
+
+/**
+ * 模板库数据：主进程 userData/templates.json 的结构。
+ * 同时作为变更广播的载荷 —— 主进程是唯一数据源，收到即用，不存在「副本过期」问题。
+ */
+export interface TemplateStoreData {
+  version: number;
+  /** 是否已完成旧版本（3.x）模板导入（只跑一次） */
+  legacyImported: boolean;
+  templates: Record<TemplateToolKey, TemplateItem[]>;
+}
+
+/** 模板编辑窗口的入参（主进程暂存，窗口打开后取走） */
+export interface TemplateEditPayload {
+  tool: TemplateToolKey;
+  /** 编辑已有模板的 id；新建为空串 */
+  id: string;
+  name: string;
+  /** 新建时为 null，编辑页用默认参数 */
+  params: Record<string, unknown> | null;
+}

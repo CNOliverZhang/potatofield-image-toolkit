@@ -33,6 +33,18 @@ const routes = [
         meta: { standalone: true, title: '批量加水印' }
       },
       {
+        path: 'watermark/templates',
+        name: 'watermarkTemplates',
+        component: () => import('@renderer/pages/watermarkTemplates.vue'),
+        meta: { standalone: true, title: '水印模板' }
+      },
+      {
+        path: 'watermark/templates/edit',
+        name: 'watermarkTemplateEditor',
+        component: () => import('@renderer/pages/watermarkTemplateEditor.vue'),
+        meta: { standalone: true, title: '编辑水印模板' }
+      },
+      {
         path: 'resizer/batch',
         name: 'resizerBatch',
         component: () => import('@renderer/pages/resizer-batch.vue'),

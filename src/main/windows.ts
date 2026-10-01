@@ -129,7 +129,8 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
       sandbox: false
     },
     ...rest
-  });
+    // vibrancy / visualEffectState / backgroundMaterial 在类型定义里未完全覆盖，按需断言
+  } as BrowserWindowConstructorOptions);
 
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(`${process.env.ELECTRON_RENDERER_URL}#${route}`);

@@ -27,6 +27,27 @@ const api: ImageToolkitApi = {
   image: {
     process: (payload) => ipcRenderer.invoke('image:process', payload)
   },
+  template: {
+    saveAsset: (sourcePath: string) => ipcRenderer.invoke('templateAsset:save', sourcePath),
+    resolveAsset: (fileName: string) => ipcRenderer.invoke('templateAsset:resolve', fileName),
+    removeAsset: (fileName: string) => ipcRenderer.invoke('templateAsset:remove', fileName),
+    importLegacy: () => ipcRenderer.invoke('legacy:importTemplates'),
+    /** 编辑页预览底图（中性占位图）的绝对路径 */
+    placeholder: () => ipcRenderer.invoke('template:placeholder'),
+    /** 模板库：权威数据在主进程，读取与增删改都返回最新全量数据 */
+    list: () => ipcRenderer.invoke('template:list'),
+    add: (payload) => ipcRenderer.invoke('template:add', payload),
+    update: (payload) => ipcRenderer.invoke('template:update', payload),
+    remove: (payload) => ipcRenderer.invoke('template:remove', payload),
+    setLegacyImported: (value) => ipcRenderer.invoke('template:setLegacyImported', value),
+    /** 编辑窗口入参：开窗口前暂存，编辑页挂载后取走 */
+    setEditing: (payload) => ipcRenderer.invoke('template:setEditing', payload),
+    takeEditing: () => ipcRenderer.invoke('template:takeEditing'),
+    apply: (payload) => ipcRenderer.invoke('template:apply', payload),
+    onApplied: (cb) => ipcRenderer.on('template:applied', (_e, payload) => cb(payload)),
+    /** 模板库变更：主进程写入后把最新数据推给所有窗口 */
+    onChanged: (cb) => ipcRenderer.on('template:updated', (_e, payload) => cb(payload))
+  },
   fs: {
     scanDirectory: (root, extensions) => ipcRenderer.invoke('fs:scanDirectory', root, extensions),
     readFileBase64: (path) => ipcRenderer.invoke('fs:readFileBase64', path),

@@ -1,5 +1,60 @@
 # 进度跟踪（跨会话）
 
+## 水印模板功能（进行中）
+
+### 已完成
+- [x] 类型：`TemplateToolKey`（目前仅 watermark）/ `TemplateItem`（id/name/createdAt/updatedAt/params/legacy）
+- [x] 存储：`settings.templates`（Record<toolKey, TemplateItem[]>）+ `legacyImported` 标记，走已有点
+pinia 持久化
+- [x] 素材持久化：`main/templateAssets.ts` —— 水印图复制到 userData/template-assets/<内容hash>.<ext>，模板只记文件名；hash 复用 + 引用计数删除
+- [x] 迁移：`main/legacy.ts` —— 读 userData/vuex.json（appId 相同故同目录），导入 watermark.templates 与 globalWatermark.templates（后者 tile=true）
+  - 老版字段：title/text/position/offsetX/offsetY/color(rgba)/font/relativeFontSize/image/imageSize/imagePosition/imageOffsetX/Y/imageOpacity/imageRotation；无 type 字段（image 非空即图片水印）
+  - **字号换算**：老版 relativeFontSize 是「单字占图宽百分比」，新版 sizePct 是「整行占图宽百分比」→ sizePct = relativeFontSize × 可视字符数（已实现；中英混排会偏大，精确版需用字体实测宽度）
+  - 开发模式下 Electron userData 名为 Electron，统一用 `appDataDir()` 指向产品目录
+- [x] 入口：tools.ts 加 `templateRoute`（水印=/watermark/templates）→ 首页卡片 + 水印工具页各加「模板」按钮（独立窗口）
+- [x] 模板列表页（独立窗口，meta.standalone）：卡片摘要（类型·位置·大小·不透明度+字体）、图片缩略图、「旧版」标签、空态、首次运行自动导入
+- [x] 跨窗口应用：模板窗口 `window.api.template.apply` → 主进程广播（排除发送者）+ 主窗口置前 → App.vue 存 `watermarkPending` 并跳转 → watermark.vue 用 watch 载入参数
+  - 两个坑：① params 是 Pinia 响应式 Proxy，IPC 无法克隆，必须传 `JSON.parse(JSON.stringify())`；② 必须用 watch 而非 onMounted，否则主窗口已在本页时再次应用不生效
+
+### 已完成（续，2026-10-01）
+- [x] **独立编辑窗口** `pages/watermarkTemplateEditor.vue`（路由 `/watermark/templates/edit`，standalone，title『编辑水印模板』）
+  - 左侧：中性占位图（主进程 `ensurePlaceholderImage()` 生成 1200×800 灰渐变，缓存在 template-assets 目录）经主进程套用水印参数渲染预览，不依赖用户图片
+  - 右侧：直接复用 `<WatermarkControls v-model="params" />`，顶部加「模板名称」输入行
+  - 底部：「保存模板」（新建/更新当前）/「另存模板」（存为新模板，窗口不关、切到新模板）/「取消」（关窗）
+  - 保存前图片水印先 `template.saveAsset` 存素材，模板只记文件名
+- [x] **常规模式**（watermark.vue）加「选择模板」下拉（app-select）+「存为模板」按钮；不再有编辑态
+  - 应用模板时图片水印的素材文件名会先 `resolveAsset` 解析为绝对路径，否则主进程读不到图
+- [x] **输入型对话框**：`ui.ts` 增加 `type:'prompt'` + `DialogInput`，`AppDialog.vue` 渲染输入框（打开即聚焦全选、回车=确定），`useDialog.prompt(msg, title, default, placeholder)`；**Electron 下 `window.prompt` 不可用**，重命名/存为模板/另存模板全部改走这里
+- [x] 列表页「删除」（二次确认 + 素材引用计数清理）、「重命名」、「新建模板」均已实测通过
+
+### 修复（用户反馈，2026-10-01）
+- [x] **对话框没有浮在页面上层**：`fluent-dialog` 故意未注册（见 `fluent.ts` 注释），被当成普通元素排进文档流、落到页面末尾并「顶」页面。
+  `AppDialog.vue` 自绘遮罩层：`position:fixed; inset:0; z-index:9999` + flex 居中 + 半透明遮罩；
+  **必须同时写 `.app-dialog[hidden]{display:none}`** —— 作者样式的 `display:flex` 会盖掉 UA 的 `[hidden]` 规则。
+  圆角/边框/阴影从无效的 `::part(control)` 移到卡片 `.dlg` 上。
+- [x] **列表页图片水印缩略图裂开**：原先 `file://` 直读，渲染进程加载 file 子资源被拦（编辑页能看到是因为那里走 IPC buffer→blob）。
+  改为与拼图列表一致：主进程 `resize` 到 96px → blob URL，按素材文件名缓存，组件卸载时 revoke。
+
+### 架构修正（重要，实测发现）
+- **模板库改由主进程持有**（`main/templates.ts` → `userData/templates.json`，IPC：`template:list/add/update/remove/setLegacyImported`）
+  - 原方案「两窗口共享 localStorage」实测不可靠：跨 renderer 进程的 localStorage 写入存在同步延迟，
+    出现「编辑窗口保存的模板根本没落盘」「A 窗口改动被 B 窗口旧副本覆盖」——先改成广播整份列表仍会覆盖，最终改为权威数据放主进程
+  - 主进程写入后广播全量数据给**所有**窗口（含发起方），渲染层 `settings.applyTemplateStore(data)` 直接采用；
+    Pinia 持久化用 `persist.paths` 排除 templates / legacyImported，避免启动时先显示过期副本
+  - 编辑窗口入参同样改走主进程暂存（`template:setEditing` / `takeEditing`），不再经 localStorage
+- 窗口 key 带模板 id（`watermark-template-editor-<id>`），避免复用已打开窗口时把新参数丢掉
+
+### 待办
+- [ ] 打包/公证未跑（`npm run package:mac`）；真实文件对话框与拖拽手感需人工实测
+- [ ] 模板能力扩展到其它工具（splicer 等）时，先补 tools.ts 的 templateRoute 与摘要适配器
+
+### 已定决策
+- 只做水印一种模板（全局水印已合并为水印工具的一个选项 tile）
+- **改为独立编辑窗口**（原计划在水印工具页做编辑模式，已推翻）：保存区/预览区与常规工具不同、无需侧边栏、且能规避编辑中点侧边栏跳走的体验问题；控件区复用 WatermarkControls
+- 模板列表页为独立窗口；入口在首页卡片 + 水印工具页，与批量入口并列
+- 通用性：tools.ts 的 templateRoute 模式，未来加新工具只需加一行 + 摘要适配器
+- **跨窗口共享状态一律放主进程**（模板库、编辑入参），不要依赖多窗口共享 localStorage
+
 最后更新：**2026-10-01 · 框架升级（Electron 44 + Fluent v3）**
 
 ## 本轮（2026-10-01）已完成：Electron 28→44 + Fluent v2→v3 框架升级

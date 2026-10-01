@@ -15,13 +15,16 @@ export interface ToolEntry {
   group: string;
   /** 批量处理路由，存在时首页卡片显示「批量处理」入口 */
   batchRoute?: string;
+  /** 模板管理页路由（独立窗口打开）；目前仅水印工具有 */
+  templateRoute?: string;
 }
 
 /** 首页分组顺序 */
 export const toolGroups = ['图像处理', '优化输出', '信息与素材'];
 
 export const tools: ToolEntry[] = [
-  { path: '/watermark', label: '加水印', desc: '为图片添加文字或图片水印', icon: 'stamp', group: '图像处理', batchRoute: '/watermark/batch' },
+  { path: '/watermark', label: '加水印', desc: '为图片添加文字或图片水印', icon: 'stamp', group: '图像处理', batchRoute: '/watermark/batch',
+    templateRoute: '/watermark/templates' },
   { path: '/splicer', label: '长图拼接', desc: '将多张图片拼接为一张长图', icon: 'bars-staggered', group: '图像处理' },
   { path: '/cropper', label: '裁剪', desc: '裁剪出想要的画面区域', icon: 'crop', group: '图像处理', batchRoute: '/cropper/batch' },
   { path: '/slicer', label: '分割', desc: '将图片切分为多个分块', icon: 'grip', group: '图像处理' },

@@ -16,7 +16,15 @@ export interface DialogAction {
   appearance?: 'accent' | 'neutral';
 }
 
-export type DialogType = 'alert' | 'confirm' | 'choose';
+export type DialogType = 'alert' | 'confirm' | 'choose' | 'prompt';
+
+/** prompt 的输入框配置 */
+export interface DialogInput {
+  value: string;
+  placeholder?: string;
+  /** 最大长度（原生 maxlength） */
+  maxlength?: number;
+}
 
 export interface DialogState {
   visible: boolean;
@@ -24,7 +32,8 @@ export interface DialogState {
   message: string;
   type: DialogType;
   actions?: DialogAction[];
-  resolve: ((value: boolean | string) => void) | null;
+  input?: DialogInput;
+  resolve: ((value: boolean | string | null) => void) | null;
 }
 
 export const ui = reactive({
@@ -35,6 +44,7 @@ export const ui = reactive({
     message: '',
     type: 'alert',
     actions: undefined,
+    input: undefined,
     resolve: null
   } as DialogState
 });
@@ -50,19 +60,20 @@ export function pushToast(message: string, type: ToastType = 'info'): void {
   }, 2600);
 }
 
-/** 打开对话框：alert/confirm 返回 boolean，choose 返回所选动作的 value */
+/** 打开对话框：alert/confirm 返回 boolean，choose 返回所选动作的 value，prompt 返回输入文本（取消为 null） */
 export function openDialog(
   type: DialogType,
   message: string,
   title: string,
-  actions?: DialogAction[]
-): Promise<boolean | string> {
-  return new Promise<boolean | string>((resolve) => {
-    ui.dialog = { visible: true, title, message, type, actions, resolve };
+  actions?: DialogAction[],
+  input?: DialogInput
+): Promise<boolean | string | null> {
+  return new Promise<boolean | string | null>((resolve) => {
+    ui.dialog = { visible: true, title, message, type, actions, input, resolve };
   });
 }
 
-export function closeDialog(result: boolean | string): void {
+export function closeDialog(result: boolean | string | null): void {
   const { resolve } = ui.dialog;
   ui.dialog.visible = false;
   ui.dialog.resolve = null;

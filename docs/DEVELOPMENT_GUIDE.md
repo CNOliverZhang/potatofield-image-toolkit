@@ -16,7 +16,7 @@
 | `BatchTool.vue` | 批量工具壳（resizer / compress / convert） | 3 个批量工具 |
 | `WatermarkControls.vue` | 水印参数面板（含 `lockTile`、输出设置） | 水印单图 + 批量 + 全屏水印 |
 | `CropControls.vue` | 裁剪参数面板（单位 px/比例、比例预设、九宫格定位、像素输入或百分比、使用整图） | 裁剪单图 + 批量 |
-| `AppDialog.vue` | 全局对话框，支持 alert / confirm / **多选一（actions）** | 全局 |
+| `AppDialog.vue` | 全局对话框，支持 alert / confirm / **多选一（actions）** / **输入（prompt）** | 全局 |
 | `ImagePicker.vue` | 单图工具的选图/预览占位 | 单图工具 |
 | `FontSelect.vue` | 字体选择器（搜索 + 按字体本身渲染 + 滚动不穿透） | 水印工具 |
 | `settings/SettingsGroup.vue` | 设置分组：标题 + 圆角卡片容器（`title`、`count` 数量徽标） | **全部工具的设置区 / 应用设置页 / 批量导出（保存位置）** |
@@ -34,7 +34,7 @@
 | `useOutputSettings.ts` | 输出格式 + 质量：`createOutputOpts()` / `isLossy` / `outExt` / `withOutput` |
 | `useBatchRunner.ts` | **批量执行器**：输出路径计算、同名覆盖策略（重命名/覆盖/取消）、串行执行、中途取消、进度、失败继续、结束后打开输出文件 |
 | `useCropGeometry.ts` | 裁剪几何换算：定位基准→对齐方式、区域钳制、比例预设计算、区域适配到目标图 |
-| `useDialog.ts` | `message` / `alert` / `confirm` |
+| `useDialog.ts` | `message` / `alert` / `confirm` / `choose` / `prompt`（**Electron 下 `window.prompt` 不可用，一律用 `prompt`**） |
 | `useLocalFonts.ts` | 系统字体枚举、按族聚合、已安装判定 |
 | `useOnlineApi.ts` | 在线接口（字体库、公告、版本、客户端注册） |
 | `useTheme.ts` | 深色模式 + 主题色（跨窗口同步） |
@@ -45,7 +45,7 @@
 
 ### 1.4 主进程
 
-`src/main/image.ts` 是**唯一**的图像处理入口（op 白名单）；`fs.ts`、`ipc.ts`、`windows.ts`、`updater.ts`、`fonts.ts`（系统字体实时检测）。
+`src/main/image.ts` 是**唯一**的图像处理入口（op 白名单）；`fs.ts`、`ipc.ts`、`windows.ts`、`updater.ts`、`fonts.ts`（系统字体实时检测）、`templates.ts`（模板库 `userData/templates.json` + 编辑窗口入参暂存）、`templateAssets.ts`（模板素材 + 预览占位图）、`legacy.ts`（旧版 3.x 迁移）。
 
 ---
 
@@ -153,6 +153,17 @@
 
 - `message()` 走 Toast；`alert()` / `confirm()` 走全局对话框。
 - 需要三个及以上选项时用 `choose(message, title, actions)`（返回被点击动作的 `value`），不要连套两个 confirm。
+- 需要用户输入时用 `prompt(message, title, defaultValue, placeholder)`，返回输入文本、取消返回 `null`。
+- `AppDialog` 用**未注册**的 `fluent-dialog` 标签（不要去注册它）：因此必须自绘遮罩层（`position:fixed` + flex 居中），
+  并且显式写 `.app-dialog[hidden]{display:none}`（作者样式的 `display` 会盖掉 UA 的 `[hidden]` 规则）。
+
+### 5.6 跨窗口共享状态
+
+- **一律放主进程**（模板库 `main/templates.ts`、编辑窗口入参 `template:setEditing` / `takeEditing`），
+  不要依赖多窗口共享 localStorage：实测跨 renderer 进程的写入存在同步延迟，
+  会出现「改动没落盘」「被另一个窗口的旧副本覆盖」。
+- 主进程写入后广播全量数据给所有窗口（含发起方），渲染层直接采用即可，不要各自 hydrate / 合并。
+- 需要持久化的用户数据统一走 `appDataDir()`（开发模式也指向产品目录，便于与老版本共用 userData）。
 
 ---
 

@@ -16,7 +16,21 @@
           <fluent-button appearance="neutral" @click="openBatch">
             <font-awesome-icon icon="layer-group" /> 批量处理
           </fluent-button>
+          <fluent-button appearance="neutral" @click="openTemplates">
+            <font-awesome-icon icon="bookmark" /> 模板
+          </fluent-button>
         </div>
+        <SettingsGroup title="模板">
+          <SettingsRow label="选择模板">
+            <app-select class="ctl-lg" :value="selectedTemplateId" @change="onPickTemplate">
+              <fluent-option value="">不使用模板</fluent-option>
+              <fluent-option v-for="t in templates" :key="t.id" :value="t.id">{{ t.name }}</fluent-option>
+            </app-select>
+          </SettingsRow>
+          <SettingsRow label="当前参数" desc="把右侧调好的参数保存为新模板">
+            <fluent-button appearance="neutral" size="small" @click="saveAsTemplate">存为模板</fluent-button>
+          </SettingsRow>
+        </SettingsGroup>
         <WatermarkControls v-model="params" />
         <div class="controls-footer">
           <fluent-button appearance="primary" class="save-btn" :disabled="processing || !inputPath" @click="save">
@@ -33,12 +47,16 @@ import { computed, reactive, ref, watch, onBeforeUnmount } from 'vue';
 import type { WatermarkParams } from '@shared/types';
 import { selectImageFiles } from '@renderer/utils/filePicker';
 import { useDialog } from '@renderer/composables/useDialog';
-import { createOutputOpts } from '@renderer/composables/useOutputSettings';
 import { useSingleTool } from '@renderer/composables/useSingleTool';
+import { useSettingsStore } from '@renderer/stores/settings';
+import { defaultWatermarkParams } from '@renderer/consts/watermarkDefaults';
 import WatermarkControls from '@renderer/components/WatermarkControls.vue';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
+import AppSelect from '@renderer/components/AppSelect.vue';
+import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 
-const { message } = useDialog();
+const { message, prompt } = useDialog();
 /** 与其它单图工具一致：保存时再选目录 */
 const { inputPath, inputName, previewUrl, processing, runSave } = useSingleTool();
 
@@ -46,35 +64,75 @@ const { inputPath, inputName, previewUrl, processing, runSave } = useSingleTool(
 const inputSrc = computed(() => (inputPath.value ? `file://${inputPath.value}` : ''));
 let previewTimer: number | undefined;
 
-function defaultParams(): WatermarkParams {
-  // 输出格式/质量默认取设置页「默认输出」（与其它工具一致）
-  const out = createOutputOpts();
-  return {
-    type: 'text',
-    text: '洋芋田',
-    fontSize: 48,
-    color: '#ffffff',
-    opacity: 0.5,
-    bold: true,
-    fontFamily: 'sans-serif',
-    rotation: 0,
-    gravity: 'se',
-    positionUnit: 'percent',
-    sizePct: 20,
-    offsetX: 5,
-    offsetY: 5,
-    offsetXPx: 20,
-    offsetYPx: 20,
-    tile: false,
-    tileGap: 60,
-    watermarkPath: '',
-    scale: 0.25,
-    format: out.format,
-    quality: out.quality
-  };
+const params = reactive<WatermarkParams>(defaultWatermarkParams());
+
+// 来自模板窗口的应用/编辑：载入模板参数（载入后即清空，避免下次误入）。
+// 用 watch 而非 onMounted —— 主窗口已在本页时再次应用模板也要生效
+const settings = useSettingsStore();
+const templates = computed(() => settings.templates.watermark ?? []);
+/** 当前选中的模板（仅用于回显，编辑参数后不强制解除） */
+const selectedTemplateId = ref('');
+
+watch(
+  () => settings.toolParams('watermarkPending') as { params?: Record<string, unknown>; templateId?: string } | null,
+  (pending) => {
+    if (pending?.params) {
+      void applyTemplateParams(pending.params as Partial<WatermarkParams>);
+      selectedTemplateId.value = pending.templateId ?? '';
+      settings.setToolParams('watermarkPending', {});
+    }
+  },
+  { immediate: true, deep: true }
+);
+
+/** 载入模板参数：图片水印存的是素材文件名，要先解析成绝对路径才能渲染/处理 */
+async function applyTemplateParams(raw: Partial<WatermarkParams>): Promise<void> {
+  const next = { ...raw } as WatermarkParams;
+  if (next.type === 'image' && next.watermarkPath && !/[\\/]/.test(next.watermarkPath)) {
+    const full = await window.api.template.resolveAsset(next.watermarkPath);
+    if (!full) {
+      message('该模板的水印图片已丢失，请重新选择水印图片', 'warning');
+      next.watermarkPath = '';
+    } else {
+      next.watermarkPath = full;
+    }
+  }
+  Object.assign(params, next);
 }
 
-const params = reactive<WatermarkParams>(defaultParams());
+async function onPickTemplate(e: Event): Promise<void> {
+  const id = (e.target as HTMLInputElement).value;
+  selectedTemplateId.value = id;
+  if (!id) return;
+  const item = templates.value.find((t) => t.id === id);
+  if (!item) return;
+  // 纯对象：Pinia 的响应式 Proxy 无法跨 IPC 使用
+  await applyTemplateParams(JSON.parse(JSON.stringify(item.params)) as Partial<WatermarkParams>);
+}
+
+/** 存为模板：图片水印先把图存为素材，模板只记文件名 */
+async function saveAsTemplate(): Promise<void> {
+  if (params.type === 'image' && !params.watermarkPath) {
+    message('请先选择水印图片', 'warning');
+    return;
+  }
+  const name = await prompt('为新模板输入名称', '存为模板', '我的水印');
+  if (name === null) return;
+  const title = name.trim() || '我的水印';
+  const plain = JSON.parse(JSON.stringify(params)) as WatermarkParams;
+  if (plain.type === 'image' && plain.watermarkPath) {
+    const saved = await window.api.template.saveAsset(plain.watermarkPath);
+    if (!saved) {
+      message('水印图片保存失败，请重新选择水印图片', 'error');
+      return;
+    }
+    plain.watermarkPath = saved.fileName;
+    // 存完继续用当前绝对路径预览，不影响画面
+  }
+  const item = await settings.addTemplate('watermark', title, plain);
+  if (item) selectedTemplateId.value = item.id;
+  message(`已存为模板「${title}」`, 'success');
+}
 
 async function pickImage() {
   const files = await selectImageFiles(false);
@@ -138,6 +196,10 @@ async function save() {
       });
     }
   );
+}
+
+function openTemplates() {
+  window.api.window.open({ route: '/watermark/templates', key: '/watermark/templates' });
 }
 
 function openBatch() {

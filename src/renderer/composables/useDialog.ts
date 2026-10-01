@@ -8,6 +8,16 @@ export function useDialog() {
     confirm: (message: string, title = '确认') => openDialog('confirm', message, title),
     /** 多选一：返回被点击动作的 value */
     choose: async (message: string, title = '请选择', actions: DialogAction[]): Promise<string> =>
-      (await openDialog('choose', message, title, actions)) as string
+      (await openDialog('choose', message, title, actions)) as string,
+    /** 输入文本：返回输入内容，取消返回 null（Electron 下 window.prompt 不可用，必须走这里） */
+    prompt: async (
+      message: string,
+      title = '输入',
+      defaultValue = '',
+      placeholder = ''
+    ): Promise<string | null> =>
+      (await openDialog('prompt', message, title, undefined, { value: defaultValue, placeholder })) as
+        | string
+        | null
   };
 }
