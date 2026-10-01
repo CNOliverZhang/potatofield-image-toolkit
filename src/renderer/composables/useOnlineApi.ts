@@ -69,17 +69,8 @@ export async function getToolList(): Promise<any[]> {
   return data?.data?.list ?? [];
 }
 
-/**
- * 注册客户端（同时记录一次 usage，无需单独上报端点）
- * identifier 需经 AES 加密且包含 'potatofield'（与老版本兼容）
- */
-export async function registerClient(payload: {
-  identifier: string;
-  version: string;
-  platform: string;
-}): Promise<void> {
-  await instance.post('/image_toolkit/client/register', payload);
-}
+// 注：客户端注册 / 数据上报已移到主进程（main/usage.ts）——
+// 渲染层每个窗口都会挂载 App.vue，在那儿上报会重复计数。
 
 // ── 工具方法 ──────────────────────────────────────────────────
 

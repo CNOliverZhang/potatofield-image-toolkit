@@ -2,6 +2,7 @@ import { app, Tray, Menu, nativeImage, type MenuItemConstructorOptions } from 'e
 import { openWindow, getWindows, resolveAppIcon, requestQuit } from './windows';
 import { registerIpc } from './ipc';
 import { initUpdater, checkForUpdates } from './updater';
+import { reportUsage } from './usage';
 // 工具清单是渲染进程的单一数据源（首页卡片/侧边栏都用它），托盘菜单直接复用，
 // 保证入口名称与批量能力不会和界面不一致
 import { tools } from '../renderer/consts/tools';
@@ -87,6 +88,8 @@ app.whenReady().then(() => {
   initUpdater();
   openWindow({ key: 'main', route: '/' });
   createTray();
+  // 数据上报（老版本 3.x 的 register 机制）：放在主进程，保证每次启动只上报一次
+  void reportUsage();
   setTimeout(checkForUpdates, 3000);
 });
 

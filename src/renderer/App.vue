@@ -11,7 +11,6 @@ import { useTheme } from './composables/useTheme';
 import { useSettingsStore } from './stores/settings';
 import type { TemplateApplyPayload, TemplateStoreData } from '@shared/types';
 import { useMessagesStore } from './stores/messages';
-import { registerClient, getPlatform } from './composables/useOnlineApi';
 import { startUpdaterWatcher } from './composables/useUpdater';
 import ToastHost from './components/ToastHost.vue';
 import AppDialog from './components/AppDialog.vue';
@@ -45,9 +44,8 @@ onMounted(async () => {
   startUpdaterWatcher();
   // 模板库由主进程持有：启动时拉一份，之后靠 template:updated 推送保持同步
   await settings.loadTemplates();
-  const identifier = settings.ensureIdentifier();
-  const version = await window.api.app.version();
-  registerClient({ identifier, version, platform: getPlatform() }).catch(() => {});
+  // 数据上报不在这里做：每个窗口都会挂载 App.vue，会重复上报；
+  // 已改由主进程启动时上报一次（见 main/usage.ts）
   messages.loadMessages().catch(() => {});
 });
 </script>

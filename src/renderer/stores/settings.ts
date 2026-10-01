@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import type { TemplateItem, TemplateStoreData, TemplateToolKey } from '@shared/types';
-import CryptoJS from 'crypto-js';
 
 /** 默认输出格式：original 表示保持原图格式 */
 export type DefaultOutputFormat = 'original' | 'png' | 'jpeg' | 'webp';
@@ -22,7 +21,6 @@ interface SettingsState {
   defaultExportParams: Record<string, Record<string, unknown>>;
   /** 各工具新增「输出设置」时的默认值 */
   defaultOutput: DefaultOutput;
-  identifier: string;
   recentSaveDirs: string[];
   /**
    * 各工具的模板库（目前仅 watermark）。
@@ -34,10 +32,8 @@ interface SettingsState {
   legacyImported: boolean;
 }
 
-function generateIdentifier(): string {
-  const raw = `potatofield${Date.now()}${Math.random()}`;
-  return CryptoJS.AES.encrypt(raw, 'potatofield-image-toolkit').toString();
-}
+// 注：客户端标识（数据上报用）由主进程持有并上报（main/usage.ts，存 userData/client.json），
+// 这里不再保存 identifier —— 渲染层每个窗口一份，会与主进程的身份不一致
 
 export const useSettingsStore = defineStore('settings', {
   state: (): SettingsState => ({
@@ -48,7 +44,6 @@ export const useSettingsStore = defineStore('settings', {
     defaultSaveDirectory: '',
     defaultExportParams: {},
     defaultOutput: { format: 'original', quality: 90 },
-    identifier: '',
     recentSaveDirs: [],
     templates: { watermark: [] },
     legacyImported: false
@@ -119,10 +114,6 @@ export const useSettingsStore = defineStore('settings', {
     },
     async markLegacyImported() {
       this.applyTemplateStore(await window.api.template.setLegacyImported(true));
-    },
-    ensureIdentifier(): string {
-      if (!this.identifier) this.identifier = generateIdentifier();
-      return this.identifier;
     }
   },
   // 模板库与旧版导入标记不落 localStorage：它们由主进程 templates.json 持有，
@@ -135,7 +126,6 @@ export const useSettingsStore = defineStore('settings', {
       'defaultSaveDirectory',
       'defaultExportParams',
       'defaultOutput',
-      'identifier',
       'recentSaveDirs'
     ]
   }
