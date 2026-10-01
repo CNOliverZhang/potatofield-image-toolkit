@@ -8,12 +8,17 @@
           <span class="brand-name">洋芋田图像工具箱</span>
         </div>
 
-        <!-- 侧边导航改用 Fluent v3 的纵向 tablist：
-             hover / 选中（含方向键切换）由组件自身提供，不再自绘，
-             避免之前 hover 底色与 --app-bg 撞色导致浅色下看不出来的问题 -->
+        <!-- 侧边导航用 router-link + 自绘态。
+             曾试过 Fluent v3 的纵向 tablist，但其内部选中状态只增不清：
+             路由驱动的导航下，切换后旧 tab 的 aria-selected 不会被清除，
+             多点几次就累积成一堆高亮项 —— 所以退回链接方案。
+             hover/选中底色用文字色 color-mix 自绘，保证两主题下都可见
+             （最早的 bug 是 hover 用了 Background1Hover，与 --app-bg 同值撞色）。 -->
         <nav class="nav">
           <fluent-tablist
+            ref="navListEl"
             class="nav-list"
+            :class="{ 'is-inactive': !inNav }"
             orientation="vertical"
             :activeid="activeId"
             @change="onNavChange"
@@ -34,23 +39,17 @@
           </fluent-tablist>
         </nav>
 
+        <!-- 设置是单选项，不再用 tablist：
+             v3 tablist 无论如何都会保留一个选中项（组件会自己画选中指示条），
+             单选项放进 tablist 就永远处于选中态。这里改用链接，
+             选中态由路由的 active 类决定，样式与 .nav-tab 完全一致 -->
         <div class="sidebar-footer">
-          <!-- v3 的 tablist 始终保留一个选中项（给无效 id 也不例外），
-               因此在非设置页时用 is-inactive 中和掉强调色，避免出现两个选中态 -->
-          <fluent-tablist
-            class="nav-list"
-            :class="{ 'is-inactive': route.path !== '/settings' }"
-            orientation="vertical"
-            activeid="/settings"
-            @change="onNavChange"
-          >
-            <fluent-tab id="/settings" class="nav-tab" @click="go('/settings')">
-              <span class="nav-tab-inner">
-                <font-awesome-icon :icon="['fas', 'gear']" class="nav-icon" />
-                <span class="nav-label">设置</span>
-              </span>
-            </fluent-tab>
-          </fluent-tablist>
+          <router-link to="/settings" class="nav-tab" exact-active-class="active">
+            <span class="nav-tab-inner">
+              <font-awesome-icon :icon="['fas', 'gear']" class="nav-icon" />
+              <span class="nav-label">设置</span>
+            </span>
+          </router-link>
         </div>
       </aside>
 
@@ -62,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watchEffect } from 'vue';
+import { computed, nextTick, ref, watch, watchEffect } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import WindowControls from './WindowControls.vue';
 import { tools } from '@renderer/consts/tools';
@@ -88,14 +87,41 @@ const nav = [
   }))
 ];
 
-/** 当前路由对应的 tab id（不匹配的分组传空串，避免出现两个选中态） */
-const activeId = computed(() => (nav.some((item) => item.to === route.path) ? route.path : ''));
+/**
+ * activeid 永远给一个有效值：路由不在导航区时沿用上一次命中的路由。
+ * 传空串会触发 v3 tablist 的「自动选第一个」分支（tablist.base:84），
+ * 组件自己接管后与我们的绑定打架 —— 这正是之前累积出多个高亮项的元凶。
+ */
+const lastNavId = ref('/');
+const inNav = computed(() => nav.some((item) => item.to === route.path));
+const activeId = computed(() => (inNav.value ? route.path : lastNavId.value));
+
+watch(
+  () => route.path,
+  (p) => {
+    if (nav.some((item) => item.to === p)) lastNavId.value = p;
+  },
+  { immediate: true }
+);
+
+const navListEl = ref<HTMLElement | null>(null);
+
+/** 归一化选中态：以 property 显式对齐（组件的点击路径会自动设值，兜底防残留） */
+async function normalizeSelection(): Promise<void> {
+  await nextTick();
+  const list = navListEl.value as (HTMLElement & { activeid?: string }) | null;
+  if (!list) return;
+  const id = activeId.value;
+  if (list.activeid !== id) list.activeid = id;
+}
+
+watch(() => route.path, () => { void normalizeSelection(); }, { immediate: true });
 
 function go(to: string): void {
   if (route.path !== to) router.push(to);
 }
 
-/** tablist 的 change（键盘方向键切换也会触发）：按 id 跳转 */
+/** tablist 的 change（方向键切换也会触发）：按 id 跳转 */
 function onNavChange(e: Event): void {
   const id = (e as CustomEvent).detail?.id ?? (e.target as HTMLElement)?.id;
   if (id && nav.some((item) => item.to === id)) go(id);
@@ -162,12 +188,14 @@ function onNavChange(e: Event): void {
   gap: calc(var(--design-unit) * 0.5 * 1px);
   overflow-y: auto;
 }
-/* 纵向 tablist：撑满侧边栏宽度，项之间留出细间隙 */
+/* 导航项：hover 与选中底色都用文字色 color-mix 自绘 ——
+   最早的 bug 是 hover 用 Background1Hover（#f5f5f5）与 --app-bg 同值撞色，
+   color-mix 跟随主题文字色，浅色/深色下都保证可见 */
 .nav-list {
   width: 100%;
 }
-/* hover 与选中态由 fluent-tablist 自身提供（组件内的悬浮底色与选中指示），
-   这里只负责内容排版：图标 + 文字左对齐、整行可点 */
+/* 内容排版自绘（图标 + 文字左对齐、整行可点）；
+   切换动画与悬浮态沿用 tablist 原生能力 */
 .nav-tab {
   width: 100%;
   display: block;
@@ -184,17 +212,17 @@ function onNavChange(e: Event): void {
   align-items: center;
   gap: calc(var(--design-unit) * 3 * 1px);
 }
-/* hover 与选中底色自绘在宿主背景上：v3 tablist 的内部态在纵向模式下不明显，
-   且用文字色 mix 能保证两主题都可见（不会像之前那样与 --app-bg 撞色） */
+/* hover 与选中底色用文字色 color-mix 自绘：
+   最早的 bug 是 hover 用 Background1Hover 与 --app-bg 同值撞色 */
 .nav-tab:hover {
   background: color-mix(in srgb, var(--colorNeutralForeground1) 8%, transparent);
 }
+/* 选中态：轻量背景 + 强调色文字 + 左侧细条指示 */
 .nav-tab[aria-selected='true'] {
   background: color-mix(in srgb, var(--colorNeutralForeground1) 10%, transparent);
   color: var(--accent-base-color);
   font-weight: 500;
 }
-/* 选中态左侧细条指示（沿用原设计的轻量指示，不用整块强调色填充） */
 .nav-tab[aria-selected='true']::before {
   content: '';
   position: absolute;
@@ -205,6 +233,23 @@ function onNavChange(e: Event): void {
   border-radius: calc(var(--design-unit) * 0.75 * 1px);
   background: var(--accent-base-color);
 }
+/* 单选项（设置）：选中态由路由 active 类决定，与 tab 的选中样式保持一致 */
+.nav-tab.active {
+  background: color-mix(in srgb, var(--colorNeutralForeground1) 10%, transparent);
+  color: var(--accent-base-color);
+  font-weight: 500;
+}
+.nav-tab.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: calc(var(--design-unit) * 1.75 * 1px);
+  bottom: calc(var(--design-unit) * 1.75 * 1px);
+  width: 3px;
+  border-radius: calc(var(--design-unit) * 0.75 * 1px);
+  background: var(--accent-base-color);
+}
+/* 分组未命中当前路由时中和选中样式（组件始终会保留一个选中项，无法清空） */
 .nav-list.is-inactive .nav-tab[aria-selected='true'] {
   background: transparent;
   color: var(--colorNeutralForeground1);

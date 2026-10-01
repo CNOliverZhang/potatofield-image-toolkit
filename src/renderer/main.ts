@@ -30,6 +30,33 @@ document.documentElement.setAttribute(
 const hasWindowMaterial = window.api.app.windowMaterial;
 document.documentElement.dataset.material = hasWindowMaterial ? 'on' : 'off';
 
+// 全局关闭 Fluent tablist 的方向键切换（含 Home/End，它们同样会换 tab）：
+// 侧边导航与工具内的 tab 都改为「只点击切换」，避免焦点移动与页面状态不一致带来的困惑。
+// 在捕获阶段拦截并阻断传播，事件就到不了 tablist 自身的 keydown 处理器。
+const TAB_NAV_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+document.addEventListener(
+  'keydown',
+  (e) => {
+    if (!TAB_NAV_KEYS.includes(e.key)) return;
+    // 两种判定都要有：
+    // ① composedPath —— 焦点在 tablist 内部时（closest 跨不过影子边界）
+    // ② activeElement —— 焦点未真正落到 tab 上时事件 target 会是 body，
+    //    而 FAST 的按键处理器挂在 document 层，仅靠路径判定会漏掉这种情况
+    const inTablist = (e.composedPath?.() ?? []).some(
+      (node) => (node as HTMLElement).tagName === 'FLUENT-TABLIST'
+    );
+    const active = document.activeElement as HTMLElement | null;
+    const activeInTablist = !!active?.closest?.('fluent-tablist') || active?.tagName === 'FLUENT-TAB';
+    if (inTablist || activeInTablist) {
+      // stopPropagation 只阻断向下/向上传递，拦不住同一节点上的其它监听器；
+      // FAST 的按键处理器与本监听器同在 document 层，必须用 stopImmediatePropagation
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  },
+  true
+);
+
 const app = createApp(App);
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);

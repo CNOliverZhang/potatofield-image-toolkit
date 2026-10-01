@@ -43,7 +43,6 @@
     <!-- 线上字体 -->
     <template v-if="tab === 'online'">
       <div v-if="onlineFamilies.length" class="list-wrap">
-        <GradientMask to="top" />
         <div ref="listEl" class="list" :class="{ 'has-scrollbar': hasScrollbar }">
           <template v-for="family in onlineFamilies" :key="family.id">
             <!-- 多字体族：SettingExpander 式可展开卡片 -->
@@ -116,7 +115,6 @@
             </section>
           </template>
         </div>
-        <GradientMask to="bottom" />
       </div>
       <div v-else class="empty">
         {{ store.loading ? '加载中…' : '没有匹配的字体族' }}
@@ -129,7 +127,6 @@
         当前环境不支持读取系统字体列表
       </div>
       <div v-else-if="localFamilies.length" class="list-wrap">
-        <GradientMask to="top" />
         <div ref="listEl" class="list" :class="{ 'has-scrollbar': hasScrollbar }">
           <template v-for="fam in localFamilies" :key="fam.name">
             <section
@@ -168,7 +165,6 @@
             </section>
           </template>
         </div>
-        <GradientMask to="bottom" />
       </div>
       <div v-else class="empty">
         {{ store.localLoading ? '读取中…' : '没有匹配的系统字体' }}
@@ -181,7 +177,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useFontsStore } from '@renderer/stores/fonts';
 import { useDialog } from '@renderer/composables/useDialog';
-import GradientMask from '@renderer/components/GradientMask.vue';
 import type { FontItem, FontFamilyItem } from '@renderer/stores/fonts';
 import type { LocalFontFamily } from '@renderer/composables/useLocalFonts';
 
@@ -451,13 +446,11 @@ watch(
 .search {
   width: 220px;
 }
-/* 滚动区容器：遮罩相对它绝对定位 */
+/* 滚动区容器 */
 .list-wrap {
   flex: 1;
   min-height: 0;
   position: relative;
-  /* 遮罩避让 10px 的悬浮滚动条 */
-  --mask-r: 10px;
   /* 抵消内容区右内边距，使滚动条贴靠窗口右缘（卡片仍与工具栏按钮对齐） */
   margin-right: calc(-1 * var(--content-pad-x));
 }
@@ -468,8 +461,6 @@ watch(
   display: flex;
   flex-direction: column;
   gap: calc(var(--design-unit) * 1px); /* WinUI 设置卡间距 4px */
-  /* 上下留出遮罩高度的内边距，使首/末项滚到顶/底时不被遮罩挡住 */
-  padding: calc(var(--design-unit) * 7 * 1px) 0;
   /* 右侧内边距使卡片右缘与工具栏按钮对齐（滚动条贴窗口右缘） */
   padding-right: var(--content-pad-x);
 }

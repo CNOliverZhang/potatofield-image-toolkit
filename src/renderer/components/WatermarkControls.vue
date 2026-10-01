@@ -1,5 +1,6 @@
 <template>
   <div class="wm-controls">
+    <!-- 文字/图片水印切换：自绘分段控件（曾改用 tablist，但原生外观观感偏弱，改回自绘） -->
     <div class="seg">
       <button :class="['seg-btn', { active: params.type === 'text' }]" @click="params.type = 'text'">
         文字水印

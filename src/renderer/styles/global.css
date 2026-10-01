@@ -463,7 +463,6 @@ fluent-button[appearance='primary']:disabled {
   z-index: 2;
   padding-bottom: calc(var(--design-unit) * 1px * 2.5);
   margin-bottom: calc(var(--design-unit) * 1px * 2);
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--app-bg) 90%, transparent) 75%, transparent);
 }
 .batch-entry fluent-button {
   width: 100%;
@@ -477,19 +476,12 @@ fluent-button[appearance='primary']:disabled {
   isolation: isolate;
   /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高，否则滚动时控件会盖在按钮上 */
   z-index: 10;
+  /* 纯色底：替代原先的渐变遮罩，滚动内容从下方穿过 */
+  background: var(--app-bg);
   padding: 0;
 }
-.controls-footer::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--design-unit) * 1px * 8);
-  top: calc(var(--design-unit) * 1px * -7);
-  background: linear-gradient(to top, color-mix(in srgb, var(--app-bg) 90%, transparent), transparent);
-  pointer-events: none;
-  z-index: -1;
-}
+/* 吸底 footer 上方的渐隐遮罩已移除：渐变基于不透明背景色推导，
+   毛玻璃/亚克力下无法匹配；改为 footer 自身用纯色，内容仍从其下方穿过 */
 .save-btn {
   width: 100%;
 }

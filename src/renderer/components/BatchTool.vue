@@ -277,11 +277,11 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: calc(var(--design-unit) * 1px);
-  background-color: var(--colorNeutralBackground1);
-  background-image: linear-gradient(45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--colorNeutralBackground3) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--colorNeutralBackground3) 75%);
+  background-color: var(--checker-base);
+  background-image: linear-gradient(45deg, var(--checker-cell) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--checker-cell) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--checker-cell) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--checker-cell) 75%);
   background-size: calc(var(--design-unit) * 1px * 5) calc(var(--design-unit) * 1px * 5);
   background-position: 0 0, 0 calc(var(--design-unit) * 1px * 2.5),
     calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * -2.5),
