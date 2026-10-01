@@ -12,8 +12,8 @@
 
 <script setup lang="ts">
 withDefaults(defineProps<{ title?: string; count?: number | string }>(), {
-  title: '',
-  count: undefined
+  title: "",
+  count: undefined,
 });
 </script>
 
@@ -24,6 +24,9 @@ withDefaults(defineProps<{ title?: string; count?: number | string }>(), {
    - 行之间用 border-top 分隔（见 SettingsRow） */
 .settings-group {
   margin-bottom: calc(var(--design-unit) * 1px * 5.5);
+}
+.settings-group:last-child {
+  margin-bottom: 0;
 }
 .sg-title {
   display: flex;
@@ -41,7 +44,8 @@ withDefaults(defineProps<{ title?: string; count?: number | string }>(), {
   color: var(--app-fg-secondary);
   background: var(--colorNeutralBackground1Hover);
   border-radius: var(--borderRadiusMedium);
-  padding: calc(var(--design-unit) * 1px * 0.5) calc(var(--design-unit) * 1px * 2);
+  padding: calc(var(--design-unit) * 1px * 0.5)
+    calc(var(--design-unit) * 1px * 2);
 }
 /* 组内是「卡片列表」：每个设置项/控件组各自是一张卡，卡间距 4px（与字体管理字体族卡一致） */
 .sg-card {

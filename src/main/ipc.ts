@@ -6,7 +6,8 @@ import {
   setZoomFactor,
   hasWindowMaterial,
   hasAcrylicLib,
-  refreshAcrylicVibrancy
+  refreshAcrylicVibrancy,
+  runWithProgrammaticResize
 } from './windows';
 import {
   saveTemplateAsset,
@@ -101,7 +102,10 @@ export function registerIpc(): void {
   ipcMain.on('window:maximize', (e) => {
     const w = senderWindow(e);
     if (!w) return;
-    w.isMaximized() ? w.unmaximize() : w.maximize();
+    // 最大化/还原是「程序化改尺寸」：放行 will-resize 拦截器（防拖拽调整大小的兜底）
+    runWithProgrammaticResize(w, () => {
+      w.isMaximized() ? w.unmaximize() : w.maximize();
+    });
   });
   ipcMain.on('window:close', (e) => senderWindow(e)?.close());
   ipcMain.handle('window:isMaximized', (e) => senderWindow(e)?.isMaximized() ?? false);
@@ -113,11 +117,12 @@ export function registerIpc(): void {
   // 跨窗口主题同步：将主题变更广播给除发送者外的所有窗口
   ipcMain.on(
     'theme:set',
-    (e, payload: { darkMode: boolean; themeColor: string }) => {
+    (e, payload: { mode: 'system' | 'light' | 'dark'; darkMode: boolean; themeColor: string }) => {
       const sender = BrowserWindow.fromWebContents(e.sender);
       // macOS 玻璃材质的外观跟随窗口的 NSAppearance：
-      // 应用切深色时必须同步系统外观，否则玻璃仍是亮色、与页面内容冲突
-      nativeTheme.themeSource = payload.darkMode ? 'dark' : 'light';
+      // 应用切深色时必须同步系统外观，否则玻璃仍是亮色、与页面内容冲突。
+      // mode = system 时交给 nativeTheme 跟随 OS（渲染层经 prefers-color-scheme 实时感知变化）
+      nativeTheme.themeSource = payload.mode === 'system' ? 'system' : payload.darkMode ? 'dark' : 'light';
       // 旧系统（Win10）的第三方毛玻璃色调需要同步刷新
       refreshAcrylicVibrancy();
       for (const win of BrowserWindow.getAllWindows()) {

@@ -5,6 +5,9 @@ import CryptoJS from 'crypto-js';
 /** 默认输出格式：original 表示保持原图格式 */
 export type DefaultOutputFormat = 'original' | 'png' | 'jpeg' | 'webp';
 
+/** 颜色模式：system = 跟随系统（系统切换时实时响应），light / dark = 手动固定 */
+export type ThemeMode = 'system' | 'light' | 'dark';
+
 interface DefaultOutput {
   format: DefaultOutputFormat;
   quality: number;
@@ -12,6 +15,8 @@ interface DefaultOutput {
 
 interface SettingsState {
   themeColor: string;
+  /** 颜色模式偏好；darkMode 是由此推导出的「当前生效值」 */
+  themeMode: ThemeMode;
   darkMode: boolean;
   defaultSaveDirectory: string;
   defaultExportParams: Record<string, Record<string, unknown>>;
@@ -37,6 +42,8 @@ function generateIdentifier(): string {
 export const useSettingsStore = defineStore('settings', {
   state: (): SettingsState => ({
     themeColor: '#3a8ee6',
+    // 默认手动浅色：与历史版本行为一致（老用户持久化里没有 themeMode，不会突然跟随系统）
+    themeMode: 'light',
     darkMode: false,
     defaultSaveDirectory: '',
     defaultExportParams: {},
@@ -53,8 +60,8 @@ export const useSettingsStore = defineStore('settings', {
     setThemeColor(color: string) {
       this.themeColor = color;
     },
-    toggleDark(value?: boolean) {
-      this.darkMode = value ?? !this.darkMode;
+    setThemeMode(mode: ThemeMode) {
+      this.themeMode = mode;
     },
     setDefaultSaveDirectory(dir: string) {
       this.defaultSaveDirectory = dir;
@@ -115,6 +122,7 @@ export const useSettingsStore = defineStore('settings', {
   persist: {
     paths: [
       'themeColor',
+      'themeMode',
       'darkMode',
       'defaultSaveDirectory',
       'defaultExportParams',

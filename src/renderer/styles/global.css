@@ -20,6 +20,8 @@
   /* 内容区上边距：Windows 需让出右上角自绘的控制栏（32px + 余量）；
      非 Windows 没有自绘按钮，与下边距保持一致即可 */
   --content-pad-top: 40px;
+  /* 内容区下边距 = 上边距（用户要求四周边距一致；仅顶部因标题栏在 Windows 上更高是例外） */
+  --content-pad-b: 40px;
 
   /* 应用主背景与卡片背景（Windows 设置 / PowerToys 非活跃态配色）：
      浅色：背景浅灰（v2 的 layer-2 ≈ #f3f3f3），卡片白（v2 的 fill-layer-rest ≈ #fbfbfb）
@@ -55,13 +57,15 @@
   --checker-base: #fbfbfb;
   --checker-cell: #ebebeb;
 
-  /* 经典滚动条宽度（::-webkit-scrollbar width），用于布局补偿 */
-  --scrollbar-w: 10px;
+  /* 滚动条宽度：滚动条已改为不占布局空间（见下方 ::-webkit-scrollbar），
+     保留变量仅为兼容旧写法，实际取值 0 —— 不要再按它做内边距补偿 */
+  --scrollbar-w: 0px;
 
   /* Win11 原生材质下「页面叠色」的实色占比（100% = 完全遮住材质）：
      Win11 的 DWM 材质没有透明度参数，只能靠这层半透明底色调节通透度。
-     仅作用于 Win11；Win10 走第三方库，alpha 在 OS 层调（windows.ts 的 ACRYLIC_TINT） */
-  --material-tint-alpha: 78%;
+     取 60%（0x99），与 Win10 第三方库的色调 alpha（windows.ts 的 ACRYLIC_TINT）一致。
+     仅作用于 Win11；Win10 走第三方库，alpha 在 OS 层调 */
+  --material-tint-alpha: 60%;
 }
 /* 有系统窗口材质（macOS 玻璃 / Windows 亚克力 / Mica）：
    材质由系统画在整窗之后，页面不叠底色时它才是唯一的窗口背景。
@@ -143,7 +147,10 @@ html[data-platform='mac'] {
   --shell-radius: 0px;
   --shell-shadow: none;
   --titlebar-inset: 28px;
-  --content-pad-top: 28px;
+  /* mac 红绿灯在窗口左上角：顶部给到 32px（与左右边距一致），避免按钮贴着内容；
+     下边距同步取 32 保持四周一致（Windows 上是 40，因其顶部更高） */
+  --content-pad-top: 32px;
+  --content-pad-b: 32px;
 }
 
 /* 最大化时取消内边距，卡片铺满整个窗口，并隐藏阴影 / 圆角 */
@@ -164,23 +171,19 @@ textarea,
   user-select: text;
 }
 
-/* ── 滚动条（Win11 细窄风格） ── */
+/* ── 滚动条：不占布局空间（Win11 的悬浮滚动条语义）──
+   经典滚动条会吃掉滚动容器右侧的宽度，导致滚动区内容比上下的固定元素（按钮/标题）窄一条，
+   右端对不齐；这里把宽度归零，滚动功能保留（滚轮 / 触摸板 / 拖动均可），
+   所有页面的右缘因此始终与固定元素右端齐平（--scrollbar-w 同步为 0，供历史补偿写法参考） */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 0;
+  height: 0;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.4);
-  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 128, 128, 0.65);
-  background-clip: padding-box;
+  background: transparent;
 }
 
 /* ── 通用排版（标题/段落） ── */
@@ -230,7 +233,7 @@ fluent-slider::part(track-container)::after {
   gap: calc(var(--design-unit) * 1px * 6);
   height: 100%;
   min-height: 0;
-  margin-bottom: calc(var(--design-unit) * 1px * -4);
+  /* 不加负的 bottom margin：否则工具区会比内容区低一截，底部边距与其它页面不一致 */
 }
 .preview-pane {
   flex: 1;
@@ -290,6 +293,9 @@ fluent-slider::part(track-container)::after {
 .preview-stage {
   flex: 1;
   min-height: 0;
+  /* 裁剪工具把 cropper 画布（.cropper-box，position:absolute; inset:0）挂在这里：
+     必须自身是定位上下文，否则画布会相对 .app-shell 定位铺满整个窗口 */
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -334,15 +340,15 @@ fluent-slider::part(track-container)::after {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin-right: -32px;
+  /* 抵消内容区右内边距：控件列右缘贴到窗口右缘，再由各子项的 padding-right 留回统一边距 */
+  margin-right: calc(-1 * var(--content-pad-x));
 }
 .controls-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  /* 始终预留滚动条位置：否则内容高度不同会导致底部按钮左右跳动 */
-  scrollbar-gutter: stable;
-  padding: 0 calc(var(--design-unit) * 1px * 6) 0 0;
+  /* 右侧内边距 = 内容区边距：滚动区右缘与上方入口按钮、下方保存按钮完全一致 */
+  padding: 0 var(--content-pad-x) 0 0;
   display: block;
   gap: 0;
 }
@@ -487,9 +493,10 @@ fluent-button[appearance='primary']:disabled {
   color: var(--app-fg-secondary);
 }
 .batch-entry {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+  /* 固定在控件列顶部（不再是滚动区内的吸顶元素）：内容在下方独立滚动，不会从按钮底下穿过。
+     右侧内边距与滚动区一致（此前靠 controls-body 的 padding 获得） */
+  flex-shrink: 0;
+  padding-right: var(--content-pad-x);
   padding-bottom: calc(var(--design-unit) * 1px * 2.5);
   margin-bottom: calc(var(--design-unit) * 1px * 2);
 }
@@ -513,12 +520,12 @@ fluent-button[appearance='primary']:disabled {
   width: 100%;
 }
 .controls-footer {
-  position: sticky;
-  bottom: 0;
-  isolation: isolate;
-  /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高，否则滚动时控件会盖在按钮上 */
-  z-index: 10;
-  padding: 0;
+  /* 固定在控件列底部（不再是滚动区内的吸底元素）：内容在上方独立滚动，不会从按钮底下穿过，
+     也因此不再需要 z-index / 底色 / 渐隐遮罩。顶部留出与滚动区的间距 */
+  flex-shrink: 0;
+  padding-top: calc(var(--design-unit) * 1px * 4.5);
+  /* 右侧内边距与滚动区一致：按钮右端与上方入口按钮、滚动内容右缘完全对齐 */
+  padding-right: var(--content-pad-x);
 }
 /* 吸底 footer 不要画底色：窗口有系统材质（毛玻璃/亚克力）时，
    任何实色底都会在玻璃上盖出一块「莫名背景」，按钮自身已有底色，直接透出即可 */
@@ -533,9 +540,9 @@ fluent-button[appearance='primary']:disabled {
   gap: calc(var(--design-unit) * 1px * 4);
   height: 100%;
   min-height: 0;
-  margin-bottom: calc(var(--design-unit) * 1px * -4);
-  overflow: auto;
-  padding-right: calc(var(--design-unit) * 1px * 2);
+  /* 底部不再抵扣、右侧不再额外留白：与所有页面统一为内容区边距。
+     滚动交给内部各面板（导入列表 / 控件列），整页不滚 */
+  overflow: hidden;
 }
 .batch-tool-head {
   display: flex;

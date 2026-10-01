@@ -3,7 +3,7 @@
     <SettingsRow label="单位">
       <app-select class="ctl-md" :value="unit" @change="onUnit">
         <fluent-option value="px">像素</fluent-option>
-        <fluent-option value="ratio">比例</fluent-option>
+        <fluent-option value="ratio">百分比</fluent-option>
       </app-select>
     </SettingsRow>
     <SettingsRow label="比例预设">
@@ -16,22 +16,23 @@
         <fluent-option value="2:3">2:3</fluent-option>
       </app-select>
     </SettingsRow>
-    <!-- 定位基准：决定裁剪框可移动的方向，两种单位下都生效 -->
-    <SettingsRow label="定位基准">
-      <div class="pos-grid">
-        <button
-          v-for="p in CROP_POSITIONS"
-          :key="p.g"
-          :class="['pos-cell', { active: position === p.g }]"
-          :title="p.label"
-          @click="onGravity(p.g)"
-        ></button>
-      </div>
-    </SettingsRow>
 
-    <!-- 像素模式：直接输入像素值 -->
-    <template v-if="unit === 'px'">
-      <SettingsRow label="X（左）">
+    <!-- 裁剪位置主项：定位基准与数值字段都是它的子项（子项随单位切换） -->
+    <SettingsCollapse label="裁剪位置" desc="定位基准与区域数值">
+      <!-- 像素模式：直接输入像素值 -->
+      <template v-if="unit === 'px'">
+        <SettingsRow label="定位基准">
+          <div class="pos-grid">
+            <button
+              v-for="p in CROP_POSITIONS"
+              :key="p.g"
+              :class="['pos-cell', { active: position === p.g }]"
+              :title="p.label"
+              @click="onGravity(p.g)"
+            ></button>
+          </div>
+        </SettingsRow>
+        <SettingsRow label="X（左）">
         <num-input
           class="ctl-num"
           :value="fieldValue('left')"
@@ -73,8 +74,19 @@
       </SettingsRow>
     </template>
 
-    <!-- 比例模式：边距与尺寸百分比 -->
+    <!-- 百分比模式：边距与尺寸百分比 -->
     <template v-else>
+      <SettingsRow label="定位基准">
+        <div class="pos-grid">
+          <button
+            v-for="p in CROP_POSITIONS"
+            :key="p.g"
+            :class="['pos-cell', { active: position === p.g }]"
+            :title="p.label"
+            @click="onGravity(p.g)"
+          ></button>
+        </div>
+      </SettingsRow>
       <SettingsRow v-if="showHMargin" label="横向边距">
         <fluent-slider
           class="ctl-slider"
@@ -120,6 +132,7 @@
         <span class="row-val">{{ heightPct }}%</span>
       </SettingsRow>
     </template>
+    </SettingsCollapse>
 
     <SettingsRow label="快捷操作">
       <fluent-button appearance="neutral" @click="useFull">使用整图</fluent-button>
@@ -145,6 +158,7 @@ import {
 import { evNum, evVal } from '@renderer/composables/useSingleTool';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
+import SettingsCollapse from '@renderer/components/settings/SettingsCollapse.vue';
 import NumInput from '@renderer/components/NumInput.vue';
 import AppSelect from '@renderer/components/AppSelect.vue';
 

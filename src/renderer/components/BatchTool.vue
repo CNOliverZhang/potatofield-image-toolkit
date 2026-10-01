@@ -21,10 +21,10 @@
       <div class="controls-body">
         <SettingsGroup :title="`${config[tool].title}设置`">
           <template v-if="tool === 'resizer'">
-            <SettingsRow label="宽度">
-              <num-input class="ctl-num" :value="opts.width" min="1" @input="opts.width = evNum($event)"><span slot="end">px</span></num-input>
+            <SettingsRow label="宽度" desc="填 0 等比缩放">
+              <num-input class="ctl-num" :value="opts.width" min="0" @input="opts.width = evNum($event)"><span slot="end">px</span></num-input>
             </SettingsRow>
-            <SettingsRow label="高度" desc="0 = 按宽度等比缩放">
+            <SettingsRow label="高度" desc="填 0 等比缩放">
               <num-input class="ctl-num" :value="opts.height" min="0" @input="opts.height = evNum($event)"><span slot="end">px</span></num-input>
             </SettingsRow>
             <SettingsRow label="适配方式">
@@ -39,66 +39,75 @@
           </template>
 
           <template v-else-if="tool === 'compress'">
-            <SettingsRow label="格式">
+            <!-- 格式为主项，质量为子项；保存位置也是主项（子项：常用位置/保持相对目录） -->
+            <SettingsCollapse label="格式">
+              <template #control>
+                <app-select class="ctl-md" :value="out.format" @change="onFormat">
+                  <fluent-option value="original">保持原格式</fluent-option>
+                  <fluent-option value="png">PNG（无损）</fluent-option>
+                  <fluent-option value="jpeg">JPG（有损）</fluent-option>
+                  <fluent-option value="webp">WebP（有损）</fluent-option>
+                </app-select>
+              </template>
+              <SettingsRow v-if="lossy" label="质量">
+                <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+                <span class="row-val">{{ out.quality }}</span>
+              </SettingsRow>
+            </SettingsCollapse>
+            <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
+          </template>
+
+          <template v-else-if="tool === 'convert'">
+            <SettingsCollapse label="目标格式">
+              <template #control>
+                <app-select class="ctl-md" :value="out.format" @change="onFormat">
+                  <fluent-option value="png">PNG（无损）</fluent-option>
+                  <fluent-option value="jpeg">JPG（有损）</fluent-option>
+                  <fluent-option value="webp">WebP（有损）</fluent-option>
+                </app-select>
+              </template>
+              <SettingsRow v-if="lossy" label="质量">
+                <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+                <span class="row-val">{{ out.quality }}</span>
+              </SettingsRow>
+            </SettingsCollapse>
+            <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
+          </template>
+        </SettingsGroup>
+
+        <!-- 输出设置：与单图工具一致（压缩/转换的格式与质量本身就是输出设置，不再重复显示）；
+             保存位置（主项 + 子项）并入输出设置组 -->
+        <SettingsGroup v-if="tool === 'resizer'" title="输出设置">
+          <SettingsCollapse label="格式">
+            <template #control>
               <app-select class="ctl-md" :value="out.format" @change="onFormat">
                 <fluent-option value="original">保持原格式</fluent-option>
                 <fluent-option value="png">PNG（无损）</fluent-option>
                 <fluent-option value="jpeg">JPG（有损）</fluent-option>
                 <fluent-option value="webp">WebP（有损）</fluent-option>
               </app-select>
-            </SettingsRow>
+            </template>
             <SettingsRow v-if="lossy" label="质量">
               <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
               <span class="row-val">{{ out.quality }}</span>
             </SettingsRow>
-          </template>
-
-          <template v-else-if="tool === 'convert'">
-            <SettingsRow label="目标格式">
-              <app-select class="ctl-md" :value="out.format" @change="onFormat">
-                <fluent-option value="png">PNG（无损）</fluent-option>
-                <fluent-option value="jpeg">JPG（有损）</fluent-option>
-                <fluent-option value="webp">WebP（有损）</fluent-option>
-              </app-select>
-            </SettingsRow>
-            <SettingsRow v-if="lossy" label="质量">
-              <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
-              <span class="row-val">{{ out.quality }}</span>
-            </SettingsRow>
-          </template>
+          </SettingsCollapse>
+          <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
         </SettingsGroup>
 
-        <!-- 输出设置：与单图工具一致（压缩/转换的格式与质量本身就是输出设置，不再重复显示） -->
-        <SettingsGroup v-if="tool === 'resizer'" title="输出设置">
-          <SettingsRow label="格式">
-            <app-select class="ctl-md" :value="out.format" @change="onFormat">
-              <fluent-option value="original">保持原格式</fluent-option>
-              <fluent-option value="png">PNG（无损）</fluent-option>
-              <fluent-option value="jpeg">JPG（有损）</fluent-option>
-              <fluent-option value="webp">WebP（有损）</fluent-option>
-            </app-select>
-          </SettingsRow>
-          <SettingsRow v-if="lossy" label="质量">
-            <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
-            <span class="row-val">{{ out.quality }}</span>
-          </SettingsRow>
-        </SettingsGroup>
-
-        <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
-
-        <div class="controls-footer">
-          <fluent-button
-            v-if="processing"
-            appearance="neutral"
-            class="save-btn"
-            @click="cancel"
-          >
-            取消（已完成 {{ progress.done }}/{{ progress.total }}）
-          </fluent-button>
-          <fluent-button v-else appearance="primary" class="save-btn" :disabled="!files.length" @click="run">
-            开始批量处理 ({{ files.length }})
-          </fluent-button>
-        </div>
+      </div>
+      <div class="controls-footer">
+        <fluent-button
+          v-if="processing"
+          appearance="neutral"
+          class="save-btn"
+          @click="cancel"
+        >
+          取消（已完成 {{ progress.done }}/{{ progress.total }}）
+        </fluent-button>
+        <fluent-button v-else appearance="primary" class="save-btn" :disabled="!files.length || invalidSize" @click="start">
+          开始批量处理 ({{ files.length }})
+        </fluent-button>
       </div>
     </aside>
   </div>
@@ -122,6 +131,7 @@ import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
 import SaveLocationSetting from '@renderer/components/SaveLocationSetting.vue';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
+import SettingsCollapse from '@renderer/components/settings/SettingsCollapse.vue';
 import NumInput from '@renderer/components/NumInput.vue';
 import AppSelect from '@renderer/components/AppSelect.vue';
 
@@ -227,6 +237,17 @@ const { processing, progress, run, cancel } = useBatchRunner({
   prepare: () => ({ options: buildOptions() })
 });
 
+/** 尺寸调整：宽高都为 0 时无法缩放（0 = 等比，但两个都等比就什么都没定） */
+const invalidSize = computed(() => props.tool === 'resizer' && opts.width <= 0 && opts.height <= 0);
+
+function start() {
+  if (invalidSize.value) {
+    message('宽度和高度不能都为 0，请至少填写一项', 'warning');
+    return;
+  }
+  void run();
+}
+
 onBeforeUnmount(() => {
   clearPreview();
   if (previewTimer) window.clearTimeout(previewTimer);
@@ -240,7 +261,7 @@ onBeforeUnmount(() => {
   gap: calc(var(--design-unit) * 1px * 5);
   height: 100%;
   min-height: 0;
-  margin-bottom: calc(var(--design-unit) * 1px * -4);
+  /* 底部不再抵扣：与其它页面统一为内容区下边距 */
   overflow: hidden;
 }
 .import-col {
@@ -316,13 +337,12 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin-right: -32px;
+  margin-right: calc(-1 * var(--content-pad-x));
 }
 .controls-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 calc(var(--design-unit) * 1px * 6) 0 0;
 }
 .group {
   margin-bottom: calc(var(--design-unit) * 1px * 5.5);
@@ -356,13 +376,7 @@ onBeforeUnmount(() => {
   color: var(--app-fg-secondary);
   font-weight: 500;
 }
-.controls-footer {
-  position: sticky;
-  bottom: 0;
-  isolation: isolate;
-  /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高，否则滚动时控件会盖在按钮上 */
-  z-index: 10;
-}
+/* footer 已移出滚动区（.controls-pane 的固定子项），样式统一走 global.css */
 .save-btn {
   width: 100%;
 }

@@ -20,8 +20,12 @@
           <input class="color-input" type="color" :value="settings.themeColor" @input="onColor" />
           <span class="row-val">{{ settings.themeColor }}</span>
         </SettingsRow>
-        <SettingsRow label="深色模式">
-          <fluent-switch :checked="settings.darkMode" @change="onDark"></fluent-switch>
+        <SettingsRow label="颜色模式" desc="跟随系统时，系统在深浅色之间切换会实时生效">
+          <app-select class="ctl-md" :value="settings.themeMode" @change="onThemeMode">
+            <fluent-option value="system">跟随系统</fluent-option>
+            <fluent-option value="light">浅色</fluent-option>
+            <fluent-option value="dark">深色</fluent-option>
+          </app-select>
         </SettingsRow>
       </SettingsGroup>
 
@@ -95,17 +99,20 @@
         <button class="link-btn" @click="open(SITE_URL)">访问网站</button>
       </div>
 
-      <SettingsGroup title="开发者信息">
-        <SettingsRow :label="`Copyright © 2019–${currentYear} 张志毅`">
-          <button class="link-btn" @click="copyEmail">联系开发者</button>
-        </SettingsRow>
-      </SettingsGroup>
+      <!-- 开发者信息：不套卡片，一行轻量展示 -->
+      <div class="developer-line">
+        <span class="copyright">Copyright © 2019–{{ currentYear }} 张志毅</span>
+        <button class="link-btn" @click="copyEmail">联系开发者</button>
+        <button class="link-btn" @click="open(COMMUNITY_URL)">加入社区</button>
+      </div>
 
       <SettingsGroup title="开源协议">
         <div class="about-text">
           本程序遵循
-          <button class="inline-link" @click="open(REPO_URL)">MIT</button>
-          开源许可协议发行，相关资源及源码已托管在 GitHub，您可以点此访问。
+          <button class="inline-link" @click="open(MIT_URL)">MIT</button>
+          开源许可协议发行，相关资源及源码已托管在 GitHub，欢迎
+          <button class="inline-link" @click="open(HOME_URL)">点此访问</button>
+          洋芋田官网。
         </div>
       </SettingsGroup>
 
@@ -131,13 +138,16 @@ import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useSettingsStore } from '@renderer/stores/settings';
 import { selectDirectory } from '@renderer/utils/filePicker';
 import { useDialog } from '@renderer/composables/useDialog';
+import { useUpdaterState, manualCheckForUpdates } from '@renderer/composables/useUpdater';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 import type { DefaultOutputFormat } from '@renderer/stores/settings';
 import AppSelect from '@renderer/components/AppSelect.vue';
 
 const SITE_URL = 'https://potatofield.cn/imagetoolkit';
-const REPO_URL = 'https://github.com/CNOliverZhang/potatofield-image-toolkit';
+const HOME_URL = 'https://potatofield.cn';
+const MIT_URL = 'https://opensource.org/licenses/MIT';
+const COMMUNITY_URL = 'https://pd.qq.com/s/ab8f83yxa?b=9';
 const DEVELOPER_EMAIL = 'cnoliverzhang@gmail.com';
 
 /** 本程序依赖的开源项目（取自当前 package.json 的实际依赖） */
@@ -155,12 +165,10 @@ const resources = [
   { title: 'TypeScript', url: 'https://github.com/microsoft/TypeScript' },
   { title: 'vue-tsc', url: 'https://github.com/vuejs/language-tools' },
   { title: 'Fluent UI Web Components', url: 'https://github.com/microsoft/fluentui' },
-  { title: 'Element Plus', url: 'https://github.com/element-plus/element-plus' },
   { title: 'Font Awesome', url: 'https://github.com/FortAwesome/Font-Awesome' },
   { title: 'vue-fontawesome', url: 'https://github.com/FortAwesome/vue-fontawesome' },
   { title: 'sharp', url: 'https://github.com/lovell/sharp' },
   { title: 'cropperjs', url: 'https://github.com/fengyuanchen/cropperjs' },
-  { title: 'html2canvas', url: 'https://github.com/niklasvh/html2canvas' },
   { title: 'colorthief', url: 'https://github.com/lokesh/color-thief' },
   { title: 'exifr', url: 'https://github.com/MikeKovarik/exifr' },
   { title: 'crypto-js', url: 'https://github.com/brix/crypto-js' },
@@ -226,14 +234,11 @@ async function onZoom(e: Event): Promise<void> {
   await window.api.app.setZoomFactor(next);
 }
 
-/* ───────────────── 检查更新 ───────────────── */
-type UpdatePhase = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error';
-
-const phase = ref<UpdatePhase>('idle');
-const progress = ref(0);
-let availableInfo: { version?: string; releaseNotes?: unknown } | null = null;
+/* ───────────────── 检查更新 ─────────────────
+   状态与「下载/安装」弹窗流程在 composables/useUpdater.ts（全局单例，
+   启动时由 App.vue 接管自动检查的提示），这里只复用状态和提供手动检查 */
+const { phase, progress, promptDownload, promptInstall } = useUpdaterState();
 let packaged = false;
-let unsubscribe: (() => void) | null = null;
 
 const updateLabel = computed(() => {
   switch (phase.value) {
@@ -252,42 +257,7 @@ const updateLabel = computed(() => {
   }
 });
 
-/** electron-updater 的 releaseNotes 可能是字符串，也可能是 { note } 数组 */
-function releaseNotesText(info: { version?: string; releaseNotes?: unknown } | null): string {
-  const notes = info?.releaseNotes;
-  if (!notes) return '';
-  if (Array.isArray(notes)) {
-    return notes
-      .map((item) => (item as { note?: string } | undefined)?.note ?? '')
-      .filter(Boolean)
-      .join('\n');
-  }
-  return String(notes);
-}
-
-async function promptDownload(): Promise<void> {
-  const info = availableInfo;
-  const notes = releaseNotesText(info);
-  const ok = await confirm(
-    `发现新版本 ${info?.version ?? ''}${notes ? `\n\n${notes}` : ''}`,
-    '发现新版本'
-  );
-  if (!ok) {
-    phase.value = 'idle';
-    return;
-  }
-  await window.api.updater.download();
-}
-
-async function promptInstall(): Promise<void> {
-  const ok = await confirm('新版本已下载完成，是否退出并安装更新？', '更新就绪');
-  if (!ok) {
-    phase.value = 'idle';
-    return;
-  }
-  await window.api.updater.quitAndInstall();
-}
-
+/** electron-updater 的 releaseNotes 提示等流程都在 useUpdater.ts，这里只做手动检查 */
 function onUpdateClick(): void {
   if (phase.value === 'downloaded') {
     void promptInstall();
@@ -301,15 +271,13 @@ function onUpdateClick(): void {
 }
 
 async function checkUpdate(): Promise<void> {
-  if (phase.value === 'checking' || phase.value === 'downloading') return;
   // 未打包时 electron-updater 不会真正发起请求（启动日志里会打印 Skip checkForUpdates …），
   // 这里直接给出提示，避免按钮一直停在「检查中…」
   if (!packaged) {
     message('开发模式下不支持检查更新，需打包后运行', 'info');
     return;
   }
-  phase.value = 'checking';
-  await window.api.updater.check();
+  await manualCheckForUpdates();
 }
 
 /* ───────────────── 版权信息页动作 ───────────────── */
@@ -334,8 +302,8 @@ async function copyEmail(): Promise<void> {
 function onColor(e: Event): void {
   settings.setThemeColor((e.target as HTMLInputElement).value);
 }
-function onDark(e: Event): void {
-  settings.toggleDark(Boolean((e.target as HTMLInputElement).checked));
+function onThemeMode(e: Event): void {
+  settings.setThemeMode((e.target as HTMLInputElement).value as 'system' | 'light' | 'dark');
 }
 function onFormat(e: Event): void {
   settings.setDefaultOutput({ format: (e.target as HTMLInputElement).value as DefaultOutputFormat });
@@ -356,55 +324,29 @@ onMounted(async () => {
   zoomFactor.value = await window.api.app.getZoomFactor();
   nextTick(updateIndicator);
   window.addEventListener('resize', updateIndicator);
-  unsubscribe = window.api.updater.onStatus((status) => {
-    const data = status.data as Record<string, unknown> | undefined;
-    switch (status.event) {
-      case 'checking':
-        phase.value = 'checking';
-        break;
-      case 'not-available':
-        phase.value = 'idle';
-        message('当前已是最新版本', 'success');
-        break;
-      case 'available':
-        availableInfo = (data ?? null) as { version?: string; releaseNotes?: unknown } | null;
-        phase.value = 'available';
-        void promptDownload();
-        break;
-      case 'progress':
-        phase.value = 'downloading';
-        progress.value = Math.round(Number(data?.percent ?? 0));
-        break;
-      case 'downloaded':
-        phase.value = 'downloaded';
-        void promptInstall();
-        break;
-      case 'error':
-        phase.value = 'error';
-        message(`更新出错：${data ?? '未知错误'}`, 'error');
-        break;
-      default:
-        break;
-    }
-  });
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateIndicator);
-  unsubscribe?.();
 });
 </script>
 
 <style scoped>
 .settings {
   max-width: 640px;
+  /* 页面本身不滚：tablist 固定在顶部，滚动发生在下面的 tab-panel */
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── 标签页（与字体工具保持一致）── */
 .tabs-wrap {
   position: relative;
   flex-shrink: 0;
-  margin-bottom: calc(var(--design-unit) * 1 * 1px);
+  /* 与下方分组标题的间距一致（SettingsGroup 的 margin-bottom），避免「外观」贴住 tablist */
+  margin-bottom: calc(var(--design-unit) * 5.5 * 1px);
 }
 .settings-tabs {
   width: auto;
@@ -432,7 +374,17 @@ onBeforeUnmount(() => {
 }
 
 .tab-panel {
-  padding-top: calc(var(--design-unit) * 1 * 1px);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* 滚动区延伸到窗口下缘（抵消 .content 的底部内边距），
+     滚到底后再由 padding-bottom 补回与其它页面一致的底部间距 */
+  margin-bottom: calc(-1 * var(--content-pad-b));
+  padding-bottom: var(--content-pad-b);
+}
+/* 末尾分组的 margin-bottom 会叠加在滚动内边距上，使滚到底的间距比字体管理等页面大 —— 去掉 */
+.tab-panel :deep(.settings-group:last-child) {
+  margin-bottom: 0;
 }
 
 /* 首个分组不需要额外上边距（SettingsGroup 自带组间距） */
@@ -483,7 +435,25 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: calc(var(--design-unit) * 3 * 1px);
-  margin-bottom: calc(var(--design-unit) * 3 * 1px);
+  /* 顶部 logo 行上下多留些纵向空间（视觉上是版权页的“头图”） */
+  margin: calc(var(--design-unit) * 4 * 1px) 0 calc(var(--design-unit) * 7 * 1px);
+}
+/* 开发者信息：无卡片的一行（版权 + 联系开发者 + 加入社区） */
+.developer-line {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--design-unit) * 2 * 1px);
+  margin-bottom: calc(var(--design-unit) * 5.5 * 1px);
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
+}
+.copyright {
+  margin-right: auto;
+}
+/* .link-btn 自带 margin-left:auto（设置行里把链接推到行尾），
+   这里一行放两个链接，auto 外边距会把剩余空间均分、看起来各占一段 —— 覆盖掉 */
+.developer-line .link-btn {
+  margin-left: 0;
 }
 .intro-logo {
   width: 44px;

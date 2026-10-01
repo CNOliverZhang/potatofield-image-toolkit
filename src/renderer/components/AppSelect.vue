@@ -27,7 +27,14 @@ watch(
     if (!dd) return;
     // listbox/options 就绪前赋值会被静默忽略（selectOption 空转），用 rAF 重试直到生效
     const trySet = (attempt = 0) => {
-      dd.value = props.value;
+      // v3 的 dropdown 在内部 control（input）插入前赋值会抛 TypeError：
+      // selectOption() 无条件调用 updateFreeformOption()，而它的默认参数要读 this.control.value。
+      // 异常是同步抛出的，不接住会直接打断下面的重试链，初始值就再也设不上了 —— 接住后继续重试即可
+      try {
+        dd.value = props.value;
+      } catch {
+        /* control 尚未就绪，下一帧重试 */
+      }
       if (dd.value !== props.value && attempt < 20) {
         requestAnimationFrame(() => trySet(attempt + 1));
       }

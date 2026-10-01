@@ -109,62 +109,68 @@
               <fluent-option value="horizontal">横向（左右拼接）</fluent-option>
             </app-select>
           </SettingsRow>
-          <SettingsRow label="添加边距">
-            <fluent-checkbox :checked="useMargin" @change="useMargin = evChk($event)"></fluent-checkbox>
-          </SettingsRow>
-          <SettingsRow v-if="useMargin" label="边距宽度">
-            <num-input
-              class="ctl-num"
-              :value="margin"
-              min="0"
-              max="500"
-              @input="margin = evNum($event)"
-            ><span slot="end">px</span></num-input>
-          </SettingsRow>
-          <SettingsRow label="添加底色">
-            <fluent-checkbox :checked="useBg" @change="useBg = evChk($event)"></fluent-checkbox>
-          </SettingsRow>
-          <SettingsRow v-if="useBg" label="底色">
-            <input class="color" type="color" :value="bgColor" @input="onColor" />
-            <span class="row-val">{{ bgColor }}</span>
-          </SettingsRow>
+          <!-- 开关为主项，具体取值（勾选后才出现）为子项 -->
+          <SettingsCollapse label="添加边距">
+            <template #control>
+              <fluent-checkbox :checked="useMargin" @change="useMargin = evChk($event)"></fluent-checkbox>
+            </template>
+            <SettingsRow v-if="useMargin" label="边距宽度">
+              <num-input
+                class="ctl-num"
+                :value="margin"
+                min="0"
+                max="500"
+                @input="margin = evNum($event)"
+              ><span slot="end">px</span></num-input>
+            </SettingsRow>
+          </SettingsCollapse>
+          <SettingsCollapse label="添加底色">
+            <template #control>
+              <fluent-checkbox :checked="useBg" @change="useBg = evChk($event)"></fluent-checkbox>
+            </template>
+            <SettingsRow v-if="useBg" label="底色">
+              <input class="color" type="color" :value="bgColor" @input="onColor" />
+              <span class="row-val">{{ bgColor }}</span>
+            </SettingsRow>
+          </SettingsCollapse>
         </SettingsGroup>
 
         <SettingsGroup title="输出设置">
-          <SettingsRow label="格式">
-            <app-select class="ctl-md" :value="out.format" @change="onFormat">
-              <fluent-option value="png">PNG（无损）</fluent-option>
-              <fluent-option value="jpeg">JPG（有损）</fluent-option>
-              <fluent-option value="webp">WebP（有损）</fluent-option>
-            </app-select>
-          </SettingsRow>
-          <SettingsRow v-if="lossy" label="质量">
-            <fluent-slider
-              class="ctl-slider"
-              :value="out.quality"
-              :min="10"
-              :max="100"
-              :step="1"
-              @change="out.quality = evNum($event)"
-            ></fluent-slider>
-            <span class="row-val">{{ out.quality }}</span>
-          </SettingsRow>
-          <SettingsRow v-if="out.format === 'jpeg' && !useBg" label="提示" desc="JPG 不支持透明，未设置底色时按白色输出" />
+          <SettingsCollapse label="格式">
+            <template #control>
+              <app-select class="ctl-md" :value="out.format" @change="onFormat">
+                <fluent-option value="png">PNG（无损）</fluent-option>
+                <fluent-option value="jpeg">JPG（有损）</fluent-option>
+                <fluent-option value="webp">WebP（有损）</fluent-option>
+              </app-select>
+            </template>
+            <SettingsRow v-if="lossy" label="质量">
+              <fluent-slider
+                class="ctl-slider"
+                :value="out.quality"
+                :min="10"
+                :max="100"
+                :step="1"
+                @change="out.quality = evNum($event)"
+              ></fluent-slider>
+              <span class="row-val">{{ out.quality }}</span>
+            </SettingsRow>
+          </SettingsCollapse>
         </SettingsGroup>
 
         <p v-if="overLimit" class="warn">{{ limitHint }}</p>
 
-        <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
-        <div class="controls-footer">
-          <fluent-button
-            appearance="primary"
-            class="save-btn"
-            :disabled="files.length < 2 || processing || overLimit"
-            @click="run"
-          >
-            {{ processing ? '处理中…' : '开始拼接' }}
-          </fluent-button>
-        </div>
+      </div>
+      <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
+      <div class="controls-footer">
+        <fluent-button
+          appearance="primary"
+          class="save-btn"
+          :disabled="files.length < 2 || processing || overLimit"
+          @click="run"
+        >
+          {{ processing ? '处理中…' : '开始拼接' }}
+        </fluent-button>
       </div>
     </aside>
   </div>
@@ -180,6 +186,7 @@ import { useDialog } from '@renderer/composables/useDialog';
 import { evChk, evNum, evVal, useSingleTool } from '@renderer/composables/useSingleTool';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
+import SettingsCollapse from '@renderer/components/settings/SettingsCollapse.vue';
 import {
   createOutputOpts,
   isLossy,

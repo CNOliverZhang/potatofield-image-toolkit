@@ -2,27 +2,26 @@
   <div class="watermark-tool">
     <!-- 预览区（统一组件：未选图为占位框，选图后预览 + 「重新选择」） -->
     <ImagePicker
-      :src="previewUrl || inputSrc"
+      :src="previewUrl"
       :name="inputName"
       icon="stamp"
       hint="选择一张图片开始添加水印"
       @pick="pickImage"
     />
 
-    <!-- 参数面板 -->
+    <!-- 参数面板：顶部入口固定，中部独立滚动，底部按钮固定（内容不从头/尾按钮底下穿过） -->
     <aside class="controls-pane">
+      <div class="batch-entry">
+        <fluent-button appearance="neutral" class="entry-btn" @click="openBatch">
+          <font-awesome-icon icon="layer-group" /> 批量处理
+        </fluent-button>
+        <fluent-button appearance="neutral" class="entry-btn" @click="openTemplates">
+          <font-awesome-icon icon="bookmark" /> 模板管理
+        </fluent-button>
+      </div>
       <div class="controls-body">
-        <!-- 批量处理与模板管理并列，各占一半（间距用 Fluent 的水平间距令牌） -->
-        <div class="batch-entry">
-          <fluent-button appearance="neutral" class="entry-btn" @click="openBatch">
-            <font-awesome-icon icon="layer-group" /> 批量处理
-          </fluent-button>
-          <fluent-button appearance="neutral" class="entry-btn" @click="openTemplates">
-            <font-awesome-icon icon="bookmark" /> 模板管理
-          </fluent-button>
-        </div>
         <SettingsGroup title="模板">
-          <SettingsRow label="选择模板" desc="模板较多时可直接搜索">
+          <SettingsRow label="选择模板">
             <!-- 模板可能有很多，用带搜索的选择器（与字体选择器同款） -->
             <FontSelect
               class="ctl-lg"
@@ -34,16 +33,16 @@
               @update:model-value="onPickTemplate"
             />
           </SettingsRow>
-          <SettingsRow label="当前参数" desc="把右侧调好的参数保存为新模板">
+          <SettingsRow label="当前参数" desc="把下列参数保存为新模板">
             <fluent-button appearance="neutral" size="small" @click="saveAsTemplate">存为模板</fluent-button>
           </SettingsRow>
         </SettingsGroup>
         <WatermarkControls v-model="params" />
-        <div class="controls-footer">
-          <fluent-button appearance="primary" class="save-btn" :disabled="processing || !inputPath" @click="save">
-            {{ processing ? '处理中…' : '保存水印图片' }}
-          </fluent-button>
-        </div>
+      </div>
+      <div class="controls-footer">
+        <fluent-button appearance="primary" class="save-btn" :disabled="processing || !inputPath" @click="save">
+          {{ processing ? '处理中…' : '保存水印图片' }}
+        </fluent-button>
       </div>
     </aside>
   </div>
@@ -67,8 +66,6 @@ const { message, prompt } = useDialog();
 /** 与其它单图工具一致：保存时再选目录 */
 const { inputPath, inputName, previewUrl, processing, runSave } = useSingleTool();
 
-/** 原图地址：作为水印预览生成前的兜底显示，避免选图后出现空白 */
-const inputSrc = computed(() => (inputPath.value ? `file://${inputPath.value}` : ''));
 let previewTimer: number | undefined;
 
 const params = reactive<WatermarkParams>(defaultWatermarkParams());
@@ -239,7 +236,7 @@ onBeforeUnmount(() => {
   gap: calc(var(--design-unit) * 1px * 6);
   height: 100%;
   min-height: 0;
-  margin-bottom: calc(var(--design-unit) * 1px * -4);
+  /* 底部不再抵扣：与其它页面统一为内容区下边距 */
 }
 .preview-pane {
   flex: 1;
@@ -310,13 +307,12 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin-right: -32px;
+  margin-right: calc(-1 * var(--content-pad-x));
 }
 .controls-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 calc(var(--design-unit) * 1px * 6) 0 0;
   display: block;
   gap: 0;
 }
@@ -332,14 +328,6 @@ onBeforeUnmount(() => {
 }
 .batch-entry fluent-button {
   width: 100%;
-}
-.controls-footer {
-  position: sticky;
-  bottom: 0;
-  isolation: isolate;
-  /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高，否则滚动时控件会盖在按钮上 */
-  z-index: 10;
-  padding: 0;
 }
 .save-btn {
   width: 100%;

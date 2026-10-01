@@ -93,6 +93,16 @@ async function normalizeSelection(): Promise<void> {
   const list = listEl.value as (HTMLElement & { activeid?: string }) | null;
   if (!list) return;
   if (list.activeid !== props.activeId) list.activeid = props.activeId;
+  // 组件的 changeTab(oldId, newId) 只按 oldId 清除上一个选中项 —— 当 oldId 不是真实 tab
+  // （例如从 /settings 返回，activeId 曾被置为 '/settings'）时清除不掉，旧高亮就累积下来。
+  // 因此以 activeId 为准，把每个 tab 的 aria-selected 全量同步一遍。
+  const tabs = list.querySelectorAll('fluent-tab');
+  tabs.forEach((tab) => {
+    const should = tab.id === props.activeId ? 'true' : 'false';
+    if (tab.getAttribute('aria-selected') !== should) {
+      tab.setAttribute('aria-selected', should);
+    }
+  });
 }
 
 watch(() => props.activeId, () => void normalizeSelection(), { immediate: true });

@@ -1,45 +1,41 @@
 <template>
-  <SettingsGroup title="保存位置">
-    <SettingsRow label="当前位置" :desc="modelValue || '未设置'">
+  <!--
+    「保存位置」主项 + 子项：与水印工具「位置基准」同款折叠卡。
+    本组件不再自带 SettingsGroup 标题，由使用方把它放进自己的「输出设置」分组。
+  -->
+  <SettingsCollapse label="保存位置" :desc="modelValue || '未设置'">
+    <template #control>
       <fluent-button appearance="neutral" @click="choose">选择文件夹</fluent-button>
-    </SettingsRow>
+    </template>
 
-    <SettingsRow v-if="settings.recentSaveDirs.length" label="常用位置">
+    <SettingsRow v-if="settings.recentSaveDirs.length" label="常用位置" desc="选中后立即作为保存位置">
       <app-select
         ref="selectEl"
         class="loc-select"
-        :title="pending"
-        @change="pending = evVal($event)"
+        :title="modelValue"
+        :value="modelValue"
+        @change="apply(evVal($event))"
       >
         <fluent-option v-for="d in settings.recentSaveDirs" :key="d" :value="d" :title="d">
           {{ d }}
         </fluent-option>
       </app-select>
-      <fluent-button
-        appearance="neutral"
-        class="loc-apply"
-        :disabled="!canApply"
-        title="将所选常用位置设为当前保存位置"
-        @click="apply"
-      >
-        应用
-      </fluent-button>
     </SettingsRow>
 
-    <SettingsRow label="保持相对目录" desc="按导入时的目录结构整体保存">
+    <SettingsRow v-if="keepRelative !== undefined" label="保持相对目录" desc="按导入时的目录结构整体保存">
       <fluent-switch
         :checked="props.keepRelative ?? false"
         @change="emit('update:keepRelative', evChk($event))"
       ></fluent-switch>
     </SettingsRow>
-  </SettingsGroup>
+  </SettingsCollapse>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { useSettingsStore } from '@renderer/stores/settings';
 import { selectDirectory } from '@renderer/utils/filePicker';
-import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
+import SettingsCollapse from '@renderer/components/settings/SettingsCollapse.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 import AppSelect from '@renderer/components/AppSelect.vue';
 
@@ -51,11 +47,8 @@ function evChk(e: Event): boolean {
   return (e.target as unknown as { checked: boolean }).checked;
 }
 
-// 下拉框中「待应用」的选项，与当前生效的保存位置解耦，需点击「应用」才写回
-const pending = ref('');
+// 「常用位置」选中即生效，不再有「待应用」的中间态；下拉框回显当前保存位置
 const selectEl = ref<(HTMLElement & { value: string }) | null>(null);
-
-const canApply = computed(() => !!pending.value && pending.value !== props.modelValue);
 
 function evVal(e: Event): string {
   return (e.target as HTMLInputElement).value;
@@ -64,35 +57,25 @@ function evVal(e: Event): string {
 // fluent-dropdown 的 value 需在 option 渲染完成后由 DOM 赋值，纯属性绑定会因时序丢失
 async function syncSelect() {
   await nextTick();
-  if (selectEl.value && selectEl.value.value !== pending.value) {
-    selectEl.value.value = pending.value;
+  if (selectEl.value && selectEl.value.value !== props.modelValue) {
+    selectEl.value.value = props.modelValue;
   }
 }
 
-// 常用位置列表变动时，保证 pending 始终指向一个有效项（优先当前保存位置）
-watch(
-  [() => settings.recentSaveDirs, () => props.modelValue],
-  ([list, current]) => {
-    if (list.includes(pending.value)) return;
-    pending.value = list.includes(current) ? current : (list[0] ?? '');
-  },
-  { immediate: true }
-);
-
-watch([pending, () => settings.recentSaveDirs], syncSelect);
-onMounted(syncSelect);
+// 当前保存位置或常用位置列表变动时，把下拉框回显拉回当前保存位置
+watch([() => settings.recentSaveDirs, () => props.modelValue], syncSelect, { immediate: true });
 
 async function choose() {
   const dir = await selectDirectory();
   if (!dir) return;
   emit('update:modelValue', dir);
   settings.addRecentSaveDir(dir);
-  pending.value = dir;
 }
 
-function apply() {
-  if (!canApply.value) return;
-  emit('update:modelValue', pending.value);
+/** 选中常用位置即应用为当前保存位置 */
+function apply(dir: string) {
+  if (!dir || dir === props.modelValue) return;
+  emit('update:modelValue', dir);
 }
 </script>
 
@@ -106,9 +89,6 @@ function apply() {
    下拉列表自身的弹出定位处理（若实测仍有撑破，再考虑回到自绘下拉） */
 .loc-select {
   overflow: hidden;
-}
-.loc-apply {
-  flex-shrink: 0;
 }
 .loc-keep {
   display: flex;

@@ -1,16 +1,21 @@
 <template>
   <div class="tool">
     <ImagePicker
-      :src="previewUrl || inputSrc"
+      :src="previewUrl"
       :name="inputName"
       icon="circle-info"
       hint="选择一张图片读取 EXIF / 元数据"
       @pick="onPick"
     />
-    <!-- 右栏整列不滚动：标题与卡片常驻，滚动条只在「元数据」卡片内部 -->
+    <!-- 右栏整列不滚动：读取前是虚线占位框（同色彩提取工具），读取后元数据在带边框底色的容器内滚动 -->
     <aside class="controls-pane">
       <div class="controls-body">
-        <SettingsGroup class="meta-group" title="元数据" :count="totalCount || undefined">
+        <div v-if="!inputPath" class="placeholder">选择图片后显示文件与拍摄信息</div>
+        <div v-else class="meta-card">
+          <div class="meta-head">
+            <span class="meta-title">元数据</span>
+            <span v-if="totalCount" class="meta-count">{{ totalCount }} 项</span>
+          </div>
           <div class="meta-scroll">
             <template v-if="sections.length">
               <div v-for="s in sections" :key="s.title" class="meta-block">
@@ -21,11 +26,9 @@
                 </div>
               </div>
             </template>
-            <p v-else class="meta-empty">
-              {{ inputPath ? '读取中…' : '选择图片后显示文件与拍摄信息' }}
-            </p>
+            <p v-else class="meta-empty">读取中…</p>
           </div>
-        </SettingsGroup>
+        </div>
       </div>
     </aside>
   </div>
@@ -36,12 +39,8 @@ import { computed, ref } from 'vue';
 import type { MetaSection } from '@shared/types';
 import { useSingleTool } from '@renderer/composables/useSingleTool';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
-import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 
 const { inputPath, inputName, previewUrl, pickImage, schedulePreview } = useSingleTool();
-
-/** 本工具只读取元数据、不生成预览图，因此预览直接用原图 */
-const inputSrc = computed(() => (inputPath.value ? `file://${inputPath.value}` : ''));
 
 const sections = ref<MetaSection[]>([]);
 const totalCount = computed(() =>
@@ -55,35 +54,72 @@ async function onPick() {
       const res = await window.api.image.process({ op: 'metadata', inputPath: inputPath.value });
       // 只展示主进程筛好的「摄影 / 设计关注」字段
       sections.value = res.meta?.sections ?? [];
-      return undefined;
+      // 本工具不产生处理结果，但仍需一张可显示的预览图：
+      // 不能 file:// 直读（渲染进程加载 file 子资源会被拦 → 裂图），
+      // 由主进程缩放后回传 buffer 转 blob（与模板缩略图同一套做法）
+      const preview = await window.api.image.process({
+        op: 'resize',
+        inputPath: inputPath.value,
+        options: { width: 1600, height: 1600, fit: 'inside' }
+      });
+      return preview.buffer;
     });
   }
 }
 </script>
 
 <style scoped>
-/* 右栏整列不可滚动：元数据卡片撑起剩余高度，滚动发生在其内部 */
+/* 右栏整列不可滚动：占位框/元数据容器撑起剩余高度，滚动发生在容器内部 */
 .controls-body {
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
 }
-.meta-group {
+/* 读取前：虚线框占位（与色彩提取工具一致） */
+.placeholder {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--app-fg-secondary);
+  border: 1px dashed var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusXLarge);
+}
+/* 读取后：带边框和底色的容器，元数据在内部滚动 */
+.meta-card {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  margin-bottom: 0;
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusXLarge);
+  background: var(--app-card);
+  overflow: hidden;
 }
-/* sg-card 撑满并在内部滚动 */
-.meta-group :deep(.sg-card) {
+.meta-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--design-unit) * 2 * 1px);
+  padding: calc(var(--design-unit) * 2 * 1px) calc(var(--design-unit) * 3 * 1px);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+.meta-title {
+  font-size: var(--fontSizeBase200);
+  font-weight: 600;
+}
+.meta-count {
+  font-size: var(--fontSizeBase100);
+  color: var(--app-fg-secondary);
+}
+.meta-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-}
-.meta-scroll {
   padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 2.5 * 1px);
 }
 .meta-block + .meta-block {

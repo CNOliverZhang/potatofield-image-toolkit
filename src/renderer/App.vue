@@ -12,6 +12,7 @@ import { useSettingsStore } from './stores/settings';
 import type { TemplateApplyPayload, TemplateStoreData } from '@shared/types';
 import { useMessagesStore } from './stores/messages';
 import { registerClient, getPlatform } from './composables/useOnlineApi';
+import { startUpdaterWatcher } from './composables/useUpdater';
 import ToastHost from './components/ToastHost.vue';
 import AppDialog from './components/AppDialog.vue';
 
@@ -39,6 +40,9 @@ window.api.window.onNavigate((route: string) => {
 onMounted(async () => {
   const settings = useSettingsStore();
   const messages = useMessagesStore();
+  // 接管更新流程：主进程启动 3 秒后的自动检查若发现新版本，在任何页面都能弹出提示
+  //（此前监听只在设置页，首页启动时「available」事件无人处理，表现为从不提示更新）
+  startUpdaterWatcher();
   // 模板库由主进程持有：启动时拉一份，之后靠 template:updated 推送保持同步
   await settings.loadTemplates();
   const identifier = settings.ensureIdentifier();

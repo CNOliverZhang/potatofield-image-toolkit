@@ -43,12 +43,12 @@
             <span class="row-val">{{ out.quality }}</span>
           </SettingsRow>
         </SettingsGroup>
-        <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
-        <div class="controls-footer">
-          <fluent-button appearance="primary" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
-            {{ processing ? `处理中 ${progress}…` : '分割并保存' }}
-          </fluent-button>
-        </div>
+      </div>
+      <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
+      <div class="controls-footer">
+        <fluent-button appearance="primary" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
+          {{ processing ? `处理中 ${progress}…` : '分割并保存' }}
+        </fluent-button>
       </div>
     </aside>
   </div>

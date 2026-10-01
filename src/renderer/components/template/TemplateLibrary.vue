@@ -110,6 +110,7 @@ const activeLabel = computed(
 const activeIcon = computed(
   () => props.types.find((t) => t.key === props.activeType)?.icon ?? 'bookmark'
 );
+
 </script>
 
 <style scoped>
@@ -131,6 +132,7 @@ const activeIcon = computed(
 .lib-main {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   /* 与侧边栏的间距 = 主窗口内容区左内边距（32px，同字体管理）；
      右边距不再在这里给：滚动区自己用负 margin 贴窗口右缘、再留回 32px（见 .lib-list） */
   padding-left: var(--content-pad-x);
@@ -177,7 +179,8 @@ const activeIcon = computed(
   padding: calc(var(--design-unit) * 6 * 1px) 0;
   font-size: 13px;
 }
-/* 仅列表滚动：滚动条贴窗口右缘，卡片右缘与头部按钮对齐（与字体管理一致） */
+/* 仅列表滚动：滚动条贴窗口右缘，卡片右缘与头部按钮对齐（与字体管理一致）；
+   底部延伸到窗口下缘，末尾间距由 padding-bottom 补回（与设置页/字体管理一致） */
 .lib-list {
   flex: 1;
   min-height: 0;
@@ -187,7 +190,10 @@ const activeIcon = computed(
   gap: calc(var(--design-unit) * 1px); /* WinUI 设置卡间距 4px */
   margin-right: calc(-1 * var(--content-pad-x));
   padding-right: var(--content-pad-x);
+  margin-bottom: calc(-1 * var(--content-pad-b));
+  padding-bottom: var(--content-pad-b);
 }
+/* 滚动条已改为不占布局空间（见 global.css），无需再按滚动条宽度补偿右内边距 */
 /* ---------- 模板卡片：对齐字体管理的字体族卡 ---------- */
 .tpl-card {
   display: flex;

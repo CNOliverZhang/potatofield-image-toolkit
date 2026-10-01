@@ -92,10 +92,16 @@ const api: ImageToolkitApi = {
     }
   },
   theme: {
-    set: (darkMode: boolean, themeColor: string) =>
-      ipcRenderer.send('theme:set', { darkMode, themeColor }),
-    onChanged: (callback: (payload: { darkMode: boolean; themeColor: string }) => void) => {
-      const listener = (_e: unknown, payload: { darkMode: boolean; themeColor: string }) => callback(payload);
+    set: (payload: { mode: 'system' | 'light' | 'dark'; darkMode: boolean; themeColor: string }) =>
+      ipcRenderer.send('theme:set', payload),
+    onChanged: (
+      callback: (payload: {
+        mode: 'system' | 'light' | 'dark';
+        darkMode: boolean;
+        themeColor: string;
+      }) => void
+    ) => {
+      const listener = (_e: unknown, payload: { mode: 'system' | 'light' | 'dark'; darkMode: boolean; themeColor: string }) => callback(payload);
       ipcRenderer.on('theme:changed', listener);
       return () => ipcRenderer.removeListener('theme:changed', listener);
     }

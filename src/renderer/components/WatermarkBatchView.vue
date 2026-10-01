@@ -19,16 +19,20 @@
 
     <aside class="controls-pane">
       <div class="controls-body">
-        <WatermarkControls v-model="params" :lock-tile="lockTile" />
-        <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
-        <div class="controls-footer">
-          <fluent-button v-if="processing" appearance="neutral" class="save-btn" @click="cancel">
-            取消（已完成 {{ progress.done }}/{{ progress.total }}）
-          </fluent-button>
-          <fluent-button v-else appearance="primary" class="save-btn" :disabled="!files.length" @click="run">
-            开始批量处理 ({{ files.length }})
-          </fluent-button>
-        </div>
+        <WatermarkControls v-model="params" :lock-tile="lockTile">
+          <!-- 保存位置并入水印控件的「输出设置」组 -->
+          <template #output-extra>
+            <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
+          </template>
+        </WatermarkControls>
+      </div>
+      <div class="controls-footer">
+        <fluent-button v-if="processing" appearance="neutral" class="save-btn" @click="cancel">
+          取消（已完成 {{ progress.done }}/{{ progress.total }}）
+        </fluent-button>
+        <fluent-button v-else appearance="primary" class="save-btn" :disabled="!files.length" @click="run">
+          开始批量处理 ({{ files.length }})
+        </fluent-button>
       </div>
     </aside>
   </div>
@@ -166,7 +170,7 @@ onBeforeUnmount(() => {
   gap: calc(var(--design-unit) * 1px * 5);
   height: 100%;
   min-height: 0;
-  margin-bottom: calc(var(--design-unit) * 1px * -4);
+  /* 底部不再抵扣：与其它页面统一为内容区下边距 */
   overflow: hidden;
 }
 .import-col {
@@ -242,24 +246,16 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin-right: -32px;
+  margin-right: calc(-1 * var(--content-pad-x));
 }
 .controls-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 calc(var(--design-unit) * 1px * 6) 0 0;
   display: block;
   gap: 0;
 }
-.controls-footer {
-  position: sticky;
-  bottom: 0;
-  isolation: isolate;
-  /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高，否则滚动时控件会盖在按钮上 */
-  z-index: 10;
-  padding: 0;
-}
+/* footer 已移出滚动区（.controls-pane 的固定子项），样式统一走 global.css */
 .save-btn {
   width: 100%;
 }

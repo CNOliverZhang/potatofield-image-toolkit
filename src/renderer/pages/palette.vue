@@ -3,7 +3,7 @@
   <div class="tool">
     <!-- 左：统一图片选择/预览组件（含「重新选择」） -->
     <ImagePicker
-      :src="imgSrc"
+      :src="previewUrl"
       :name="fileName"
       icon="palette"
       hint="选择一张图片以提取主要色彩"
@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import ColorThief from 'colorthief';
 import { selectImageFiles } from '@renderer/utils/filePicker';
 import { useDialog } from '@renderer/composables/useDialog';
@@ -66,7 +66,35 @@ const colors = ref<string[]>([]);
 const count = ref(8);
 const imgLoaded = ref(false);
 
-const imgSrc = computed(() => (imagePath.value ? `file://${imagePath.value}` : ''));
+/**
+ * 预览图：不能直接用 file:// 直读 —— 渲染进程加载 file 子资源会被拦（表现为裂图），
+ * 而且 file:// 贴图会让 canvas 被污染，ColorThief 取不到像素。
+ * 这里与模板缩略图同一套做法：主进程缩放后回传 buffer，转成 blob URL。
+ */
+const previewUrl = ref('');
+
+function clearPreview() {
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value);
+    previewUrl.value = '';
+  }
+}
+
+async function loadPreview(path: string): Promise<void> {
+  try {
+    const res = await window.api.image.process({
+      op: 'resize',
+      inputPath: path,
+      options: { width: 1200, height: 1200, fit: 'inside' }
+    });
+    if (!res.buffer) return;
+    const url = URL.createObjectURL(new Blob([res.buffer], { type: 'image/png' }));
+    clearPreview();
+    previewUrl.value = url;
+  } catch {
+    dialog.message('图片读取失败，请换一张图片', 'error');
+  }
+}
 const fileName = computed(() => imagePath.value.split(/[\\/]/).pop() ?? '');
 /** 列数随数量变化，保证网格始终填满且不溢出 */
 const gridCols = computed(() => (count.value <= 1 ? 1 : count.value <= 4 ? 2 : count.value <= 9 ? 3 : 4));
@@ -81,6 +109,7 @@ async function selectImage() {
   imagePath.value = files[0];
   colors.value = [];
   imgLoaded.value = false;
+  await loadPreview(imagePath.value);
 }
 
 /** 预览图加载完成：拿到 img 元素供 ColorThief 读取像素 */
@@ -121,6 +150,8 @@ function copy(color: string) {
   navigator.clipboard?.writeText(color);
   dialog.message(`已复制 ${color}`, 'success');
 }
+
+onBeforeUnmount(clearPreview);
 </script>
 
 <style scoped>

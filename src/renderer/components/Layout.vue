@@ -5,7 +5,7 @@
       <!-- 侧边栏与主窗口外观完全一致；模板库这类内容型独立窗口也复用它（自带 Logo 与标题） -->
       <AppSidebar v-if="!standalone" :items="nav" :active-id="activeId" show-settings @change="go" />
 
-      <main class="content" :class="{ standalone, 'pad-main': padMain }">
+      <main class="content" :class="{ standalone }">
         <router-view />
       </main>
     </div>
@@ -24,9 +24,6 @@ const router = useRouter();
 
 // 批量处理等以独立窗口打开的页面（route.meta.standalone）不显示左侧功能导航
 const standalone = computed(() => route.meta.standalone === true);
-// 内容型独立窗口（模板库 / 模板编辑）沿用主窗口的左右边距，
-// 而不是独立窗口收紧后的 20px —— 这类页面是「看内容」而非「铺满工具面板」
-const padMain = computed(() => route.meta.padMain === true);
 /** 独立窗口的标题栏文字；页面自带侧边栏（有 Logo + 标题）时用 hideTitle 让位，避免重复 */
 const pageTitle = computed(() =>
   route.meta.hideTitle ? '' : ((route.meta.title as string | undefined) ?? '')
@@ -50,10 +47,16 @@ const nav = [
  * activeid 永远给一个有效值：路由不在导航区时沿用上一次命中的路由。
  * 传空串会触发 v3 tablist 的「自动选第一个」分支（tablist.base:84），
  * 组件自己接管后与我们的绑定打架 —— 这正是之前累积出多个高亮项的元凶。
+ * 例外：/settings 不属于功能导航（侧边栏底部的「设置」入口自己有选中态），
+ * 此时给一个不在 items 里的 id，让 AppSidebar 中和掉功能导航的高亮，
+ * 否则「上一次的工具」和「设置」会同时高亮。
  */
 const lastNavId = ref('/');
 const inNav = computed(() => nav.some((item) => item.id === route.path));
-const activeId = computed(() => (inNav.value ? route.path : lastNavId.value));
+const activeId = computed(() => {
+  if (inNav.value) return route.path;
+  return route.path === '/settings' ? '/settings' : lastNavId.value;
+});
 
 watch(
   () => route.path,
@@ -95,23 +98,19 @@ function go(to: string): void {
   z-index: 1;
 }
 .content {
-  /* 水平内边距变量化：个别页面（如字体管理）用它把滚动区延伸到窗口右缘 */
+  /* 内容区边距：左右取 32；上/下用全局的 --content-pad-top / --content-pad-b
+     （Windows 40、macOS 32，定义见 global.css）。所有页面、所有窗口都用这几个变量，
+     需要把滚动条/列表延伸到窗口边缘的页面（字体管理、模板列表、设置页）用它们做负 margin 抵扣 */
   --content-pad-x: 32px;
   flex: 1;
   min-width: 0;
   overflow: auto;
   /* 顶部让出悬浮的窗口控制栏；非 Windows 没有自绘按钮，用 --content-pad-top 与下边距对齐 */
-  padding: var(--content-pad-top) var(--content-pad-x) 28px;
+  padding: var(--content-pad-top) var(--content-pad-x) var(--content-pad-b);
 }
-/* 独立窗口：无侧边栏，内容区四周留白略收紧。
-   顶边距变量化：模板库这类自带侧边栏的页面要用它把侧边栏拉回窗口顶部 */
+/* 独立窗口：边距与主窗口完全一致（此前独立窗口收紧到 20px，导致各窗口边距不统一）。
+   顶部沿用平台默认值（Windows 需让出自绘标题栏，macOS 由系统红绿灯决定） */
 .content.standalone {
-  --content-pad-x: 20px;
-  --content-pad-top: 40px;
-  padding: var(--content-pad-top) var(--content-pad-x) 20px;
-}
-/* 内容型独立窗口（meta.padMain）：左右边距与主窗口一致 */
-.content.standalone.pad-main {
-  --content-pad-x: 32px;
+  padding: var(--content-pad-top) var(--content-pad-x) var(--content-pad-b);
 }
 </style>

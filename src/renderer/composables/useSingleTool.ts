@@ -33,8 +33,10 @@ export function useSingleTool() {
   function setPreviewBuffer(buf: ArrayBuffer) {
     const blob = new Blob([buf], { type: 'image/png' });
     const url = URL.createObjectURL(blob);
-    clearPreview();
+    const previous = previewUrl.value;
+    // 先换上新的再释放旧的：避免中间出现一帧空 src（表现为闪一下占位框/裂图）
     previewUrl.value = url;
+    if (previous) URL.revokeObjectURL(previous);
   }
 
   function schedulePreview(fn: () => Promise<ArrayBuffer | undefined>) {

@@ -22,12 +22,12 @@
       </template>
     </ImagePicker>
     <aside class="controls-pane">
+      <div class="batch-entry">
+        <fluent-button appearance="neutral" @click="goBatch">
+          <font-awesome-icon icon="layer-group" /> 批量裁剪
+        </fluent-button>
+      </div>
       <div class="controls-body">
-        <div class="batch-entry">
-          <fluent-button appearance="neutral" @click="goBatch">
-            <font-awesome-icon icon="layer-group" /> 批量裁剪
-          </fluent-button>
-        </div>
         <!-- 裁剪参数：与批量裁剪共用同一组件（单图额外带 cropper.js 画布） -->
         <CropControls
           :region="region"
@@ -60,12 +60,12 @@
             <span class="row-val">{{ quality }}%</span>
           </SettingsRow>
         </SettingsGroup>
-        <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
-        <div class="controls-footer">
-          <fluent-button appearance="primary" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
-            {{ processing ? '处理中…' : '保存图片' }}
-          </fluent-button>
-        </div>
+      </div>
+      <!-- footer 必须位于 controls-body 内部，才能继承其右侧内边距（与水印工具一致） -->
+      <div class="controls-footer">
+        <fluent-button appearance="primary" class="save-btn" :disabled="processing || !inputPath" @click="onSave">
+          {{ processing ? '处理中…' : '保存图片' }}
+        </fluent-button>
       </div>
     </aside>
   </div>

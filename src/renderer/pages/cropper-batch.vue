@@ -34,30 +34,31 @@
 
         <!-- 输出设置：与单图裁剪一致 -->
         <SettingsGroup title="输出设置">
-          <SettingsRow label="格式">
-            <app-select class="ctl-md" :value="out.format" @change="onFormat">
-              <fluent-option value="original">保持原格式</fluent-option>
-              <fluent-option value="png">PNG（无损）</fluent-option>
-              <fluent-option value="jpeg">JPG（有损）</fluent-option>
-              <fluent-option value="webp">WebP（有损）</fluent-option>
-            </app-select>
-          </SettingsRow>
-          <SettingsRow v-if="lossy" label="质量">
-            <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
-            <span class="row-val">{{ out.quality }}</span>
-          </SettingsRow>
+          <SettingsCollapse label="格式">
+            <template #control>
+              <app-select class="ctl-md" :value="out.format" @change="onFormat">
+                <fluent-option value="original">保持原格式</fluent-option>
+                <fluent-option value="png">PNG（无损）</fluent-option>
+                <fluent-option value="jpeg">JPG（有损）</fluent-option>
+                <fluent-option value="webp">WebP（有损）</fluent-option>
+              </app-select>
+            </template>
+            <SettingsRow v-if="lossy" label="质量">
+              <fluent-slider class="ctl-slider" :value="out.quality" :min="10" :max="100" :step="1" @change="out.quality = evNum($event)"></fluent-slider>
+              <span class="row-val">{{ out.quality }}</span>
+            </SettingsRow>
+          </SettingsCollapse>
+          <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
         </SettingsGroup>
 
-        <SaveLocationSetting v-model="saveDir" v-model:keepRelative="keepRelative" />
-
-        <div class="controls-footer">
-          <fluent-button v-if="processing" appearance="neutral" class="save-btn" @click="cancel">
-            取消（已完成 {{ progress.done }}/{{ progress.total }}）
-          </fluent-button>
-          <fluent-button v-else appearance="primary" class="save-btn" @click="run">
-            开始批量处理 ({{ files.length }})
-          </fluent-button>
-        </div>
+      </div>
+      <div class="controls-footer">
+        <fluent-button v-if="processing" appearance="neutral" class="save-btn" @click="cancel">
+          取消（已完成 {{ progress.done }}/{{ progress.total }}）
+        </fluent-button>
+        <fluent-button v-else appearance="primary" class="save-btn" @click="run">
+          开始批量处理 ({{ files.length }})
+        </fluent-button>
       </div>
     </aside>
   </div>
@@ -82,6 +83,7 @@ import BatchImportPanel from '@renderer/components/BatchImportPanel.vue';
 import CropControls from '@renderer/components/CropControls.vue';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
+import SettingsCollapse from '@renderer/components/settings/SettingsCollapse.vue';
 import SaveLocationSetting from '@renderer/components/SaveLocationSetting.vue';
 import AppSelect from '@renderer/components/AppSelect.vue';
 
@@ -220,7 +222,7 @@ onBeforeUnmount(() => {
   gap: calc(var(--design-unit) * 1px * 5);
   height: 100%;
   min-height: 0;
-  margin-bottom: calc(var(--design-unit) * 1px * -4);
+  /* 底部不再抵扣：与其它页面统一为内容区下边距 */
   overflow: hidden;
 }
 .import-col {
@@ -296,13 +298,12 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin-right: -32px;
+  margin-right: calc(-1 * var(--content-pad-x));
 }
 .controls-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 calc(var(--design-unit) * 1px * 6) 0 0;
 }
 .group {
   margin-bottom: calc(var(--design-unit) * 1px * 5.5);
@@ -336,13 +337,7 @@ onBeforeUnmount(() => {
   color: var(--app-fg-secondary);
   font-weight: 500;
 }
-.controls-footer {
-  position: sticky;
-  bottom: 0;
-  isolation: isolate;
-  /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高，否则滚动时控件会盖在按钮上 */
-  z-index: 10;
-}
+/* footer 已移出滚动区（.controls-pane 的固定子项），样式统一走 global.css */
 /* footer 渐隐遮罩由 global.css 的 .controls-footer::before 统一提供 */
 .save-btn {
   width: 100%;

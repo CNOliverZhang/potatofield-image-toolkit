@@ -27,23 +27,23 @@
 
         <slot name="controls" />
 
-        <div class="controls-footer">
-          <div class="foot-btns">
-            <fluent-button
-              appearance="primary"
-              class="foot-main"
-              :disabled="saving || !canSave"
-              @click="emit('save')"
-            >
-              {{ saving ? '保存中…' : '保存模板' }}
-            </fluent-button>
-            <fluent-button appearance="neutral" :disabled="saving" @click="emit('save-as')">
-              另存模板
-            </fluent-button>
-            <fluent-button appearance="neutral" :disabled="saving" @click="emit('cancel')">
-              取消
-            </fluent-button>
-          </div>
+      </div>
+      <div class="controls-footer">
+        <div class="foot-btns">
+          <fluent-button
+            appearance="primary"
+            class="foot-main"
+            :disabled="saving || !canSave"
+            @click="emit('save')"
+          >
+            {{ saving ? '保存中…' : '保存模板' }}
+          </fluent-button>
+          <fluent-button appearance="neutral" :disabled="saving" @click="emit('save-as')">
+            另存模板
+          </fluent-button>
+          <fluent-button appearance="neutral" :disabled="saving" @click="emit('cancel')">
+            取消
+          </fluent-button>
         </div>
       </div>
     </aside>
@@ -169,14 +169,7 @@ function onName(e: Event): void {
   min-height: 0;
   overflow-y: auto;
 }
-.controls-footer {
-  position: sticky;
-  bottom: 0;
-  isolation: isolate;
-  /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高 */
-  z-index: 10;
-  padding: 0;
-}
+/* footer 已移出滚动区（.controls-pane 的固定子项），样式统一走 global.css */
 .foot-btns {
   display: flex;
   gap: calc(var(--design-unit) * 1px * 2);

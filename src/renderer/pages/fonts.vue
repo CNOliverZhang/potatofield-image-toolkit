@@ -43,7 +43,7 @@
     <!-- 线上字体 -->
     <template v-if="tab === 'online'">
       <div v-if="onlineFamilies.length" class="list-wrap">
-        <div ref="listEl" class="list" :class="{ 'has-scrollbar': hasScrollbar }">
+        <div class="list">
           <template v-for="family in onlineFamilies" :key="family.id">
             <!-- 多字体族：SettingExpander 式可展开卡片 -->
             <section
@@ -127,7 +127,7 @@
         当前环境不支持读取系统字体列表
       </div>
       <div v-else-if="localFamilies.length" class="list-wrap">
-        <div ref="listEl" class="list" :class="{ 'has-scrollbar': hasScrollbar }">
+        <div class="list">
           <template v-for="fam in localFamilies" :key="fam.name">
             <section
               v-if="fam.fonts.length > 1"
@@ -194,9 +194,6 @@ const expanded = reactive<Record<string, boolean>>({});
 const cleaning = ref(false);
 let searchTimer: number | undefined;
 
-const listEl = ref<HTMLElement | null>(null);
-const hasScrollbar = ref(false);
-
 const loading = computed(() =>
   tab.value === 'online' ? store.loading : store.localLoading
 );
@@ -242,13 +239,6 @@ function fontStyle(family: string, style?: string): Record<string, string> {
   else if (/bold|粗/i.test(s)) weight = '700';
   const italic = /italic|oblique|斜/i.test(s) ? 'italic' : 'normal';
   return { fontFamily: fam, fontWeight: weight, fontStyle: italic };
-}
-
-/** 是否出现垂直滚动条：出现时补偿其占位宽度，保证卡片右缘与工具栏按钮对齐 */
-function updateScrollbar() {
-  const el = listEl.value;
-  if (!el) return;
-  hasScrollbar.value = el.scrollHeight > el.clientHeight + 1;
 }
 
 function toggle(id: OpenKey) {
@@ -298,7 +288,6 @@ function switchTab(next: TabKey) {
   keyword.value = '';
   if (next === 'local') store.loadLocalFonts();
   else if (!store.fontFamilies.length) store.loadFontFamilies();
-  nextTick(updateScrollbar);
 }
 
 function refresh() {
@@ -308,7 +297,6 @@ function refresh() {
 
 function onSearch(e: Event) {
   keyword.value = (e.target as HTMLInputElement).value;
-  nextTick(updateScrollbar);
   // 线上列表支持按关键字请求后端，这里仅本地过滤即可
   if (tab.value === 'online') {
     if (searchTimer) window.clearTimeout(searchTimer);
@@ -360,13 +348,11 @@ onMounted(() => {
   store.loadLocalFonts().catch(() => undefined);
   // 启动兜底：静默清理上次遗留的已安装字体缓存
   store.cleanDownloads().catch(() => undefined);
-  window.addEventListener('resize', updateScrollbar);
   // 从字体安装窗口返回时刷新系统字体列表，尽快标记已安装
   window.addEventListener('focus', onWindowFocus);
 });
 onBeforeUnmount(() => {
   if (searchTimer) window.clearTimeout(searchTimer);
-  window.removeEventListener('resize', updateScrollbar);
   window.removeEventListener('focus', onWindowFocus);
   window.removeEventListener('resize', updateIndicator);
   tabsObserver?.disconnect();
@@ -384,12 +370,7 @@ const listCount = computed(() =>
 // 切换标签后指示条滑动到新位置
 watch(tab, () => nextTick(updateIndicator));
 
-// 列表数据、展开/收起、窗口尺寸变化都可能改变滚动条的出现
-watch(
-  () => [listCount.value, loading.value, expanded, tab.value],
-  () => nextTick(updateScrollbar),
-  { deep: true }
-);
+// 滚动条已不占布局空间，不再需要按列表变化重新计算；listCount 仅用于「共 N 个字体族」展示
 </script>
 
 <style scoped>
@@ -451,8 +432,10 @@ watch(
   flex: 1;
   min-height: 0;
   position: relative;
-  /* 抵消内容区右内边距，使滚动条贴靠窗口右缘（卡片仍与工具栏按钮对齐） */
+  /* 抵消内容区右内边距，使滚动条贴靠窗口右缘（卡片仍与工具栏按钮对齐）；
+     底部同理延伸到窗口下缘，末尾间距由 .list 的 padding-bottom 补回 */
   margin-right: calc(-1 * var(--content-pad-x));
+  margin-bottom: calc(-1 * var(--content-pad-b));
 }
 /* 仅列表滚动 */
 .list {
@@ -463,11 +446,10 @@ watch(
   gap: calc(var(--design-unit) * 1px); /* WinUI 设置卡间距 4px */
   /* 右侧内边距使卡片右缘与工具栏按钮对齐（滚动条贴窗口右缘） */
   padding-right: var(--content-pad-x);
+  /* 滚到头后的底部间距（与其它页面一致） */
+  padding-bottom: var(--content-pad-b);
 }
-/* 出现滚动条时补偿其占位（10px），使卡片右缘在有无滚动条时都与按钮对齐 */
-.list.has-scrollbar {
-  padding-right: calc(var(--content-pad-x) - var(--scrollbar-w));
-}
+/* 滚动条已改为不占布局空间（见 global.css），无需再按滚动条宽度补偿右内边距 */
 /* SettingExpander 式卡片（PowerToys 设置页风格） */
 .family-card {
   border: 1px solid var(--colorNeutralStroke1);

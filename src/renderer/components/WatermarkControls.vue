@@ -1,50 +1,52 @@
 <template>
   <div class="wm-controls">
-    <!-- 文字/图片水印切换：自绘分段控件（曾改用 tablist，但原生外观观感偏弱，改回自绘） -->
-    <div class="seg">
-      <button :class="['seg-btn', { active: params.type === 'text' }]" @click="params.type = 'text'">
-        文字水印
-      </button>
-      <button :class="['seg-btn', { active: params.type === 'image' }]" @click="params.type = 'image'">
-        图片水印
-      </button>
-    </div>
+    <!-- 基础设置：水印类型为主项，具体字段（随类型切换）为其子项（与「位置基准」同款折叠卡） -->
+    <SettingsGroup title="基础设置">
+      <SettingsCollapse label="水印类型">
+        <template #control>
+          <app-select class="ctl-md" :value="params.type" @change="params.type = evVal($event) as 'text' | 'image'">
+            <fluent-option value="text">文字水印</fluent-option>
+            <fluent-option value="image">图片水印</fluent-option>
+          </app-select>
+        </template>
 
-    <!-- 文字水印 -->
-    <SettingsGroup v-if="params.type === 'text'" title="基础设置">
-      <SettingsRow label="文本内容">
-        <fluent-text-input class="ctl-lg" :value="params.text" @input="params.text = evVal($event)"></fluent-text-input>
-      </SettingsRow>
-      <SettingsRow label="颜色">
-        <input class="color" type="color" :value="params.color" @input="params.color = evVal($event)" />
-      </SettingsRow>
-      <SettingsRow label="不透明度">
-        <fluent-slider class="ctl-slider" :value="params.opacity * 100" :min="0" :max="100" :step="1" @change="params.opacity = evNum($event) / 100"></fluent-slider>
-        <span class="row-val">{{ Math.round(params.opacity * 100) }}%</span>
-      </SettingsRow>
-      <SettingsRow label="字体">
-        <FontSelect class="ctl-lg" v-model="params.fontFamily" :options="fontOptions" placeholder="选择字体" />
-      </SettingsRow>
-      <SettingsRow label="字重">
-        <app-select class="ctl-md" :value="weightValue" @change="onWeight">
-          <fluent-option v-for="w in weightOptions" :key="w.value" :value="w.value">{{ w.label }}</fluent-option>
-        </app-select>
-      </SettingsRow>
-    </SettingsGroup>
+        <!-- 文字水印字段 -->
+        <template v-if="params.type === 'text'">
+          <SettingsRow label="文本内容">
+            <fluent-text-input class="ctl-lg" :value="params.text" @input="params.text = evVal($event)"></fluent-text-input>
+          </SettingsRow>
+          <SettingsRow label="颜色">
+            <input class="color" type="color" :value="params.color" @input="params.color = evVal($event)" />
+          </SettingsRow>
+          <SettingsRow label="不透明度">
+            <fluent-slider class="ctl-slider" :value="params.opacity * 100" :min="0" :max="100" :step="1" @change="params.opacity = evNum($event) / 100"></fluent-slider>
+            <span class="row-val">{{ Math.round(params.opacity * 100) }}%</span>
+          </SettingsRow>
+          <SettingsRow label="字体">
+            <FontSelect class="ctl-lg" v-model="params.fontFamily" :options="fontOptions" placeholder="选择字体" />
+          </SettingsRow>
+          <SettingsRow label="字重">
+            <app-select class="ctl-md" :value="weightValue" @change="onWeight">
+              <fluent-option v-for="w in weightOptions" :key="w.value" :value="w.value">{{ w.label }}</fluent-option>
+            </app-select>
+          </SettingsRow>
+        </template>
 
-    <!-- 图片水印 -->
-    <SettingsGroup v-else title="基础设置">
-      <SettingsRow label="水印图片">
-        <div class="wm-pick">
-          <button class="link-btn" @click="pickWatermarkImage">选择图片</button>
-          <span v-if="params.watermarkPath" class="wm-name">{{ params.watermarkPath.split(/[\\/]/).pop() }}</span>
-          <span v-else class="muted">未选择</span>
-        </div>
-      </SettingsRow>
-      <SettingsRow label="不透明度">
-        <fluent-slider class="ctl-slider" :value="params.opacity * 100" :min="0" :max="100" :step="1" @change="params.opacity = evNum($event) / 100"></fluent-slider>
-        <span class="row-val">{{ Math.round(params.opacity * 100) }}%</span>
-      </SettingsRow>
+        <!-- 图片水印字段 -->
+        <template v-else>
+          <SettingsRow label="水印图片">
+            <div class="wm-pick">
+              <button class="link-btn" @click="pickWatermarkImage">选择图片</button>
+              <span v-if="params.watermarkPath" class="wm-name">{{ params.watermarkPath.split(/[\\/]/).pop() }}</span>
+              <span v-else class="muted">未选择</span>
+            </div>
+          </SettingsRow>
+          <SettingsRow label="不透明度">
+            <fluent-slider class="ctl-slider" :value="params.opacity * 100" :min="0" :max="100" :step="1" @change="params.opacity = evNum($event) / 100"></fluent-slider>
+            <span class="row-val">{{ Math.round(params.opacity * 100) }}%</span>
+          </SettingsRow>
+        </template>
+      </SettingsCollapse>
     </SettingsGroup>
 
     <!-- 样式和位置 -->
@@ -107,18 +109,22 @@
 
     <!-- 输出设置 -->
     <SettingsGroup title="输出设置">
-      <SettingsRow label="格式">
-        <app-select class="ctl-md" :value="params.format" @change="params.format = evVal($event) as 'original' | 'png' | 'jpeg' | 'webp'">
-          <fluent-option value="original">保持原格式</fluent-option>
-          <fluent-option value="png">PNG（无损）</fluent-option>
-          <fluent-option value="jpeg">JPG（有损）</fluent-option>
-          <fluent-option value="webp">WebP（有损）</fluent-option>
-        </app-select>
-      </SettingsRow>
-      <SettingsRow v-if="params.format === 'jpeg' || params.format === 'webp'" label="质量">
-        <fluent-slider class="ctl-slider" :value="params.quality" :min="10" :max="100" :step="1" @change="params.quality = evNum($event)"></fluent-slider>
-        <span class="row-val">{{ params.quality }}%</span>
-      </SettingsRow>
+      <SettingsCollapse label="格式">
+        <template #control>
+          <app-select class="ctl-md" :value="params.format" @change="params.format = evVal($event) as 'original' | 'png' | 'jpeg' | 'webp'">
+            <fluent-option value="original">保持原格式</fluent-option>
+            <fluent-option value="png">PNG（无损）</fluent-option>
+            <fluent-option value="jpeg">JPG（有损）</fluent-option>
+            <fluent-option value="webp">WebP（有损）</fluent-option>
+          </app-select>
+        </template>
+        <SettingsRow v-if="params.format === 'jpeg' || params.format === 'webp'" label="质量">
+          <fluent-slider class="ctl-slider" :value="params.quality" :min="10" :max="100" :step="1" @change="params.quality = evNum($event)"></fluent-slider>
+          <span class="row-val">{{ params.quality }}%</span>
+        </SettingsRow>
+      </SettingsCollapse>
+      <!-- 批量水印在此追加「保存位置」等输出相关行（单图/模板编辑不传即无） -->
+      <slot name="output-extra" />
     </SettingsGroup>
   </div>
 </template>
@@ -276,29 +282,6 @@ async function pickWatermarkImage() {
 </script>
 
 <style scoped>
-.seg {
-  display: flex;
-  background: var(--colorNeutralBackground1Hover);
-  border-radius: var(--borderRadiusXLarge);
-  padding: calc(var(--design-unit) * 1px * 0.75);
-  margin-bottom: calc(var(--design-unit) * 1px * 4.5);
-}
-.seg-btn {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: var(--colorNeutralForeground1);
-  padding: calc(var(--design-unit) * 1px * 2) 0;
-  border-radius: calc(var(--borderRadiusMedium) + var(--design-unit) * 1px / 2);
-  cursor: pointer;
-  font-size: var(--fontSizeBase200);
-  transition: all 0.12s ease;
-}
-.seg-btn.active {
-  background: var(--accent-base-color);
-  color: #fff;
-  box-shadow: 0 1px calc(var(--design-unit) * 1px) rgba(0, 0, 0, 0.18);
-}
 .color {
   width: calc(var(--design-unit) * 1px * 11);
   height: calc(var(--design-unit) * 1px * 7.5);

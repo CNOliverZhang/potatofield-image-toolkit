@@ -132,9 +132,14 @@ export interface ImageToolkitApi {
   };
   /** 跨窗口主题同步：任意窗口切换深色模式/主题色后广播给其它窗口 */
   theme: {
-    set: (darkMode: boolean, themeColor: string) => void;
+    /** 同步主题偏好：mode = 'system' 时主进程把 nativeTheme.themeSource 置为 system（跟随 OS） */
+    set: (payload: { mode: 'system' | 'light' | 'dark'; darkMode: boolean; themeColor: string }) => void;
     onChanged: (
-      callback: (payload: { darkMode: boolean; themeColor: string }) => void
+      callback: (payload: {
+        mode: 'system' | 'light' | 'dark';
+        darkMode: boolean;
+        themeColor: string;
+      }) => void
     ) => () => void;
   };
 }

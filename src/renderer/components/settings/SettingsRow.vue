@@ -14,6 +14,9 @@
 /**
  * 设置行：左 label（可带描述），右控件。
  * 控件宽度建议用全局类 ctl-lg / ctl-md / ctl-num / ctl-slider。
+ *
+ * 「主项 / 子项」层级用 SettingsCollapse（主项是一张卡，子项是卡内的行），
+ * 本组件不再提供 sub 形态 —— 之前用负 margin 把两张卡拼在一起，观感与主项-子项不一致。
  */
 withDefaults(defineProps<{ label: string; desc?: string; clickable?: boolean }>(), {
   desc: '',

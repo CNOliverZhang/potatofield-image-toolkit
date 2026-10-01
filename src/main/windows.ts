@@ -51,6 +51,21 @@ import { loadZoomFactor, saveZoomFactor } from './system';
 
 const windows = new Map<string, BrowserWindow>();
 
+/** 处于「程序化改尺寸」中的窗口：其 will-resize 不拦截（见 openWindow 内的说明） */
+const programmaticResizeWindows = new WeakSet<BrowserWindow>();
+
+/**
+ * 以「程序化改尺寸」身份执行 fn：期间该窗口的 will-resize 不被拦截。
+ * 用于窗口去重时恢复窗口位置等内部 setBounds 调用；最大化/还原走 maximize()/unmaximize()，
+ * 本身不触发 will-resize，无需包一层。
+ */
+export function runWithProgrammaticResize<T>(win: BrowserWindow, fn: () => T): T {
+  programmaticResizeWindows.add(win);
+  // 放行窗口期稍长于同步调用，覆盖原生侧延迟派发的 resize
+  setTimeout(() => programmaticResizeWindows.delete(win), 300);
+  return fn();
+}
+
 /** 套用已保存的界面缩放；导航完成后缩放可能被重置，故补一次 */
 function applyZoom(win: BrowserWindow): void {
   const apply = (): void => {
@@ -135,9 +150,9 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
     ...(process.platform === 'darwin' ? { visualEffectState: 'active' as const } : {}),
     // Windows 11 22H2 以上：系统材质由 DWM 画在「整个窗口矩形」上（含非客户区），
     // 并且 DWM 不提供透明度调节 —— 可读性只能由页面叠一层半透明底色解决（见 global.css）。
-    // 材质选型用 mica 而不是 acrylic：微软的语义是 acrylic = 临时/瞬时窗口（右键菜单、
-    // 浮层），mica = 长期存在的主窗口；且 mica 只采样壁纸色调、通透度低得多，内容更易读。
-    ...(supportsAcrylic() ? { backgroundMaterial: 'mica' as const } : {}),
+    // 材质用 acrylic（亚克力，模糊壁纸+背景窗口，质感与 Win10 库的 acrylic 档一致）；
+    // 通透度通过页面的 --material-tint-alpha 控制，取值对齐 Win10 库的 0x99（60%）
+    ...(supportsAcrylic() ? { backgroundMaterial: 'acrylic' as const } : {}),
     // 旧系统（Win10 等）：交给第三方库做毛玻璃
     ...(AcrylicBrowserWindow ? { vibrancy: buildVibrancyOptions() } : {}),
     icon: resolveAppIcon(),
@@ -179,6 +194,16 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
   // 同步最大化状态给渲染进程（覆盖双击标题栏 / 系统贴靠等外部触发）
   win.on('maximize', () => win.webContents.send('window:maximize-changed', true));
   win.on('unmaximize', () => win.webContents.send('window:maximize-changed', false));
+
+  // 禁止用户拖拽调整窗口大小（产品形态固定尺寸，只能在默认/最大化之间切换）。
+  // 不能直接 resizable: false —— 那会连带禁用 Windows 的最大化按钮和 macOS 的绿灯；
+  // 因此保持 resizable，把「用户拖拽」触发的 will-resize 全部拦截：
+  // 最大化 / 还原走 maximize() / unmaximize()（程序化改尺寸不触发 will-resize），
+  // 其它程序化调用（窗口去重时的 setBounds 等）经 runWithProgrammaticResize 放行兜底。
+  win.on('will-resize', (event) => {
+    if (programmaticResizeWindows.has(win) || win.isMaximized()) return;
+    event.preventDefault();
+  });
 
   if (dedupKey) windows.set(dedupKey, win);
   return win;

@@ -16,6 +16,124 @@ pinia 持久化
 - [x] 跨窗口应用：模板窗口 `window.api.template.apply` → 主进程广播（排除发送者）+ 主窗口置前 → App.vue 存 `watermarkPending` 并跳转 → watermark.vue 用 watch 载入参数
   - 两个坑：① params 是 Pinia 响应式 Proxy，IPC 无法克隆，必须传 `JSON.parse(JSON.stringify())`；② 必须用 watch 而非 onMounted，否则主窗口已在本页时再次应用不生效
 
+### 本轮（2026-10-01 深夜 10）：图片读取改为 blob（file:// 直读的三个坑）
+- [x] 全项目已无 `file://` 直读（此前 3 处）：
+  - EXIF：不产生处理结果，原来直接用 file:// 显示原图 → 被拦成裂图；改为 op=metadata 后
+    再走一次 `op:'resize'`（1600 inside）回传 buffer 转 blob
+  - 色彩提取：file:// 不仅裂图，还会污染 canvas 导致 ColorThief 取不到像素；改为 resize 1200 → blob
+  - 水印：`previewUrl || inputSrc` 的兜底会在新预览生成前闪一帧裂图 → 去掉兜底
+- [x] `useSingleTool.setPreviewBuffer`：先赋新 URL 再释放旧的，换预览不留空窗（不再闪占位框/裂图）
+- 备注：EXIF 元数据容器（`.meta-card`）与色彩提取虚线占位（`.placeholder`）的代码均在工作区
+  （exif.vue / palette.vue），若界面上看不到，多半是合并期间 dev 热更新留下的旧状态 —— 重启 dev 再看
+
+### 本轮（2026-10-01 深夜 9）：带控件的主项不可折叠
+- [x] `SettingsCollapse`：有 `#control` 的主项恒展开且不显示 chevron（控件是主要操作，收起会挡住设置入口）；
+  无控件的主项（裁剪位置、位置基准等）保持可折叠 + chevron + hover 反馈不变
+
+### 本轮（2026-10-01 深夜 8）：主项/子项改为折叠卡（照抄水印工具「位置基准」）
+- [x] 放弃 SettingsRow 的 `sub` 形态（两张卡用负 margin 拼在一起，观感与主项-子项不一致），
+  统一改用 `SettingsCollapse`：主项是一张卡（72px 头行），子项是卡内的行（56px + hairline），
+  与水印工具「位置基准」及其下的「位置 / 定位基准」完全一致
+- [x] `SettingsCollapse` 新增 `#control` 插槽：主项右侧可放 select / 按钮 / checkbox 等控件，
+  控件区独立容器并阻止冒泡（点控件不会误折叠）；chevron 单独成按钮
+- [x] 改造点：保存位置（主项 + 常用位置/保持相对目录）、各工具「格式/输出格式/目标格式」（主项）+ 质量（子项）、
+  水印「水印类型」（主项）+ 字段（子项）、拼接「添加边距/添加底色」（主项带开关）+ 边距宽度/底色（子项）、
+  裁剪「裁剪位置」（主项）+ 定位基准/X/Y/宽/高/边距（子项）
+
+### 本轮（2026-10-01 深夜 7）：侧边栏累积高亮复发（根因 fix）
+- [x] 「工具 → 设置 → 工具」来回切换后多个导航项同时高亮复发。根因：Fluent v3 tablist 的
+  `changeTab(oldId, newId)` 只按 oldId 清除上一个选中项，而上一轮为修「设置双高亮」把
+  activeId 在 /settings 时置为 '/settings' —— 它不是真实 tab id，`getElementById` 查不到，
+  旧高亮永远清不掉，每经过一次设置就多亮一个。
+  修复：`normalizeSelection()` 在设置 activeid 后，以 activeId 为准全量同步所有 tab 的
+  `aria-selected`（不再依赖组件的增量清除逻辑）
+
+### 本轮（2026-10-01 深夜 6）：设置项层级化（主项/子项）
+- [x] **SettingsRow 新增 `sub` 形态**：子项行并入主项卡片（抵消 sg-card 间距与主项下边框、无独立边框、
+  左缩进 28px、行高 52px、顶部 hairline 分隔）；主项在后随子项时自动去下圆角（`:has(+ .is-sub)`）
+- [x] **批量工具**：独立「保存位置」分组取消，控件并入「输出设置」组 ——
+  「保存位置」（原「当前位置」改名，desc 显示当前目录）为主项，常用位置/保持相对目录为子项；
+  SaveLocationSetting 改为行片段（不再自带标题），由 BatchTool（resizer 输出设置组 /
+  compress、convert 设置组）、cropper-batch（输出设置组）、水印批量（WatermarkControls 新增
+  `#output-extra` 插槽）各自放入
+- [x] **质量 → 格式的子项**（所有出现处）：单图压缩/转换/尺寸、批量三类、水印输出设置、长图拼接
+- [x] **水印工具**：模板行删「模板较多时可直接搜索」，「当前参数」desc 改「把下列参数保存为新模板」；
+  WatermarkControls 的「文字/图片水印」分段 tab 删除，改为主项「水印类型」select，
+  文本内容/颜色/不透明度/字体/字重（文字）与 水印图片/不透明度（图片）作为子项（按类型切换展示保留）
+- [x] **长图拼接**：输出设置「提示」行删除；「边距宽度」为「添加边距」子项、「底色」为「添加底色」子项
+- [x] **裁剪工具**（CropControls，单图/批量共用）：单位选项「比例」改名「百分比」；
+  新增主项「裁剪位置」，定位基准/X/Y/宽度/高度/横向边距/纵向边距（随单位切换）全部为子项
+
+### 本轮（2026-10-01 深夜 5）：三处小修
+- [x] 「联系开发者 / 加入社区」链接间距 12 → 8px
+- [x] **设置页与侧边栏同时高亮复发**：/settings 不在功能导航里，Layout 的 activeId 回退到
+  lastNavId（上一次的工具），于是「上一次的工具」与底部「设置」入口同时亮。
+  修复：路由为 /settings 时 activeId 给一个不在 items 里的 id，让 AppSidebar 走 `.is-inactive` 中和
+- [x] **设置页滚到底间距偏大**：末尾 SettingsGroup 自带 22px margin-bottom 叠加在滚动内边距上；
+  `:deep(.settings-group:last-child)` 置 0，与字体管理（28px）对齐
+
+### 本轮（2026-10-01 深夜 4）：六项反馈
+- [x] **颜色模式**：深色模式开关改为「跟随系统 / 浅色 / 深色」select（`settings.themeMode` 持久化，
+  `darkMode` 变为由它推导的生效值）。跟随系统时经 `prefers-color-scheme` 监听实时响应
+  （Electron 中它跟随 nativeTheme；`theme:set` 主进程把 themeSource 置为 system/dark/light），
+  跨窗口同步载荷带上 mode。老用户无 themeMode 时默认 light，行为不变
+- [x] **禁止拖拽调整窗口大小**：保持 `resizable: true`（否则会禁用 Windows 最大化按钮 / mac 绿灯），
+  在 `will-resize`（darwin/win32）里拦截用户拖拽；最大化/还原走 `maximize()/unmaximize()`
+  （程序化改尺寸不触发 will-resize），`runWithProgrammaticResize()` 供内部 setBounds 兜底放行
+- [x] **版权信息页**：logo 行上下加间距；「开发者信息」白卡片去掉（一行轻量展示），
+  「联系开发者」旁新增「加入社区」（频道链接 pd.qq.com）；MIT 链接改指向协议文本
+  （opensource.org/licenses/MIT），「点此访问」指向洋芋田官网
+- [x] **无用依赖清理**：element-plus、html2canvas 从 package.json 与「相关项目」列表移除
+  （5.0 重写后已无引用）；其余依赖逐一核实均有使用（axios/crypto-js/exifr/vue-draggable-plus 等）
+- [x] **裁剪页画布铺满整窗**：根因是 `#stage` 插槽的作用域样式盲区 —— `.preview-stage` 归 ImagePicker
+  所有，cropper.vue 里对它的 scoped `position:relative` 不生效，`.cropper-box`（absolute; inset:0）
+  退化到相对 `.app-shell` 定位、铺满整窗。修复：global.css 给 `.preview-stage` 加 `position: relative`
+- [x] **Win11 材质**：`backgroundMaterial` 从 mica 改回 **acrylic**（质感与 Win10 库一致），
+  页面叠色 `--material-tint-alpha` 78% → **60%**（对齐 Win10 库色调的 0x99）
+
+### 本轮（2026-10-01 深夜 3）：边距收尾（用户 macOS 截图反馈）
+- [x] **mac 红绿灯贴内容**：`--content-pad-top` macOS 从 28 → 32（与左右边距一致；红绿灯区约到 y≈26）
+- [x] **下边距对齐上边距**：新增 `--content-pad-b` 并入全局（Windows 40 / macOS 32，与各自顶部一致），
+  Layout 与页面级滚动的「末尾间距」都引用它；右侧控件滚动（controls-body）本就没有末尾补偿，
+  footer 底部间距随 `--content-pad-b` 自动对齐顶部
+
+### 本轮（2026-10-01 深夜 2）：滚动条与边距统一（用户 Windows 验证后反馈第二轮）
+- [x] **滚动条不再占布局空间**：`::-webkit-scrollbar { width/height: 0 }`（Win11 悬浮滚动条语义），
+  滚动功能保留（滚轮/触摸板/拖动）。此前经典滚动条吃掉滚动区右侧 10px，
+  导致滚动内容比上下的固定元素（入口按钮/保存按钮）窄一条、右端对不齐；
+  `--scrollbar-w` 同步改为 0，字体管理与模板列表里按滚动条宽度补偿内边距的写法（含 JS 检测）全部删除
+- [x] **边距统一**：`Layout.vue` 的 `.content` 新增 `--content-pad-b`，左右/下边距统一为 32/28，
+  顶部沿用平台值 `--content-pad-top`（Windows 40 让出自绘标题栏、macOS 28）；
+  独立窗口不再收紧到 20px（`padMain` meta 与 `.pad-main` 样式一并移除）
+- [x] **底部边距**：删掉 `.tool` / `.watermark-tool` / `.batch-tool` / 批量页 的 `-16px` 负 bottom margin
+  （它们让工具区比内容区低一截，底部只剩 12px，与其它页面不一致）；`.batch-tool` 改为 `overflow: hidden`（滚动交给内部面板）
+- [x] **右侧内边距全部变量化**：`.controls-pane` 的 `-32px`、`.controls-body` / `.controls-footer` / `.batch-entry`
+  的 `24px` 以及 4 个文件里的本地同名声明，统一为 `var(--content-pad-x)`；
+  设置页 / 字体管理 / 模板列表 的「延伸到窗口边缘」负 margin 也改用 `var(--content-pad-b)`
+- [x] **模板列表整页滚动修复**：根因是独立窗口底部内边距是 20px、而列表的负 margin 写死 -28px，
+  多出的 8px 让 `.content` 产生了整页滚动；改用 `--content-pad-b` 后与内边距严格抵消
+
+### 本轮（2026-10-01 深夜）：八项体验修复（用户 Windows 验证后反馈）
+- [x] **启动自动检查更新没人接**：更新状态与「发现新版本→下载→安装」弹窗原本只在设置页订阅，
+  启动 3 秒的自动检查广播 `available` 时用户在首页 → 永远不提示（表现为"启动不提示更新，手动检查又可以"）。
+  提升为全局单例 `composables/useUpdater.ts`（App.vue 启动接管），设置页复用同一状态；
+  「已是最新/检查失败」提示只在**手动检查**时弹（避免每次开机噪音），下载中途失败仍会提示
+- [x] **「常用位置」**（SaveLocationSetting，批量工具共用）：去掉「应用」按钮，选中即生效，desc 说明之
+- [x] **右侧控件滚动区重构**（11 个文件）：`.batch-entry`（顶部入口）与 `.controls-footer`（底部按钮）
+  移出滚动容器 `.controls-body`，成为 `.controls-pane` 的固定 flex 子项 —— 内容只在中间滚动，
+  不再从顶部固定区/底部按钮底下穿过（原先靠 sticky + 透明背景，内容会透出来）；
+  footer 顶部留 8px 间距；全局 CSS 相应去掉 sticky/z-index
+- [x] **设置页**：页面本身不滚（tablist 固定），`.tab-panel` 独立滚动并延伸到窗口下缘
+  （负 margin 抵消 `.content` 的 28px 底部内边距，滚到底由 padding-bottom 补回同样 28px）；
+  tablist 与「外观」标题间距对齐分组间距（22px）
+- [x] **字体管理 / 模板列表**：滚动区同样延伸到窗口下缘 + 滚到底补回 28px 间距；
+  模板列表补上滚动条占位补偿（`has-scrollbar`，与字体管理同款），卡片右缘始终与「新建模板」按钮对齐
+- [x] **EXIF**：读取前右栏显示虚线占位框（同色彩提取工具），读取后元数据放进带边框底色的容器（头部带「N 项」计数）
+- [x] **尺寸调整**：提示统一为「填 0 等比缩放」并加到宽度处（单图 + 批量）；
+  宽高都为 0 时禁用保存/开始按钮并 toast 提示（`invalidSize`，预览也跳过）
+- [x] 顺手修 `AppSelect`：fluent v3 dropdown 在内部 control 就绪前赋值会同步抛 TypeError 并打断初始值重试链 → 接住后继续重试
+- 备注：Windows 材质（mica/acrylic）相关规则都挂在 `[data-platform='win']`，本机（macOS）无法验证观感，需在 Windows 上确认
+
 ### 已完成（续，2026-10-01）
 - [x] **独立编辑窗口** `pages/watermarkTemplateEditor.vue`（路由 `/watermark/templates/edit`，standalone，title『编辑水印模板』）
   - 左侧：中性占位图（主进程 `ensurePlaceholderImage()` 生成 1200×800 灰渐变，缓存在 template-assets 目录）经主进程套用水印参数渲染预览，不依赖用户图片
@@ -41,6 +159,20 @@ pinia 持久化
     （`ImageProcessResult.meta.sections`，含快门分数化、光圈 f/x、ISO、焦距+等效焦距、曝光补偿 EV、测光/白平衡/曝光程序翻译、DPI、色度抽样等）
   - 布局：右栏整列不滚，「元数据」标题与卡片常驻，卡片 `flex:1` + 内部滚动（`:deep(.sg-card) overflow-y:auto`），空态有占位文案
 - 验证：node 脚本直跑 `processImage(op=metadata)`（合成带 EXIF 的 JPEG）：各分组输出正确；无 EXIF 的 PNG 只出文件/图像两组不报错；UI 侧（入口布局/选择器/文案/标题）用 CDP 实测
+
+### 官网第二轮反馈（2026-10-01）
+- [x] **官网自身深色模式**：jss 动态 sheet 不会随站点深色模式重建（react-jss 的 theming 与 MUI ThemeContext 不同源，整个项目的既有问题）——改为页面颜色全部走 CSS 变量，由 React 按 darkMode 在根元素注入（`--it-bg/paper/text/text2/divider/hover/nav-bg/渐变/阴影` 等），切换即时生效（已实测 body 与整页同步变深）
+- [x] 滚动叙事从「上下渐隐」改为**横向滑动切换**（轨道 translateX，指示点在标题右侧、方向语义一致）；第三幕文案改「使用模板」（不再绑定具体工具）
+- [x] 版本号：**跳过 4.0，直接 5.0**（应用 package.json version=5.0.0；官网 eyebrow、推文标题与正文同步改为 5.0；推文移至 `docs/WECHAT_ARTICLE_v5.md`）
+
+### 发布准备（2026-10-01）：官网重写 + 5.0 公众号推文
+- [x] **官网首页重写**（`potatofield-frontend/src/Pages/ImageToolkit/Home/`，旧「整页翻页」方案弃用）：
+  - `constants.ts`：全部文案与截图素材集中管理；`hooks.ts`：useReveal（IntersectionObserver 渐入）/ useScrollProgress（把滚动推进写成 CSS 变量 `--p`）/ useStickyProgress（sticky 场景进度）/ useScrolled
+  - 结构：玻璃拟态吸顶导航 → Hero（渐变光斑 + 大标题 + 截图随滚动放大上浮）→ **sticky 三幕滚动叙事**（单张/批量/模板，文字切换 + 截图交叉淡入 + 进度点）→ 亮点六卡（渐入）→ 数字条 → 工具速览网格 → 下载卡片（接口取最新版本）→ 页脚
+  - 深浅色自适应、`prefers-reduced-motion` 降级；截图为本地资源（`src/Assets/Images/ImageToolkit/*.png`），由 CDP 从运行中的应用自动截取（16 张）
+  - 坑：`.root` 上的 `overflow-x:hidden` 会让页面 div 变成滚动容器，内部 `position:sticky` 全部失效（滚动叙事空白）——已移除，横向溢出由各 section 自己裁剪
+- [x] **5.0 公众号推文初稿**：`docs/WECHAT_ARTICLE_v5.md`（风格参考 50/77/142 三篇；技术名词+通俗解释；截图位置已标注，对应本地文件）
+- [ ] 待人工：截图精修（建议把带示例图片的界面重截，见文内标注）；公众号后台逐张传图；官网 4.0 版本在管理后台上架后下载按钮即生效
 
 ### 微调（用户反馈第三轮）
 - [x] 「更多」按钮对齐 Fluent 分体按钮次段样式：文字 | 全高分割线 | chevron
