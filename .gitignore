@@ -7,8 +7,11 @@ build/*.yml
 build/*.yaml
 build/*.blockmap
 build/builder-effective-config.yaml
+build/*.exe
 build/win-unpacked/
 build/win-unpacked.*/
+build/win-arm64-unpacked/
+build/win-ia32-unpacked/
 build/mac/
 build/mac-arm64/
 build/linux-unpacked/
@@ -19,3 +22,6 @@ out
 *.log
 .vscode/*
 !.vscode/extensions.json
+
+# Apple 公证凭据（不入库）
+scripts/notarize-config.cjs

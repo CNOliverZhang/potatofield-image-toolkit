@@ -39,6 +39,7 @@
     "@vitejs/plugin-vue": "^5.0.4",
     "electron": "^44.5.1",
     "electron-builder": "^26.15.3",
+    "electron-notarize": "^1.2.2",
     "electron-vite": "^5.0.0",
     "typescript": "^5.4.0",
     "vite": "^5.2.0",
@@ -67,6 +68,7 @@
       }
     ],
     "asar": false,
+    "afterSign": "scripts/notarize.cjs",
     "releaseInfo": {
       "releaseNotesFile": "RELEASE_NOTES.md"
     },

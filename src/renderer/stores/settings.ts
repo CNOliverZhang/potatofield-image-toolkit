@@ -80,7 +80,15 @@ export const useSettingsStore = defineStore('settings', {
       this.defaultExportParams = { ...this.defaultExportParams, [name]: params };
     },
     setDefaultOutput(patch: Partial<DefaultOutput>) {
-      this.defaultOutput = { ...this.defaultOutput, ...patch };
+      const next = { ...this.defaultOutput, ...patch };
+      // 值没变时必须原样返回：Vue 每次渲染都会强制给 <fluent-slider> 的 value 赋值，
+      // 而 v3 的 slider 在「被赋值」时也会同步抛一次 change 事件 → 写回 store → 再渲染。
+      // 若这里无条件换成新对象，就会形成「渲染→赋值→change→写store→渲染」的死循环
+      //（实测一次拖动触发上百次更新，界面直接卡死，直到 Vue 的递归保护中断并报错）
+      if (next.format === this.defaultOutput.format && next.quality === this.defaultOutput.quality) {
+        return;
+      }
+      this.defaultOutput = next;
     },
     /** 用主进程推送的全量数据刷新本地副本 */
     applyTemplateStore(data: TemplateStoreData) {
