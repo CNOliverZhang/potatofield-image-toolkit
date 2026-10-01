@@ -20,11 +20,24 @@ export function hasAcrylicLib(): boolean {
   return AcrylicBrowserWindow !== null;
 }
 
+/**
+ * 毛玻璃色调（#RRGGBBAA，库支持自定义色值，见 getColorsFromTheme）：
+ * 库预设 light/dark 的 alpha 仅 0x88（53%），Win10 白天模式下内容透得太狠、看不清。
+ * 这里改为「带点白的磨砂 / 带点黑的磨砂」：
+ *   浅色 #FAFAFA（近白）、深色 #1A1A1A（近黑），alpha 取 0x99（60%）：
+ *   系统模糊底纹透出四成，毛玻璃质感明显。
+ * 想更透 / 更实只调色值末尾两位即可 —— 实测档位：
+ *   F2(95%) 过实、看不出玻璃感；E6(90%) 偏实；CC(80%) 磨砂感明显；
+ *   99(60%) 更透（当前值）；88(53%) 库预设、白天模式下看不清内容。
+ *   注意别取 00（等于完全透明）或 FF（完全无模糊）。
+ */
+const ACRYLIC_TINT = { light: '#fafafa99', dark: '#1a1a1a99' } as const;
+
 /** 构建毛玻璃参数：Win10 1803(17134) 以上用亚克力，更早用经典模糊 */
 function buildVibrancyOptions(): Record<string, unknown> {
   const build = process.platform === 'win32' ? Number(process.getSystemVersion().split('.')[2] ?? 0) : 0;
   return {
-    theme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
+    theme: nativeTheme.shouldUseDarkColors ? ACRYLIC_TINT.dark : ACRYLIC_TINT.light,
     effect: build >= 17134 ? 'acrylic' : 'blur',
     // 窗口移动/缩放时由库自行刷新（Win10 亚克力必须，否则拖动后背景错位）
     useCustomWindowRefreshMethod: true,
@@ -117,7 +130,11 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
     ...(process.platform === 'darwin' ? { vibrancy: 'under-window' as const } : {}),
     // 材质始终活跃（默认跟随窗口焦点，失焦时会变淡）
     ...(process.platform === 'darwin' ? { visualEffectState: 'active' as const } : {}),
-    ...(supportsAcrylic() ? { backgroundMaterial: 'acrylic' as const } : {}),
+    // Windows 11 22H2 以上：系统材质由 DWM 画在「整个窗口矩形」上（含非客户区），
+    // 并且 DWM 不提供透明度调节 —— 可读性只能由页面叠一层半透明底色解决（见 global.css）。
+    // 材质选型用 mica 而不是 acrylic：微软的语义是 acrylic = 临时/瞬时窗口（右键菜单、
+    // 浮层），mica = 长期存在的主窗口；且 mica 只采样壁纸色调、通透度低得多，内容更易读。
+    ...(supportsAcrylic() ? { backgroundMaterial: 'mica' as const } : {}),
     // 旧系统（Win10 等）：交给第三方库做毛玻璃
     ...(AcrylicBrowserWindow ? { vibrancy: buildVibrancyOptions() } : {}),
     icon: resolveAppIcon(),
@@ -188,9 +205,20 @@ export function hasWindowMaterial(): boolean {
 export function refreshAcrylicVibrancy(): void {
   if (!AcrylicBrowserWindow) return;
   try {
-    const { setVibrancy } = require('electron-acrylic-window');
+    const options = buildVibrancyOptions();
     for (const win of BrowserWindow.getAllWindows()) {
-      if (!win.isDestroyed()) setVibrancy(win, buildVibrancyOptions());
+      if (win.isDestroyed()) continue;
+      // 必须用「实例方法」win.setVibrancy()：
+      // 库导出的 setVibrancy(win, opts) 会把 vibrnacyConfig.currentOpacity 重置为 0，
+      // 而原生层正是拿 currentOpacity 当色调 alpha —— 结果就是材质变回完全透明。
+      // 实例方法会先把 colors.a（色值里的 alpha）同步进 currentOpacity 再下发。
+      const apply = (win as unknown as { setVibrancy?: (o: unknown) => void }).setVibrancy;
+      if (typeof apply === 'function') {
+        apply.call(win, options);
+      } else {
+        const { setVibrancy } = require('electron-acrylic-window');
+        setVibrancy(win, options);
+      }
     }
   } catch {
     /* 库不可用时忽略，窗口保持普通底色 */

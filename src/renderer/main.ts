@@ -29,6 +29,9 @@ document.documentElement.setAttribute(
 // 由主进程判断（Windows 需精确到 22H2 以上才支持 acrylic）
 const hasWindowMaterial = window.api.app.windowMaterial;
 document.documentElement.dataset.material = hasWindowMaterial ? 'on' : 'off';
+// 材质来源：'lib' = 老 Windows 走 electron-acrylic-window（窗口无系统圆角/阴影），
+// 渲染进程据此去掉假圆角，避免四角露出材质缺口；'system' = macOS 玻璃 / Win11 原生亚克力
+document.documentElement.dataset.acrylic = window.api.app.acrylicLib ? 'lib' : 'system';
 
 // 全局关闭 Fluent tablist 的方向键切换（含 Home/End，它们同样会换 tab）：
 // 侧边导航与工具内的 tab 都改为「只点击切换」，避免焦点移动与页面状态不一致带来的困惑。

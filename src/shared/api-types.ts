@@ -27,6 +27,9 @@ export interface ImageToolkitApi {
     setZoomFactor: (factor: number) => Promise<number>;
     /** 当前系统是否启用了窗口材质（macOS 玻璃 / Windows 11 亚克力）：为 true 时页面背景应全透明 */
     windowMaterial: boolean;
+    /** 材质是否来自 electron-acrylic-window（Win11 22H2 以下的老 Windows）：
+     *  该路径下窗口无系统圆角/阴影，渲染进程据此去掉假圆角，避免出现材质缺口 */
+    acrylicLib: boolean;
   };
   dialog: {
     selectFile: (options: SelectFileOptions) => Promise<string[] | null>;

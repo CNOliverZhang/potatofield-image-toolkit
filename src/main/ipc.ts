@@ -1,6 +1,13 @@
 import { ipcMain, dialog, shell, app, BrowserWindow, nativeTheme } from 'electron';
 import { processImage } from './image';
-import { openWindow, getZoomFactor, setZoomFactor, hasWindowMaterial, refreshAcrylicVibrancy } from './windows';
+import {
+  openWindow,
+  getZoomFactor,
+  setZoomFactor,
+  hasWindowMaterial,
+  hasAcrylicLib,
+  refreshAcrylicVibrancy
+} from './windows';
 import {
   saveTemplateAsset,
   resolveTemplateAsset,
@@ -40,6 +47,10 @@ export function registerIpc(): void {
   // 同步通道：渲染进程首帧就需要知道是否启用系统材质（决定页面背景是否全透明）
   ipcMain.on('app:windowMaterial', (e) => {
     e.returnValue = hasWindowMaterial();
+  });
+  // 同步通道：材质是否来自第三方库（老 Windows），决定要不要去掉假圆角
+  ipcMain.on('app:acrylicLib', (e) => {
+    e.returnValue = hasAcrylicLib();
   });
   ipcMain.handle('app:isPackaged', () => app.isPackaged);
   ipcMain.handle('app:openAtLogin', () => getOpenAtLogin());
