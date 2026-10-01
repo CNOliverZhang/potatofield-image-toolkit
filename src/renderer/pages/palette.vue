@@ -15,7 +15,6 @@
     <aside class="controls-pane">
       <div class="controls-body palette-body">
       <div class="side-head">
-        <h2>色彩提取</h2>
         <SettingsGroup title="提取设置">
           <SettingsRow label="色彩数量" desc="点击色卡可复制色值">
             <app-select class="ctl-md" :value="String(count)" @change="onCount">
@@ -137,9 +136,6 @@ function copy(color: string) {
   flex-direction: column;
   gap: calc(var(--design-unit) * 2 * 1px);
   flex-shrink: 0;
-}
-.side-head h2 {
-  margin: 0;
 }
 /* 分组下方色卡区域撑满剩余高度，故去掉 SettingsGroup 自带的外边距 */
 .side-head :deep(.settings-group) {

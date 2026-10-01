@@ -7,29 +7,24 @@
       hint="选择一张图片读取 EXIF / 元数据"
       @pick="onPick"
     />
+    <!-- 右栏整列不滚动：标题与卡片常驻，滚动条只在「元数据」卡片内部 -->
     <aside class="controls-pane">
       <div class="controls-body">
-        <!-- 读取到的元数据放在右栏，与左侧预览构成左右布局（沿用设置分组的卡片外观） -->
-        <SettingsGroup v-if="entries.length" title="元数据">
-          <div class="meta-table">
-            <div class="meta-row" v-for="e in entries" :key="e.key">
-              <span class="meta-key">{{ e.key }}</span>
-              <span class="meta-val">{{ e.value }}</span>
-            </div>
+        <SettingsGroup class="meta-group" title="元数据" :count="totalCount || undefined">
+          <div class="meta-scroll">
+            <template v-if="sections.length">
+              <div v-for="s in sections" :key="s.title" class="meta-block">
+                <div class="meta-block-title">{{ s.title }}</div>
+                <div class="meta-row" v-for="e in s.entries" :key="s.title + e.label">
+                  <span class="meta-key">{{ e.label }}</span>
+                  <span class="meta-val">{{ e.value }}</span>
+                </div>
+              </div>
+            </template>
+            <p v-else class="meta-empty">
+              {{ inputPath ? '读取中…' : '选择图片后显示文件与拍摄信息' }}
+            </p>
           </div>
-        </SettingsGroup>
-        <SettingsGroup v-if="exifEntries.length" title="EXIF 原始字段">
-          <div class="meta-table">
-            <div class="meta-row" v-for="e in exifEntries" :key="'exif-' + e.key">
-              <span class="meta-key">{{ e.key }}</span>
-              <span class="meta-val">{{ e.value }}</span>
-            </div>
-          </div>
-        </SettingsGroup>
-        <SettingsGroup title="说明">
-          <p class="hint">
-            本工具读取图片的元数据（格式、尺寸、色彩空间等）以及嵌入的 EXIF 信息（如拍摄时间、相机型号、GPS 等）。
-          </p>
         </SettingsGroup>
       </div>
     </aside>
@@ -38,6 +33,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import type { MetaSection } from '@shared/types';
 import { useSingleTool } from '@renderer/composables/useSingleTool';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
@@ -47,34 +43,18 @@ const { inputPath, inputName, previewUrl, pickImage, schedulePreview } = useSing
 /** 本工具只读取元数据、不生成预览图，因此预览直接用原图 */
 const inputSrc = computed(() => (inputPath.value ? `file://${inputPath.value}` : ''));
 
-const entries = ref<{ key: string; value: string }[]>([]);
-const exifEntries = ref<{ key: string; value: string }[]>([]);
-
-function flatten(obj: Record<string, unknown>, prefix = ''): { key: string; value: string }[] {
-  const out: { key: string; value: string }[] = [];
-  for (const [k, v] of Object.entries(obj)) {
-    const key = prefix ? `${prefix}.${k}` : k;
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
-      out.push(...flatten(v as Record<string, unknown>, key));
-    } else if (Array.isArray(v)) {
-      out.push({ key, value: JSON.stringify(v) });
-    } else {
-      out.push({ key, value: String(v) });
-    }
-  }
-  return out;
-}
+const sections = ref<MetaSection[]>([]);
+const totalCount = computed(() =>
+  sections.value.reduce((n, s) => n + s.entries.length, 0)
+);
 
 async function onPick() {
   if (await pickImage()) {
     schedulePreview(async () => {
+      sections.value = [];
       const res = await window.api.image.process({ op: 'metadata', inputPath: inputPath.value });
-      const tags = (res.info || {}) as Record<string, unknown>;
-      const exif = (tags.exif as Record<string, unknown>) || {};
-      const base = { ...tags };
-      delete base.exif;
-      entries.value = flatten(base);
-      exifEntries.value = flatten(exif, 'exif');
+      // 只展示主进程筛好的「摄影 / 设计关注」字段
+      sections.value = res.meta?.sections ?? [];
       return undefined;
     });
   }
@@ -82,36 +62,65 @@ async function onPick() {
 </script>
 
 <style scoped>
-/* 元数据表现在放在右栏（340px），按窄栏调整：字段名列宽收窄、表格不自带滚动 */
-.meta-table {
-  width: 100%;
-  border: 1px solid var(--colorNeutralStroke1);
-  border-radius: var(--borderRadiusXLarge);
-  background: var(--colorNeutralBackground2);
+/* 右栏整列不可滚动：元数据卡片撑起剩余高度，滚动发生在其内部 */
+.controls-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   overflow: hidden;
+}
+.meta-group {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+/* sg-card 撑满并在内部滚动 */
+.meta-group :deep(.sg-card) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.meta-scroll {
+  padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 2.5 * 1px);
+}
+.meta-block + .meta-block {
+  margin-top: calc(var(--design-unit) * 2 * 1px);
+  border-top: 1px solid var(--colorNeutralStroke2);
+  padding-top: calc(var(--design-unit) * 2 * 1px);
+}
+.meta-block-title {
+  margin-bottom: calc(var(--design-unit) * 1 * 1px);
+  font-size: var(--fontSizeBase100);
+  font-weight: 600;
+  color: var(--app-fg-secondary);
 }
 .meta-row {
   display: flex;
   gap: calc(var(--design-unit) * 2 * 1px);
-  padding: calc(var(--design-unit) * 1.5 * 1px) calc(var(--design-unit) * 2.5 * 1px);
-  border-bottom: 1px solid var(--colorNeutralStroke1);
+  padding: calc(var(--design-unit) * 0.75 * 1px) 0;
   font-size: var(--fontSizeBase200);
-}
-.meta-row:last-child {
-  border-bottom: none;
 }
 .meta-key {
   flex: 0 0 45%;
   min-width: 0;
   color: var(--app-fg-secondary);
-  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .meta-val {
   flex: 1;
+  min-width: 0;
   color: var(--colorNeutralForeground1);
   word-break: break-all;
+}
+.meta-empty {
+  margin: 0;
+  padding: calc(var(--design-unit) * 2 * 1px) 0;
+  font-size: var(--fontSizeBase200);
+  color: var(--app-fg-secondary);
 }
 </style>

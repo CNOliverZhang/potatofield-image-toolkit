@@ -1,53 +1,39 @@
 <template>
-  <div class="tpl-page">
-    <header class="tpl-head">
-      <h1>水印模板</h1>
-      <span v-if="items.length" class="tpl-count">{{ items.length }} 个</span>
-      <fluent-button class="tpl-new" appearance="primary" size="small" @click="openEditor()">
-        <font-awesome-icon icon="plus" /> 新建模板
-      </fluent-button>
-    </header>
-
-    <p v-if="!items.length" class="tpl-empty">
-      还没有水印模板。点「新建模板」从空白开始，或在水印工具中调好参数后点「存为模板」。
-    </p>
-
-    <ul v-else class="tpl-list">
-      <li v-for="item in items" :key="item.id" class="tpl-item">
-        <img v-if="thumb(item)" class="tpl-thumb" :src="thumb(item)" alt="" />
-        <div class="tpl-main">
-          <div class="tpl-title">
-            {{ item.name }}
-            <span v-if="item.legacy" class="tpl-tag">旧版</span>
-          </div>
-          <div class="tpl-summary">{{ describe(item) }}</div>
-        </div>
-        <div class="tpl-actions">
-          <fluent-button appearance="primary" size="small" @click="apply(item)">应用</fluent-button>
-          <fluent-button size="small" @click="openEditor(item)">编辑</fluent-button>
-          <fluent-button size="small" @click="rename(item)">重命名</fluent-button>
-          <fluent-button size="small" @click="remove(item)">删除</fluent-button>
-        </div>
-      </li>
-    </ul>
-  </div>
+  <TemplateLibrary
+    v-model:active-type="activeType"
+    :types="templateTypes"
+    :items="items"
+    :describe="describe"
+    :thumb="thumb"
+    @create="openEditor()"
+    @apply="apply"
+    @edit="openEditor"
+    @rename="rename"
+    @remove="remove"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import type { TemplateItem, WatermarkParams } from '@shared/types';
 import { useSettingsStore } from '@renderer/stores/settings';
 import { useDialog } from '@renderer/composables/useDialog';
-import type { TemplateItem, WatermarkParams } from '@shared/types';
+import { templateTypes } from '@renderer/consts/templates';
+import TemplateLibrary from '@renderer/components/template/TemplateLibrary.vue';
 
+/**
+ * 水印模板库（独立窗口）。
+ * 列表布局、卡片与操作由通用组件 TemplateLibrary 提供，
+ * 这里只提供水印特有的：摘要文案、图片水印缩略图、以及四个操作的落地逻辑。
+ */
 const settings = useSettingsStore();
-const router = useRouter();
 const { alert, confirm, message, prompt } = useDialog();
 
+const activeType = ref(templateTypes[0].key);
 const items = computed(() => settings.templates.watermark ?? []);
 const thumbs = ref<Record<string, string>>({});
 
-/** 图片水印的缩略图：按需解析素材路径 */
+/** 图片水印的缩略图：素材文件名 → 绝对路径 → 主进程缩放后转 blob URL */
 function thumb(item: TemplateItem): string {
   const p = item.params as Partial<WatermarkParams>;
   return p.type === 'image' && p.watermarkPath ? thumbs.value[p.watermarkPath] ?? '' : '';
@@ -83,7 +69,7 @@ function apply(item: TemplateItem): void {
 
 /**
  * 编辑 / 新建：开独立编辑窗口。
- * 参数暂存在主进程（跨窗口共享 localStorage 有同步延迟，会丢数据），
+ * 参数暂存在主进程（跨窗口共享 localStorage 有延迟，会丢数据），
  * 窗口 key 带模板 id，避免复用已打开窗口时把新参数丢掉。
  */
 async function openEditor(item?: TemplateItem): Promise<void> {
@@ -178,77 +164,3 @@ onBeforeUnmount(() => {
   for (const url of Object.values(thumbs.value)) URL.revokeObjectURL(url);
 });
 </script>
-
-<style scoped>
-.tpl-page {
-  max-width: 760px;
-}
-.tpl-head {
-  display: flex;
-  align-items: baseline;
-  gap: calc(var(--design-unit) * 2 * 1px);
-  margin-bottom: calc(var(--design-unit) * 4 * 1px);
-}
-.tpl-head h1 {
-  margin: 0;
-  font-size: var(--fontSizeBase500);
-  font-weight: 600;
-}
-.tpl-count,
-.tpl-summary {
-  color: var(--app-fg-secondary);
-  font-size: var(--fontSizeBase200);
-}
-.tpl-new {
-  margin-left: auto;
-  align-self: center;
-}
-.tpl-empty {
-  color: var(--app-fg-secondary);
-  line-height: 1.7;
-}
-.tpl-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--design-unit) * 2 * 1px);
-}
-.tpl-item {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--design-unit) * 3 * 1px);
-  padding: calc(var(--design-unit) * 3 * 1px);
-  background: var(--app-card);
-  border: 1px solid var(--colorNeutralStroke1);
-  border-radius: var(--borderRadiusMedium);
-}
-.tpl-thumb {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-.tpl-main {
-  flex: 1;
-  min-width: 0;
-}
-.tpl-title {
-  font-weight: 500;
-  margin-bottom: calc(var(--design-unit) * 0.5 * 1px);
-}
-.tpl-tag {
-  margin-left: calc(var(--design-unit) * 1px);
-  padding: 0 calc(var(--design-unit) * 1.5 * 1px);
-  border-radius: var(--borderRadiusSmall);
-  background: var(--colorNeutralBackground1Hover);
-  color: var(--app-fg-secondary);
-  font-size: var(--fontSizeBase100);
-}
-.tpl-actions {
-  display: flex;
-  gap: calc(var(--design-unit) * 1px);
-  flex-shrink: 0;
-}
-</style>

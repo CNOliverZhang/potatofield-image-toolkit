@@ -17,13 +17,16 @@
 | `WatermarkControls.vue` | 水印参数面板（含 `lockTile`、输出设置） | 水印单图 + 批量 + 全屏水印 |
 | `CropControls.vue` | 裁剪参数面板（单位 px/比例、比例预设、九宫格定位、像素输入或百分比、使用整图） | 裁剪单图 + 批量 |
 | `AppDialog.vue` | 全局对话框，支持 alert / confirm / **多选一（actions）** / **输入（prompt）** | 全局 |
+| `template/TemplateEditor.vue` | 通用模板编辑页壳：左预览 + 右参数控件（`#controls` 插槽）+ 保存/另存/取消 | 水印模板编辑窗口（未来其它工具模板复用） |
+| `template/TemplateLibrary.vue` | 通用模板库页壳：左类型侧栏 + 右模板卡片（样式对齐字体卡）+ 分体按钮（应用 + 更多） | 水印模板列表窗口（未来其它工具模板复用） |
 | `ImagePicker.vue` | 单图工具的选图/预览占位 | 单图工具 |
-| `FontSelect.vue` | 字体选择器（搜索 + 按字体本身渲染 + 滚动不穿透） | 水印工具 |
+| `FontSelect.vue` | 可搜索下拉（搜索 + 按字体本身渲染 + 滚动不穿透）；`fontPreview:false` 可当通用「可搜索选择器」用（如模板选择） | 水印工具（字体 / 模板选择） |
 | `settings/SettingsGroup.vue` | 设置分组：标题 + 圆角卡片容器（`title`、`count` 数量徽标） | **全部工具的设置区 / 应用设置页 / 批量导出（保存位置）** |
 | `settings/SettingsRow.vue` | 设置行：左标签（可带 `desc`）+ 右控件 | 全部工具 |
 | `settings/SettingsCollapse.vue` | 可折叠设置行：标题行点击展开，内部放 `SettingsRow`（`defaultOpen`） | 水印工具（位置基准 / 边距设置） |
 | `AppDialog.vue` / `ToastHost.vue` | 全局对话框 / Toast | 全局 |
 | `Layout.vue` / `WindowControls.vue` | 外壳与无边框窗口控制 | 全局 |
+| `AppSidebar.vue` | 侧边栏（Logo + tablist 导航 + 可选「设置」），主窗口与内容型独立窗口（模板库）共用，`brand` / `showSettings` 区分 | 全局 |
 | `ToolStub.vue` | 未实现工具占位 | 临时 |
 
 ### 1.2 组合式函数（`src/renderer/composables/`）
@@ -75,6 +78,10 @@
 - 字号用 `--type-ramp-*-font-size`。
 - 布局硬约束（面板宽高、图标尺寸）、`box-shadow`、`transform`、1px 边框可保留具体像素。
 - 覆盖全局样式（如 `.preview-stage` / `.preview-img`）时在本页 `<style scoped>` 内覆盖，不要改 `global.css` 影响其它工具。
+- Fluent v3 的间距/字号/圆角令牌经 `setTheme()` 以 CSS 变量暴露，**间距语义优先用令牌**：
+  `var(--spacingHorizontalS, 8px)` / `var(--spacingHorizontalM, 12px)` / `var(--spacingHorizontalL, 16px)`（带兜底值防未注入）。
+- 元数据（EXIF）展示只走主进程筛好的分组（`ImageProcessResult.meta.sections`，`main/image.ts` 的 `readImageMeta`），
+  不要把 `sharp metadata()` 的 `exif`/`icc` Buffer 摊平展示（会是几百项废数据）。
 - **设置区一律用设置组件**：分组用 `SettingsGroup`，设置项用 `SettingsRow`，相关项折叠用 `SettingsCollapse`；**不要再写旧的 `.group` / `.field` / `.field-label` 结构**。
   - 适用范围：**工具参数 + 应用设置页 + 批量导出（保存位置）**。
   - **不适用**：批量导入面板（`BatchImportPanel`）与拼图图片列表这类「带边框容器 + 内部列表」的面板，保持自绘样式（标题 + 数量徽标 + 按钮行 + 滚动列表 + 底部栏），不要套设置组件。
@@ -154,6 +161,10 @@
 - `message()` 走 Toast；`alert()` / `confirm()` 走全局对话框。
 - 需要三个及以上选项时用 `choose(message, title, actions)`（返回被点击动作的 `value`），不要连套两个 confirm。
 - 需要用户输入时用 `prompt(message, title, defaultValue, placeholder)`，返回输入文本、取消返回 `null`。
+- 分体按钮（主操作 + 更多子项）用 `fluent-menu :split="true"` + `slot="primary-action"` / `slot="trigger"` + `fluent-menu-list`；
+  **`:split` 必须绑布尔值**，写无值的静态属性时 Vue 走 DOM property 赋 `''`，组件不会进入分体形态。
+  若主操作与「更多」要做成两个独立按钮（不连体），改用普通 `fluent-button` + 只带 trigger 的 `fluent-menu`；
+  分体形态自带的分割线要自己补：`.more-btn::part(content) { border-inline-end: … }`（menu-button 的 content part 存在）。
 - `AppDialog` 用**未注册**的 `fluent-dialog` 标签（不要去注册它）：因此必须自绘遮罩层（`position:fixed` + flex 居中），
   并且显式写 `.app-dialog[hidden]{display:none}`（作者样式的 `display` 会盖掉 UA 的 `[hidden]` 规则）。
 
@@ -169,7 +180,8 @@
 
 ## 6. 新增工具的检查清单
 
-1. 页面放在 `src/renderer/pages/`，路由加到 `router/index.ts`（独立窗口加 `meta: { standalone: true, title }`）。
+1. 页面放在 `src/renderer/pages/`，路由加到 `router/index.ts`（独立窗口加 `meta: { standalone: true, title }`；
+   内容型独立窗口——如模板库/模板编辑——再加 `padMain: true`，让左右边距与主窗口一致）。
 2. **入口一律加到 `consts/tools.ts`**（工具清单单一数据源，首页卡片与侧边栏都从这里取，避免两处叫法/图标不一致）。
 3. 单图工具：用 `useSingleTool` + `ImagePicker`；批量工具：用 `BatchImportPanel` + `SaveLocationSetting`。
 4. 需要输出设置就用 `createOutputOpts()`，并用 `outExt` / `withOutput`。

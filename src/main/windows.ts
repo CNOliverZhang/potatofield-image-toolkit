@@ -140,7 +140,12 @@ export function openWindow(options: OpenWindowOptions = {}): BrowserWindow {
 
   applyZoom(win);
 
-  win.once('ready-to-show', () => win.show());
+  // 先 show 再 focus：从工具页打开独立窗口（如模板编辑）时，
+  // macOS 上仅 show 不一定把新窗口带到前台，表现为「点了却还是主窗口在前」
+  win.once('ready-to-show', () => {
+    win.show();
+    win.focus();
+  });
 
   // dev 模式自动打开 DevTools（独立窗口，方便定位样式/逻辑问题）
   if (!app.isPackaged) {

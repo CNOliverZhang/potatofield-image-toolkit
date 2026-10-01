@@ -7,7 +7,7 @@
       :aria-expanded="open"
       @click="toggle"
     >
-      <span class="fs-value" :style="fontStyle(modelValue)">{{ displayLabel }}</span>
+      <span class="fs-value" :style="fontPreview ? fontStyle(modelValue) : undefined">{{ displayLabel }}</span>
       <font-awesome-icon icon="chevron-down" class="fs-chev" :class="{ open }" />
     </button>
 
@@ -26,7 +26,7 @@
             ref="searchEl"
             v-model="kw"
             class="fs-search-input"
-            placeholder="搜索字体"
+            :placeholder="searchPlaceholder"
             @keydown.stop
           />
         </div>
@@ -39,7 +39,7 @@
             :class="{ active: o.value === modelValue }"
             @click="select(o.value)"
           >
-            <span class="fs-option-label" :style="fontStyle(o.value)">{{ o.label }}</span>
+            <span class="fs-option-label" :style="fontPreview ? fontStyle(o.value) : undefined">{{ o.label }}</span>
           </div>
           <div v-if="!filtered.length" class="fs-empty">无匹配字体</div>
         </div>
@@ -51,11 +51,18 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 
-const props = defineProps<{
-  modelValue: string;
-  options: { label: string; value: string }[];
-  placeholder?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+    options: { label: string; value: string }[];
+    placeholder?: string;
+    /** 是否用选项值本身作为字体渲染（模板选择等非字体场景传 false） */
+    fontPreview?: boolean;
+    /** 搜索框占位文案 */
+    searchPlaceholder?: string;
+  }>(),
+  { placeholder: '选择字体', fontPreview: true, searchPlaceholder: '搜索字体' }
+);
 const emit = defineEmits<{ 'update:modelValue': [string] }>();
 
 const open = ref(false);
@@ -93,7 +100,9 @@ const SEARCH_ALIASES: Record<string, string[]> = {
 const filtered = computed(() => {
   const k = kw.value.trim().toLowerCase();
   if (!k) return props.options;
-  const terms = [k, ...(SEARCH_ALIASES[k] ?? []).map((t) => t.toLowerCase())];
+  // 别名扩展只针对字体名（非字体场景如模板名，别名没有意义）
+  const alias = props.fontPreview ? (SEARCH_ALIASES[k] ?? []) : [];
+  const terms = [k, ...alias.map((t) => t.toLowerCase())];
   return props.options.filter((o) => {
     const label = o.label.toLowerCase();
     const value = o.value.toLowerCase();

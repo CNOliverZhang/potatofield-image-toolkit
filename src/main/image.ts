@@ -1,12 +1,199 @@
 import sharp from 'sharp';
-import { existsSync } from 'fs';
+import exifr from 'exifr';
+import { existsSync, statSync } from 'fs';
 import { join } from 'path';
 import type {
   ImageProcessPayload,
   ImageProcessResult,
   ImageProcessOptions,
+  ImageMeta,
+  MetaEntry,
+  MetaSection,
   WatermarkGravity
 } from '../shared/types';
+
+/* ===================== 元数据（EXIF）精细筛选 ===================== */
+
+/**
+ * 只保留「摄影爱好者 / 设计师会看」的字段。
+ *
+ * sharp 的 metadata() 只给出图像本身的规格，EXIF 是一整块二进制；
+ * 老版本直接把 Buffer 摊平成几百项（每个字节一条），全是废数据。
+ * 这里用 exifr 解析出真正的标签，再按用途分成几组展示。
+ */
+
+/** orientation（EXIF 方向值 1..8）→ 人能读的说明 */
+const ORIENTATION_TEXT: Record<number, string> = {
+  1: '正常',
+  2: '水平翻转',
+  3: '旋转 180°',
+  4: '垂直翻转',
+  5: '顺时针 90° 后水平翻转',
+  6: '顺时针 90°',
+  7: '逆时针 90° 后水平翻转',
+  8: '逆时针 90°'
+};
+
+const EXPOSURE_PROGRAM: Record<number, string> = {
+  0: '未定义',
+  1: '手动',
+  2: '程序自动',
+  3: '光圈优先',
+  4: '快门优先',
+  5: '创意（景深优先）',
+  6: '运动（速度优先）',
+  7: '人像',
+  8: '风景'
+};
+
+const METERING_MODE: Record<number, string> = {
+  0: '未定义',
+  1: '平均测光',
+  2: '中央重点平均',
+  3: '点测光',
+  4: '多点测光',
+  5: '评价测光',
+  6: '局部测光',
+  255: '其它'
+};
+
+const WHITE_BALANCE: Record<number, string> = { 0: '自动', 1: '手动' };
+
+const COLOR_SPACE: Record<number, string> = { 1: 'sRGB', 2: 'Adobe RGB', 65535: '未校准' };
+
+function push(list: MetaEntry[], label: string, value: unknown): void {
+  if (value === undefined || value === null || value === '') return;
+  const text = typeof value === 'number' ? String(value) : String(value).trim();
+  if (!text) return;
+  list.push({ label, value: text });
+}
+
+function fileSizeText(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/** 快门速度：小于 1 秒时显示成 1/125 这样的分数 */
+function shutterText(seconds: number): string {
+  if (!seconds) return '';
+  if (seconds >= 1) return `${seconds} 秒`;
+  return `1/${Math.round(1 / seconds)} 秒`;
+}
+
+function dateText(value: unknown): string {
+  if (value instanceof Date) {
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${value.getFullYear()}-${p(value.getMonth() + 1)}-${p(value.getDate())} ${p(value.getHours())}:${p(value.getMinutes())}:${p(value.getSeconds())}`;
+  }
+  return String(value ?? '');
+}
+
+async function readImageMeta(inputPath: string): Promise<ImageMeta> {
+  const sharpMeta = await sharp(inputPath).metadata();
+  const sections: MetaSection[] = [];
+
+  // ---------- 文件 ----------
+  const file: MetaEntry[] = [];
+  push(file, '格式', String(sharpMeta.format ?? '').toUpperCase());
+  try {
+    push(file, '文件大小', fileSizeText(statSync(inputPath).size));
+  } catch {
+    /* 读不到大小就跳过 */
+  }
+  if (sharpMeta.density) push(file, '分辨率密度', `${sharpMeta.density} DPI`);
+  push(file, 'ICC 色彩配置', sharpMeta.hasProfile ? '有' : '无');
+  if (file.length) sections.push({ title: '文件', entries: file });
+
+  // ---------- 图像 ----------
+  const image: MetaEntry[] = [];
+  const w = sharpMeta.width ?? 0;
+  const h = sharpMeta.height ?? 0;
+  if (w && h) {
+    push(image, '尺寸', `${w} × ${h}`);
+    push(image, '像素总数', `${((w * h) / 1_000_000).toFixed(1)} MP`);
+  }
+  push(image, '色彩空间', sharpMeta.space);
+  push(image, '位深', sharpMeta.depth);
+  push(image, '通道数', sharpMeta.channels);
+  push(image, '透明通道', sharpMeta.hasAlpha ? '有' : '无');
+  push(image, '方向', ORIENTATION_TEXT[sharpMeta.orientation ?? 1] ?? '正常');
+  push(image, '色度抽样', sharpMeta.chromaSubsampling);
+  if (sharpMeta.isProgressive !== undefined) push(image, '渐进式', sharpMeta.isProgressive ? '是' : '否');
+  if (image.length) sections.push({ title: '图像', entries: image });
+
+  // ---------- EXIF：拍摄参数 ----------
+  let tags: Record<string, unknown> | null = null;
+  try {
+    // tiff = IFD0（厂商/型号等），exif = 拍摄参数，gps = 位置；reviveValues 把日期/有理数还原成可读值
+    tags = (await exifr.parse(inputPath, {
+      tiff: true,
+      exif: true,
+      gps: true,
+      translateKeys: true,
+      reviveValues: true
+    })) as Record<string, unknown> | null;
+  } catch {
+    tags = null;
+  }
+  if (!tags) return { sections };
+
+  const shot: MetaEntry[] = [];
+  push(shot, '相机制造商', tags.Make);
+  push(shot, '相机型号', tags.Model);
+  push(shot, '镜头型号', tags.LensModel ?? tags.LensMake);
+  push(shot, '拍摄时间', dateText(tags.DateTimeOriginal ?? tags.CreateDate ?? tags.ModifyDate));
+  if (shot.length) sections.push({ title: '拍摄信息', entries: shot });
+
+  const exposure: MetaEntry[] = [];
+  const exposureTime = Number(tags.ExposureTime);
+  if (exposureTime) push(exposure, '快门速度', shutterText(exposureTime));
+  const fnumber = Number(tags.FNumber ?? tags.ApertureValue);
+  if (fnumber) push(exposure, '光圈', `f/${fnumber}`);
+  const iso = tags.ISO ?? tags.ISOSpeedRatings ?? tags.PhotographicSensitivity;
+  if (iso) push(exposure, 'ISO', String(iso));
+  const focal = Number(tags.FocalLength);
+  if (focal) push(exposure, '焦距', `${focal} mm`);
+  const focal35 = Number(tags.FocalLengthIn35mmFormat);
+  if (focal35) push(exposure, '等效焦距', `${focal35} mm`);
+  const bias = Number(tags.ExposureBiasValue ?? tags.ExposureCompensation);
+  if (bias) push(exposure, '曝光补偿', `${bias > 0 ? '+' : ''}${bias} EV`);
+  const program = Number(tags.ExposureProgram);
+  if (program) push(exposure, '曝光程序', EXPOSURE_PROGRAM[program]);
+  const metering = Number(tags.MeteringMode);
+  if (metering) push(exposure, '测光模式', METERING_MODE[metering]);
+  const wb = tags.WhiteBalance;
+  if (wb !== undefined) {
+    const n = Number(wb);
+    push(exposure, '白平衡', (Number.isNaN(n) ? String(wb) : WHITE_BALANCE[n]) ?? String(wb));
+  }
+  const flash = tags.Flash;
+  if (flash !== undefined && flash !== '未使用闪光灯') push(exposure, '闪光灯', String(flash));
+  const cs = Number(tags.ColorSpace);
+  if (cs) push(exposure, 'EXIF 色彩空间', COLOR_SPACE[cs]);
+  if (exposure.length) sections.push({ title: '曝光参数', entries: exposure });
+
+  // ---------- 位置（仅 GPS 存在时） ----------
+  const lat = Number(tags.latitude ?? tags.GPSLatitude);
+  const lon = Number(tags.longitude ?? tags.GPSLongitude);
+  const gps: MetaEntry[] = [];
+  if (Number.isFinite(lat) && Number.isFinite(lon)) {
+    push(gps, '纬度', lat.toFixed(6));
+    push(gps, '经度', lon.toFixed(6));
+    const alt = Number(tags.GPSAltitude);
+    if (Number.isFinite(alt)) push(gps, '海拔', `${alt} m`);
+  }
+  if (gps.length) sections.push({ title: '拍摄位置', entries: gps });
+
+  // ---------- 归属与软件 ----------
+  const origin: MetaEntry[] = [];
+  push(origin, '作者', tags.Artist ?? tags.Creator);
+  push(origin, '版权', tags.Copyright);
+  push(origin, '处理软件', tags.Software);
+  push(origin, '图片描述', tags.ImageDescription);
+  if (origin.length) sections.push({ title: '归属与说明', entries: origin });
+
+  return { sections };
+}
 
 export async function processImage(payload: ImageProcessPayload): Promise<ImageProcessResult> {
   const { op, inputPath, outputPath, options = {}, extra = {} } = payload;
@@ -14,8 +201,13 @@ export async function processImage(payload: ImageProcessPayload): Promise<ImageP
 
   switch (op) {
     case 'metadata': {
+      // 精选分组（渲染层直接展示）；info 仅保留图像规格，避免把 exif/icc 二进制摊平成几百项
+      const meta = await readImageMeta(inputPath);
       const info = await sharp(inputPath).metadata();
-      return { info: info as unknown as Record<string, unknown> };
+      const plain = { ...info } as Record<string, unknown>;
+      delete plain.exif;
+      delete plain.icc;
+      return { info: plain, meta };
     }
     case 'resize': {
       const { width, height, fit = 'inside', background, format, quality } = options;

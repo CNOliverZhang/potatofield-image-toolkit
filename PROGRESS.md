@@ -27,6 +27,55 @@ pinia 持久化
 - [x] **输入型对话框**：`ui.ts` 增加 `type:'prompt'` + `DialogInput`，`AppDialog.vue` 渲染输入框（打开即聚焦全选、回车=确定），`useDialog.prompt(msg, title, default, placeholder)`；**Electron 下 `window.prompt` 不可用**，重命名/存为模板/另存模板全部改走这里
 - [x] 列表页「删除」（二次确认 + 素材引用计数清理）、「重命名」、「新建模板」均已实测通过
 
+- [x] 模板库列表 header 与字体管理工具栏同高（40px）：标题行加左侧竖直强调条（呼应纵向 tablist 选中指示条），上下间距不再有差异
+
+### 本轮（2026-10-01 晚）：六项反馈
+- [x] **水印工具模板选择器支持搜索**：复用 `FontSelect`（新增 `fontPreview` / `searchPlaceholder` props，非字体场景关掉字体渲染与中文字体别名扩展）；选项 = 「不使用模板」+ 各模板
+- [x] 水印工具页顶部「批量处理 / 模板管理」并列、各占一半（`gap: var(--spacingHorizontalM)`，Fluent 间距令牌经 setTheme 以 CSS 变量暴露，实测可用）；文案改为「模板管理」
+- [x] 首页卡片两个入口也加 `gap: var(--spacingHorizontalS)`，文案改「模板管理」
+- [x] 文本转图片页：去掉进入即弹的确认弹窗（页面本身就是指引）；文案「请前往下载」，按钮「前往下载」
+- [x] 色彩提取右栏去掉与页面标题重复的「色彩提取」h2
+- [x] **EXIF 读取重构**：
+  - 旧版把 sharp metadata 的 `exif` Buffer 摊平 → 每个字节一条、几百项废数据
+  - 主进程改用 `exifr` 解析，只保留摄影/设计关注字段，分组输出：文件 / 图像 / 拍摄信息 / 曝光参数 / 拍摄位置（有 GPS 才有）/ 归属与说明
+    （`ImageProcessResult.meta.sections`，含快门分数化、光圈 f/x、ISO、焦距+等效焦距、曝光补偿 EV、测光/白平衡/曝光程序翻译、DPI、色度抽样等）
+  - 布局：右栏整列不滚，「元数据」标题与卡片常驻，卡片 `flex:1` + 内部滚动（`:deep(.sg-card) overflow-y:auto`），空态有占位文案
+- 验证：node 脚本直跑 `processImage(op=metadata)`（合成带 EXIF 的 JPEG）：各分组输出正确；无 EXIF 的 PNG 只出文件/图像两组不报错；UI 侧（入口布局/选择器/文案/标题）用 CDP 实测
+
+### 微调（用户反馈第三轮）
+- [x] 「更多」按钮对齐 Fluent 分体按钮次段样式：文字 | 全高分割线 | chevron
+  （分割线用宿主 `::after` 全高绘制，`::part(content)` 加尾边距让文字在左段居中；
+  此前 `::part(content)` 短线不像官方形态）
+- [x] 模板库侧边栏顶部留白与主窗口一致：`.content.standalone` 的顶边距变量化（`--content-pad-top: 40px`），
+  侧边栏负 margin 拉回窗口顶部，留白交给其 brand padding（含 `--titlebar-inset`，mac 红绿灯不重叠）
+- [x] 列表上方恢复「水印模板」标题（与数量并排，中等字号），不再是光秃秃的数量
+
+### 本轮（2026-10-01 傍晚）：模板列表页对齐主窗口侧边栏 + 分体按钮拆分（用户反馈第二轮）
+- [x] **侧边栏抽成 `components/AppSidebar.vue`**（主窗口与模板库窗口共用）：
+  Logo + tablist 导航 + 可选的底部「设置」，样式与原主窗口侧边栏完全一致；
+  主窗口 `Layout.vue` 改为使用该组件。模板库窗口差异仅两处：品牌文字「模板列表」、无「设置」。
+- [x] **模板列表页**：去掉顶部大标题；左侧边栏贴窗口左缘（负 margin 抵消 `--content-pad-x`，同字体管理右侧滚动区手法）；
+  路由 meta 加 `hideTitle: true`（页面自带侧边栏品牌，顶栏不再重复显示标题）
+- [x] **「应用」与「更多」拆成两个独立按钮**（间距 8px，不再连体）；
+  「更多」内文字与 chevron 之间的分割线用 `.more-btn::part(content)` 补回
+  （Fluent 分体按钮的分割线只在 `[split]` 形态里由组件提供，拆开后要自己画）
+- [x] **独立窗口打开后显式置前**：`windows.ts` 的 `ready-to-show` 里 `show()` 后补 `focus()`
+  —— macOS 上仅 show 不一定把新窗口带到前台，表现为「编辑图片水印模板时唤起的还是主窗口」。
+  同时「应用」不再是分体按钮的主操作，菜单项点击也不可能误触应用。
+- 备注：AppDialog 的遮罩层此前已修复（未注册的 fluent-dialog 会排进文档流）；本轮截图验证均基于 built 运行。
+
+### 本轮（2026-10-01 下午）：模板页重构为通用组件 + 边距/样式修复（用户反馈）
+- [x] **组件抽象**（为未来其它工具的模板铺路）：
+  - `components/template/TemplateEditor.vue` —— 通用模板编辑页壳：左预览 / 右参数控件（`#controls` 插槽）/ 底部「保存·另存·取消」，使用方只提供预览渲染与保存逻辑（水印编辑页已改为薄壳）
+  - `components/template/TemplateLibrary.vue` —— 通用模板库页壳：左侧「模板类型」侧栏（目前仅水印，`consts/templates.ts` 单一数据源）+ 右侧模板卡片；卡片样式对齐字体管理卡片（72px 高、4px 圆角、app-card 底、4px 间距、hover 高亮）；操作为 Fluent `fluent-menu split` 分体按钮：主按钮「应用」（默认大小）+「更多」子项（编辑/重命名/删除）
+  - `pages/watermarkTemplates.vue` / `pages/watermarkTemplateEditor.vue` 改为两个通用组件的水印特化薄壳
+- [x] **fluent-menu split 的坑**：`<fluent-menu split>` 写无值静态属性不生效 —— 元素升级后 Vue 走 DOM property 赋值，`''` 被组件当成 false；
+  必须 `:split="true"`（fluent.ts 新增注册 menu / menu-button / menu-item / menu-list）
+- [x] **独立窗口边距对齐主窗口**：路由 meta 加 `padMain: true` → Layout 给 `.content` 加 `pad-main` 类，`--content-pad-x` 用 32px（模板列表/编辑两个页面；批量窗口仍 20px）
+- [x] **编辑页左右轻微滚动修复**：去掉从水印页抄来的 `.controls-pane { margin-right:-32px }` 与负 bottom margin（那是主窗口补偿内边距的写法），模板页左右完全固定
+- [x] **吸底保存按钮下的背景色块**：删除 global.css 里 `.controls-footer` 的 `background: var(--app-bg)`
+  —— 有系统材质（毛玻璃/亚克力）时这块实色底会浮在玻璃上很突兀；按钮自身有底色，滚动内容直接从下穿过
+
 ### 修复（用户反馈，2026-10-01）
 - [x] **对话框没有浮在页面上层**：`fluent-dialog` 故意未注册（见 `fluent.ts` 注释），被当成普通元素排进文档流、落到页面末尾并「顶」页面。
   `AppDialog.vue` 自绘遮罩层：`position:fixed; inset:0; z-index:9999` + flex 居中 + 半透明遮罩；

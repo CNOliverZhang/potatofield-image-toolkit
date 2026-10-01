@@ -2,20 +2,17 @@
   <div class="rte-page">
     <font-awesome-icon icon="paragraph" class="icon" />
     <h2>洋芋田富文本编辑器</h2>
-    <p>「文字转图片」已独立为「洋芋田富文本编辑器」，请前往网页版继续使用。</p>
-    <fluent-button appearance="primary" @click="openSite"
-      >打开富文本编辑器</fluent-button
-    >
+    <p>「文字转图片」已独立为「洋芋田富文本编辑器」，请前往下载。</p>
+    <fluent-button appearance="primary" @click="openSite">前往下载</fluent-button>
     <p class="hint">将在默认浏览器中打开 {{ SITE_URL }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
 import { useDialog } from "@renderer/composables/useDialog";
 
 const SITE_URL = "https://potatofield.cn/richtexteditor";
-const { confirm, message } = useDialog();
+const { message } = useDialog();
 
 async function openSite(): Promise<void> {
   try {
@@ -25,13 +22,7 @@ async function openSite(): Promise<void> {
   }
 }
 
-onMounted(async () => {
-  const ok = await confirm(
-    "「文字转图片」已独立为「洋芋田富文本编辑器」，是否前往官网打开？",
-    "工具已独立",
-  );
-  if (ok) await openSite();
-});
+// 页面本身就是说明与指引，不再额外弹窗打扰
 </script>
 
 <style scoped>

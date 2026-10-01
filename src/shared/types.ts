@@ -44,6 +44,29 @@ export interface ImageProcessResult {
   height?: number;
   /** 读取元数据时返回的完整元数据（op='metadata'） */
   tags?: Record<string, unknown>;
+  /** 读取元数据时返回的「精选」分组数据（op='metadata'） */
+  meta?: ImageMeta;
+}
+
+/** 元数据条目 */
+export interface MetaEntry {
+  label: string;
+  value: string;
+}
+
+/** 元数据分组（标题 + 条目） */
+export interface MetaSection {
+  title: string;
+  entries: MetaEntry[];
+}
+
+/**
+ * 精选元数据：只保留摄影爱好者 / 设计师真正会看的字段。
+ * 原始 EXIF 有几百项（含大量厂商私有标签），全量展示没有意义，
+ * 因此由主进程解析后筛成这几组。
+ */
+export interface ImageMeta {
+  sections: MetaSection[];
 }
 
 export interface SelectFileOptions {

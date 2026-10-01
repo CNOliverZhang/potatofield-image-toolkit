@@ -36,13 +36,15 @@ const routes = [
         path: 'watermark/templates',
         name: 'watermarkTemplates',
         component: () => import('@renderer/pages/watermarkTemplates.vue'),
-        meta: { standalone: true, title: '水印模板' }
+        // padMain：内容型独立窗口，左右边距与主窗口一致（见 Layout.vue）
+        // hideTitle：页面自带侧边栏（Logo + 「模板列表」），不再需要顶栏文字
+        meta: { standalone: true, title: '水印模板', padMain: true, hideTitle: true }
       },
       {
         path: 'watermark/templates/edit',
         name: 'watermarkTemplateEditor',
         component: () => import('@renderer/pages/watermarkTemplateEditor.vue'),
-        meta: { standalone: true, title: '编辑水印模板' }
+        meta: { standalone: true, title: '编辑水印模板', padMain: true }
       },
       {
         path: 'resizer/batch',

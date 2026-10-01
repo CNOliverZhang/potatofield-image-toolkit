@@ -467,6 +467,19 @@ fluent-button[appearance='primary']:disabled {
 .batch-entry fluent-button {
   width: 100%;
 }
+/* 批量 / 模板入口：图标 14px，并与文字垂直居中、留出间距。
+   按钮的 content 分区改成 flex：图标与文字成为弹性项，用 align-items 居中、
+   gap 给间距（比给 svg 加 margin / vertical-align 更稳，不受基线差异影响） */
+.batch-entry fluent-button::part(content) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacingHorizontalSNudge, 6px);
+}
+.batch-entry fluent-button svg {
+  font-size: 14px;
+  flex-shrink: 0;
+}
 .batch-link {
   width: 100%;
 }
@@ -476,12 +489,10 @@ fluent-button[appearance='primary']:disabled {
   isolation: isolate;
   /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高，否则滚动时控件会盖在按钮上 */
   z-index: 10;
-  /* 纯色底：替代原先的渐变遮罩，滚动内容从下方穿过 */
-  background: var(--app-bg);
   padding: 0;
 }
-/* 吸底 footer 上方的渐隐遮罩已移除：渐变基于不透明背景色推导，
-   毛玻璃/亚克力下无法匹配；改为 footer 自身用纯色，内容仍从其下方穿过 */
+/* 吸底 footer 不要画底色：窗口有系统材质（毛玻璃/亚克力）时，
+   任何实色底都会在玻璃上盖出一块「莫名背景」，按钮自身已有底色，直接透出即可 */
 .save-btn {
   width: 100%;
 }

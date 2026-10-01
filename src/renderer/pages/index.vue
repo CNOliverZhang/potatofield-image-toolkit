@@ -23,6 +23,7 @@
           <div class="card-desc">{{ tool.desc }}</div>
           <div v-if="tool.batchRoute || tool.templateRoute" class="card-foot">
             <fluent-button
+              v-if="tool.batchRoute"
               appearance="primary"
               size="small"
               shape="circular"
@@ -33,12 +34,13 @@
             </fluent-button>
             <fluent-button
               v-if="tool.templateRoute"
+              appearance="primary"
               size="small"
               shape="circular"
               class="card-batch"
               @click.stop="goTemplates(tool)"
             >
-              模板
+              模板管理
             </fluent-button>
           </div>
         </div>
@@ -197,6 +199,9 @@ function goBatch(tool: ToolEntry) {
 /* 按钮贴底，卡片内上方留白由高度与描述间距决定，不会显得窒息 */
 .card-foot {
   margin-top: auto;
+  display: flex;
+  /* Fluent 的水平间距令牌（小），保证两个入口之间有稳定间隙 */
+  gap: var(--spacingHorizontalS, 8px);
 }
 .card-batch {
   align-self: flex-start;

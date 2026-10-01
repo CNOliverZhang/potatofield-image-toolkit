@@ -12,20 +12,27 @@
     <!-- 参数面板 -->
     <aside class="controls-pane">
       <div class="controls-body">
+        <!-- 批量处理与模板管理并列，各占一半（间距用 Fluent 的水平间距令牌） -->
         <div class="batch-entry">
-          <fluent-button appearance="neutral" @click="openBatch">
+          <fluent-button appearance="neutral" class="entry-btn" @click="openBatch">
             <font-awesome-icon icon="layer-group" /> 批量处理
           </fluent-button>
-          <fluent-button appearance="neutral" @click="openTemplates">
-            <font-awesome-icon icon="bookmark" /> 模板
+          <fluent-button appearance="neutral" class="entry-btn" @click="openTemplates">
+            <font-awesome-icon icon="bookmark" /> 模板管理
           </fluent-button>
         </div>
         <SettingsGroup title="模板">
-          <SettingsRow label="选择模板">
-            <app-select class="ctl-lg" :value="selectedTemplateId" @change="onPickTemplate">
-              <fluent-option value="">不使用模板</fluent-option>
-              <fluent-option v-for="t in templates" :key="t.id" :value="t.id">{{ t.name }}</fluent-option>
-            </app-select>
+          <SettingsRow label="选择模板" desc="模板较多时可直接搜索">
+            <!-- 模板可能有很多，用带搜索的选择器（与字体选择器同款） -->
+            <FontSelect
+              class="ctl-lg"
+              :model-value="selectedTemplateId"
+              :options="templateOptions"
+              :font-preview="false"
+              placeholder="选择模板"
+              search-placeholder="搜索模板"
+              @update:model-value="onPickTemplate"
+            />
           </SettingsRow>
           <SettingsRow label="当前参数" desc="把右侧调好的参数保存为新模板">
             <fluent-button appearance="neutral" size="small" @click="saveAsTemplate">存为模板</fluent-button>
@@ -52,7 +59,7 @@ import { useSettingsStore } from '@renderer/stores/settings';
 import { defaultWatermarkParams } from '@renderer/consts/watermarkDefaults';
 import WatermarkControls from '@renderer/components/WatermarkControls.vue';
 import ImagePicker from '@renderer/components/ImagePicker.vue';
-import AppSelect from '@renderer/components/AppSelect.vue';
+import FontSelect from '@renderer/components/FontSelect.vue';
 import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
 import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 
@@ -100,8 +107,13 @@ async function applyTemplateParams(raw: Partial<WatermarkParams>): Promise<void>
   Object.assign(params, next);
 }
 
-async function onPickTemplate(e: Event): Promise<void> {
-  const id = (e.target as HTMLInputElement).value;
+/** 选择器选项：首项为「不使用模板」，其余按模板名 */
+const templateOptions = computed(() => [
+  { value: '', label: '不使用模板' },
+  ...templates.value.map((t) => ({ value: t.id, label: t.name }))
+]);
+
+async function onPickTemplate(id: string): Promise<void> {
   selectedTemplateId.value = id;
   if (!id) return;
   const item = templates.value.find((t) => t.id === id);
@@ -309,6 +321,15 @@ onBeforeUnmount(() => {
   gap: 0;
 }
 /* .batch-entry 顶部渐变与 .controls-footer::before 渐隐由 global.css 统一提供 */
+/* 两个入口各占一半：覆盖 global.css 里「单按钮占满一行」的默认宽度 */
+.batch-entry {
+  display: flex;
+  gap: var(--spacingHorizontalM, 12px);
+}
+.entry-btn {
+  flex: 1;
+  min-width: 0;
+}
 .batch-entry fluent-button {
   width: 100%;
 }

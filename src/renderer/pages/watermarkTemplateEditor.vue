@@ -1,44 +1,19 @@
 <template>
-  <div class="tpl-editor">
-    <!-- 左侧：用中性占位图渲染的水印效果预览（不依赖用户图片） -->
-    <section class="preview-pane">
-      <div class="preview-stage">
-        <img v-if="previewUrl" :src="previewUrl" class="preview-img" alt="模板预览" />
-        <span v-else class="preview-tip">预览生成中…</span>
-      </div>
-      <div class="preview-bar">
-        <span class="fname">示例图预览 · 仅用于查看水印的位置与大小</span>
-      </div>
-    </section>
-
-    <!-- 右侧：直接复用水印工具的参数面板 -->
-    <aside class="controls-pane">
-      <div class="controls-body">
-        <SettingsGroup title="模板">
-          <SettingsRow label="模板名称">
-            <fluent-text-input
-              class="ctl-lg"
-              :value="name"
-              placeholder="给模板起个名字"
-              @input="name = evVal($event)"
-            ></fluent-text-input>
-          </SettingsRow>
-        </SettingsGroup>
-
-        <WatermarkControls v-model="params" />
-
-        <div class="controls-footer">
-          <div class="foot-btns">
-            <fluent-button appearance="primary" class="foot-main" :disabled="saving" @click="save">
-              {{ saving ? '保存中…' : '保存模板' }}
-            </fluent-button>
-            <fluent-button appearance="neutral" :disabled="saving" @click="saveAs">另存模板</fluent-button>
-            <fluent-button appearance="neutral" :disabled="saving" @click="cancel">取消</fluent-button>
-          </div>
-        </div>
-      </div>
-    </aside>
-  </div>
+  <TemplateEditor
+    v-model:name="name"
+    :preview-url="previewUrl"
+    preview-tip="预览生成中…"
+    preview-hint="示例图预览 · 仅用于查看水印的位置与大小"
+    :saving="saving"
+    @save="save"
+    @save-as="saveAs"
+    @cancel="cancel"
+  >
+    <!-- 参数控件：直接复用水印工具的参数面板 -->
+    <template #controls>
+      <WatermarkControls v-model="params" />
+    </template>
+  </TemplateEditor>
 </template>
 
 <script setup lang="ts">
@@ -47,15 +22,14 @@ import type { WatermarkParams } from '@shared/types';
 import { useDialog } from '@renderer/composables/useDialog';
 import { useSettingsStore } from '@renderer/stores/settings';
 import { defaultWatermarkParams } from '@renderer/consts/watermarkDefaults';
+import TemplateEditor from '@renderer/components/template/TemplateEditor.vue';
 import WatermarkControls from '@renderer/components/WatermarkControls.vue';
-import SettingsGroup from '@renderer/components/settings/SettingsGroup.vue';
-import SettingsRow from '@renderer/components/settings/SettingsRow.vue';
 
 /**
  * 水印模板编辑窗口（独立窗口）。
  *
- * 不在水印工具页里做编辑态的原因：保存区/预览区与常规工具不同、不需要侧边栏，
- * 且能规避「编辑中点侧边栏跳走」的体验问题。
+ * 页面本身只负责水印特有的部分：预览渲染、素材持久化、保存逻辑；
+ * 布局与三个底部按钮由通用组件 TemplateEditor 提供。
  */
 const settings = useSettingsStore();
 const { message, prompt } = useDialog();
@@ -69,10 +43,6 @@ const previewUrl = ref('');
 const placeholder = ref('');
 
 let previewTimer: number | undefined;
-
-function evVal(e: Event): string {
-  return (e.target as HTMLInputElement).value;
-}
 
 function clearPreview(): void {
   if (previewUrl.value) {
@@ -134,7 +104,7 @@ function schedulePreview(): void {
  * 模板只记文件名，避免用户移动/删除原图后模板失效。
  */
 async function buildStoredParams(): Promise<WatermarkParams | null> {
-  // 去掉 Pinia/响应式代理，保证后续存储与广播都是纯对象
+  // 去掉响应式代理，保证存储与广播都是纯对象
   const plain = JSON.parse(JSON.stringify(params)) as WatermarkParams;
   if (plain.type !== 'image' || !plain.watermarkPath) return plain;
   const full = await resolveWatermarkPath(plain.watermarkPath);
@@ -218,96 +188,3 @@ onBeforeUnmount(() => {
   if (previewTimer) window.clearTimeout(previewTimer);
 });
 </script>
-
-<style scoped>
-.tpl-editor {
-  display: flex;
-  gap: calc(var(--design-unit) * 1px * 6);
-  height: 100%;
-  min-height: 0;
-  margin-bottom: calc(var(--design-unit) * 1px * -4);
-}
-.preview-pane {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--colorNeutralBackground1Hover);
-  border: 1px solid var(--colorNeutralStroke1);
-  border-radius: var(--borderRadiusXLarge);
-  overflow: hidden;
-}
-.preview-stage {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: calc(var(--design-unit) * 1px);
-  background-color: var(--colorNeutralBackground1);
-  background-image: linear-gradient(45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--colorNeutralBackground3) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--colorNeutralBackground3) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--colorNeutralBackground3) 75%);
-  background-size: calc(var(--design-unit) * 1px * 5) calc(var(--design-unit) * 1px * 5);
-  background-position: 0 0, 0 calc(var(--design-unit) * 1px * 2.5),
-    calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * -2.5),
-    calc(var(--design-unit) * 1px * -2.5) 0;
-}
-.preview-img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  box-shadow: 0 calc(var(--design-unit) * 1px * 0.5) calc(var(--design-unit) * 1px * 3) rgba(0, 0, 0, 0.18);
-}
-.preview-tip {
-  color: var(--app-fg-secondary);
-  font-size: var(--fontSizeBase200);
-}
-.preview-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(var(--design-unit) * 1px * 3);
-  padding: calc(var(--design-unit) * 1px * 2.5) calc(var(--design-unit) * 1px * 3.5);
-  border-top: 1px solid var(--colorNeutralStroke1);
-  background: var(--colorNeutralBackground2);
-}
-.fname {
-  font-size: var(--fontSizeBase200);
-  color: var(--app-fg-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.controls-pane {
-  width: 340px;
-  flex-shrink: 0;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  margin-right: -32px;
-}
-.controls-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0 calc(var(--design-unit) * 1px * 6) 0 0;
-}
-.controls-footer {
-  position: sticky;
-  bottom: 0;
-  isolation: isolate;
-  /* v3 的 select .control 自带 z-index:1，吸底 footer 必须更高 */
-  z-index: 10;
-  padding: 0;
-}
-.foot-btns {
-  display: flex;
-  gap: calc(var(--design-unit) * 1px * 2);
-}
-.foot-main {
-  flex: 1;
-}
-</style>
